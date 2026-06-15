@@ -3,260 +3,707 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Đăng nhập | Quản Trị Hệ Thống Yên Thọ</title>
+  <title>Đăng nhập | QTDND Yên Thọ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Trang đăng nhập hệ thống Quản lý chỉ tiêu mở tài khoản - Quỹ Tín dụng Nhân dân Yên Thọ. Dành riêng cho cán bộ nhân viên để theo dõi thi đua và số liệu huy động." />
-  <meta property="og:title" content="Đăng nhập | Quản Trị Hệ Thống Yên Thọ" />
-  <meta property="og:description" content="Hệ thống quản lý chỉ tiêu mở tài khoản và thống kê thi đua huy động vốn của Quỹ Tín dụng Nhân dân Yên Thọ." />
-  <meta property="og:type" content="website" />
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- SweetAlert2 -->
-  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
-  <style>
-    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      background: linear-gradient(135deg,
-          #dcfce7 0%,
-          #dcfce7 20%,
-          #cffafe 40%,
-          #e0f2fe 60%,
-          #f3e8ff 80%,
-          #fce7f3 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: "Inter", system-ui, sans-serif;
-      padding: 16px;
-    }
-
-    .login-card {
-      max-width: 420px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.97);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-    }
-
-    .login-header {
-      background: linear-gradient(135deg, #98ffde 0%, #0f766e 100%);
-      color: white;
-      padding: 32px 24px;
-      text-align: center;
-    }
-
-    .login-header .logo-icon {
-      width: 56px;
-      height: 56px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      margin-bottom: 12px;
-    }
-
-    .login-body {
-      padding: 28px 24px;
-    }
-
-    .form-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-
-    .form-control {
-      border: 1.5px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
-
-    .form-control:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-      outline: none;
-    }
-
-    .btn-login {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-login:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
-    }
-
-    .btn-login:active {
-      transform: translateY(0);
-    }
-
-    .login-footer {
-      text-align: center;
-      font-size: 0.78rem;
-      color: #94a3b8;
-      padding: 16px 24px;
-      border-top: 1px solid #f1f5f9;
-    }
-  </style>
+  <meta name="description" content="Trang đăng nhập hệ thống Quản lý chỉ tiêu mở tài khoản - Quỹ Tín dụng Nhân dân Yên Thọ." />
 </head>
 
 <body>
   <template id="tpl-frmLogin">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="logo-icon">🏦</div>
-        <h4 class="m-0 fw-bold">QTDND Yên Thọ</h4>
-        <small style="opacity: 0.8">Hệ thống Quản trị Huy động vốn</small>
-      </div>
-      <div class="login-body">
-        <div id="loginAlert" class="alert alert-danger d-none text-center"
-          style="border-radius: 8px; font-size: 0.875rem" role="alert"></div>
-        <div class="mb-3">
-          <label class="form-label">📧 Email đăng nhập</label>
-          <input type="email" id="txtEmail" class="form-control" placeholder="Nhập email của bạn" />
+
+    <!-- ══════════════════════════════════════════════
+         LOGIN PAGE STYLES (injected with template)
+    ══════════════════════════════════════════════ -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+      /* ─── Reset scoped to login wrapper ─── */
+      .login-page-wrapper * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ─── Full-viewport wrapper ─── */
+      .login-page-wrapper {
+        font-family: 'Inter', system-ui, sans-serif;
+        min-height: 100vh;
+        height: 100vh;
+        display: flex;
+        background: #f8fffe;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* ════════════════════════════
+         LEFT BRAND PANEL
+      ════════════════════════════ */
+      .login-brand {
+        display: none; /* hidden on mobile */
+        flex: 1;
+        background: linear-gradient(145deg, #064e3b 0%, #065f46 35%, #047857 65%, #059669 100%);
+        padding: 48px 40px;
+        position: relative;
+        overflow: hidden;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      /* Decorative blobs */
+      .login-brand::before {
+        content: '';
+        position: absolute;
+        width: 380px;
+        height: 380px;
+        background: radial-gradient(circle, rgba(167, 243, 208, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        top: -100px;
+        right: -100px;
+        pointer-events: none;
+      }
+
+      .login-brand::after {
+        content: '';
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        background: radial-gradient(circle, rgba(52, 211, 153, 0.12) 0%, transparent 70%);
+        border-radius: 50%;
+        bottom: -60px;
+        left: -60px;
+        pointer-events: none;
+      }
+
+      .brand-orb {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.04);
+        animation: floatOrb 8s ease-in-out infinite;
+      }
+      .brand-orb-1 { width: 200px; height: 200px; top: 20%; right: 5%; animation-delay: 0s; }
+      .brand-orb-2 { width: 120px; height: 120px; top: 55%; right: 20%; animation-delay: -3s; }
+      .brand-orb-3 { width: 80px;  height: 80px;  top: 75%; right: 8%;  animation-delay: -5s; }
+
+      @keyframes floatOrb {
+        0%, 100% { transform: translateY(0px) scale(1); }
+        50%       { transform: translateY(-20px) scale(1.05); }
+      }
+
+      .brand-top { position: relative; z-index: 1; }
+
+      .brand-logo-icon {
+        width: 64px;
+        height: 64px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(8px);
+        border: 1.5px solid rgba(255,255,255,0.25);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      }
+
+      .brand-name {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.2;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+      }
+
+      .brand-tagline {
+        font-size: 0.95rem;
+        color: rgba(167,243,208,0.9);
+        font-weight: 400;
+        line-height: 1.6;
+        max-width: 320px;
+        margin-bottom: 48px;
+      }
+
+      /* Feature pills */
+      .brand-features { position: relative; z-index: 1; }
+
+      .brand-feature-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(6px);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        transition: background 0.3s;
+      }
+
+      .brand-feature-item:hover { background: rgba(255,255,255,0.12); }
+
+      .brand-feature-icon {
+        width: 36px;
+        height: 36px;
+        background: rgba(52,211,153,0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        flex-shrink: 0;
+      }
+
+      .brand-feature-text strong {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.3;
+      }
+
+      .brand-feature-text span {
+        font-size: 0.75rem;
+        color: rgba(167,243,208,0.75);
+      }
+
+      .brand-bottom {
+        position: relative;
+        z-index: 1;
+        padding-top: 32px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        color: rgba(167,243,208,0.6);
+        font-size: 0.78rem;
+      }
+
+      /* ════════════════════════════
+         RIGHT FORM PANEL
+      ════════════════════════════ */
+      .login-form-panel {
+        flex: 0 0 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: #fff;
+        position: relative;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* Subtle top gradient accent */
+      .login-form-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #059669, #34d399, #6ee7b7, #059669);
+        background-size: 200% 100%;
+        animation: shimmer 3s linear infinite;
+      }
+
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* Mobile brand banner (shown only on small screens) */
+      .login-mobile-brand {
+        text-align: center;
+        padding: 24px 0 28px;
+      }
+
+      .login-mobile-icon {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, #065f46, #059669);
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 24px rgba(5,150,105,0.35);
+      }
+
+      .login-mobile-brand h2 {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #064e3b;
+        margin-bottom: 4px;
+        letter-spacing: -0.3px;
+      }
+
+      .login-mobile-brand p {
+        font-size: 0.8rem;
+        color: #6b7280;
+      }
+
+      /* ─── Card ─── */
+      .login-card-box {
+        width: 100%;
+        max-width: 400px;
+        animation: cardEntrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      @keyframes cardEntrance {
+        from { opacity: 0; transform: translateY(28px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0)   scale(1); }
+      }
+
+      .login-heading {
+        margin-bottom: 28px;
+      }
+
+      .login-heading h1 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #111827;
+        letter-spacing: -0.5px;
+        margin-bottom: 6px;
+      }
+
+      .login-heading p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 400;
+      }
+
+      /* ─── Form fields ─── */
+      .login-field { margin-bottom: 18px; }
+
+      .login-field label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .login-input-wrap {
+        position: relative;
+      }
+
+      .login-input-wrap .field-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 17px;
+        pointer-events: none;
+        transition: color 0.2s;
+      }
+
+      .login-input {
+        width: 100%;
+        padding: 13px 14px 13px 42px;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-family: 'Inter', sans-serif;
+        color: #111827;
+        background: #fafafa;
+        transition: all 0.2s ease;
+        outline: none;
+      }
+
+      .login-input::placeholder { color: #d1d5db; }
+
+      .login-input:focus {
+        border-color: #059669;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
+      }
+
+      .login-input:focus + .field-icon-after,
+      .login-input-wrap:focus-within .field-icon {
+        color: #059669;
+      }
+
+      /* Password toggle */
+      .btn-toggle-pw {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        font-size: 17px;
+        transition: color 0.2s;
+      }
+
+      .btn-toggle-pw:hover { color: #059669; }
+
+      /* ─── Alert ─── */
+      .login-alert {
+        display: none;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-left: 4px solid #ef4444;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 0.85rem;
+        color: #b91c1c;
+        margin-bottom: 20px;
+        animation: alertSlide 0.25s ease;
+      }
+
+      @keyframes alertSlide {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* ─── Submit button ─── */
+      .btn-login-submit {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #064e3b 0%, #059669 100%);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+        letter-spacing: 0.02em;
+        margin-top: 8px;
+        box-shadow: 0 4px 14px rgba(5,150,105,0.35);
+      }
+
+      .btn-login-submit::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+
+      .btn-login-submit:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(5,150,105,0.45);
+      }
+
+      .btn-login-submit:hover:not(:disabled)::before { opacity: 1; }
+
+      .btn-login-submit:active:not(:disabled) { transform: translateY(0); }
+
+      .btn-login-submit:disabled {
+        opacity: 0.75;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-login-submit .btn-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2.5px solid rgba(255,255,255,0.4);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: none;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* ─── Footer ─── */
+      .login-form-footer {
+        text-align: center;
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid #f3f4f6;
+        font-size: 0.75rem;
+        color: #9ca3af;
+      }
+
+      .login-form-footer strong { color: #6b7280; }
+
+      /* ════════════════════════════
+         RESPONSIVE: Desktop ≥ 768px
+      ════════════════════════════ */
+      @media (min-width: 768px) {
+        .login-brand { display: flex; }
+        .login-form-panel {
+          flex: 0 0 460px;
+          padding: 48px 40px;
+        }
+        .login-mobile-brand { display: none !important; }
+      }
+
+      @media (min-width: 1024px) {
+        .login-form-panel { flex: 0 0 520px; padding: 40px 64px; }
+      }
+
+      /* Ensure wrapper fills the mainWrapper container */
+      #appContent > .login-page-wrapper,
+      body > .login-page-wrapper {
+        min-height: 100vh;
+        height: 100vh;
+      }
+    </style>
+
+    <!-- ══════════════════════════════════════════════
+         LOGIN PAGE MARKUP
+    ══════════════════════════════════════════════ -->
+    <div class="login-page-wrapper">
+
+      <!-- ─── LEFT: Brand Panel (desktop only) ─── -->
+      <div class="login-brand">
+        <!-- Floating orbs -->
+        <div class="brand-orb brand-orb-1"></div>
+        <div class="brand-orb brand-orb-2"></div>
+        <div class="brand-orb brand-orb-3"></div>
+
+        <!-- Top: Logo & name -->
+        <div class="brand-top">
+          <div class="brand-logo-icon">🏦</div>
+          <div class="brand-name">QTDND<br>Yên Thọ</div>
+          <div class="brand-tagline">
+            Hệ thống quản trị huy động vốn nội bộ dành cho cán bộ Quỹ Tín dụng Nhân dân Yên Thọ.
+          </div>
+
+          <!-- Features -->
+          <div class="brand-features">
+            <div class="brand-feature-item">
+              <div class="brand-feature-icon">📊</div>
+              <div class="brand-feature-text">
+                <strong>Dashboard KPI Thời Gian Thực</strong>
+                <span>Theo dõi chỉ tiêu huy động tức thì</span>
+              </div>
+            </div>
+            <div class="brand-feature-item">
+              <div class="brand-feature-icon">💳</div>
+              <div class="brand-feature-text">
+                <strong>Quản lý Giao Dịch</strong>
+                <span>Gửi, rút, duyệt lệnh mọi lúc mọi nơi</span>
+              </div>
+            </div>
+            <div class="brand-feature-item">
+              <div class="brand-feature-icon">📈</div>
+              <div class="brand-feature-text">
+                <strong>Báo Cáo & Tăng Trưởng</strong>
+                <span>Phân tích số liệu chuyên sâu</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="mb-4">
-          <label class="form-label">🔑 Mật khẩu</label>
-          <input type="password" id="txtPassword" class="form-control" placeholder="••••••••" />
+
+        <!-- Bottom: copyright -->
+        <div class="brand-bottom">
+          © 2026 QTDND Yên Thọ · Hệ thống nội bộ · Bảo mật & tin cậy
         </div>
-        <button id="btnLogin" class="btn-login" type="button">
-          <span id="loginSpinner" class="spinner-border spinner-border-sm d-none" role="status"
-            aria-hidden="true"></span>
-          Đăng nhập
-        </button>
       </div>
-      <div class="login-footer">
-        QTDND Yên Thọ &copy; 2026 &mdash; Hệ thống nội bộ
+
+      <!-- ─── RIGHT: Form Panel ─── -->
+      <div class="login-form-panel">
+        <div class="login-card-box">
+
+          <!-- Mobile: compact brand header -->
+          <div class="login-mobile-brand">
+            <div class="login-mobile-icon">🏦</div>
+            <h2>QTDND Yên Thọ</h2>
+            <p>Hệ thống quản trị huy động vốn nội bộ</p>
+          </div>
+
+          <!-- Heading -->
+          <div class="login-heading">
+            <h1>Đăng nhập</h1>
+            <p>Chào mừng trở lại! Vui lòng nhập thông tin đăng nhập.</p>
+          </div>
+
+          <!-- Error alert -->
+          <div id="loginAlert" class="login-alert" role="alert"></div>
+
+          <!-- Email -->
+          <div class="login-field">
+            <label for="txtEmail">Email đăng nhập</label>
+            <div class="login-input-wrap">
+              <i class="bx bx-envelope field-icon"></i>
+              <input
+                type="email"
+                id="txtEmail"
+                class="login-input"
+                placeholder="ten@example.com"
+                autocomplete="email"
+              />
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="login-field">
+            <label for="txtPassword">Mật khẩu</label>
+            <div class="login-input-wrap">
+              <i class="bx bx-lock-alt field-icon"></i>
+              <input
+                type="password"
+                id="txtPassword"
+                class="login-input"
+                placeholder="Nhập mật khẩu"
+                autocomplete="current-password"
+                style="padding-right: 44px;"
+              />
+              <button
+                type="button"
+                class="btn-toggle-pw"
+                id="btnTogglePw"
+                tabindex="-1"
+                title="Hiện/Ẩn mật khẩu"
+              >
+                <i class="bx bx-hide" id="iconTogglePw"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button id="btnLogin" class="btn-login-submit" type="button">
+            <div class="btn-spinner" id="loginSpinner"></div>
+            <i class="bx bx-log-in" id="loginBtnIcon"></i>
+            <span id="loginBtnText">Đăng nhập</span>
+          </button>
+
+          <!-- Footer -->
+          <div class="login-form-footer">
+            <strong>Hệ thống nội bộ</strong> · Dành riêng cho cán bộ QTDND Yên Thọ<br>
+            Nếu quên mật khẩu, liên hệ Quản trị viên.
+          </div>
+
+        </div>
       </div>
     </div>
 
+    <!-- ══════════════════════════════════════════════
+         SCRIPTS
+    ══════════════════════════════════════════════ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
       $(document).ready(function () {
-        // [C] Tự động trỏ focus vào email khi nạp form login
-        $("#txtEmail").focus();
+        // Auto-focus email field
+        $('#txtEmail').focus();
 
-        // Cho phép ấn Enter để Đăng nhập
-        $("#txtPassword").keypress(function (e) {
-          if (e.which == 13) {
-            $("#btnLogin").click();
+        // Password show/hide toggle
+        $('#btnTogglePw').on('click', function () {
+          var input = $('#txtPassword');
+          var icon  = $('#iconTogglePw');
+          if (input.attr('type') === 'password') {
+            input.attr('type', 'text');
+            icon.removeClass('bx-hide').addClass('bx-show');
+          } else {
+            input.attr('type', 'password');
+            icon.removeClass('bx-show').addClass('bx-hide');
           }
         });
 
-        $("#btnLogin").click(function () {
-          var email = $("#txtEmail").val().trim();
-          var password = $("#txtPassword").val();
+        // Enter key triggers login
+        $('#txtEmail, #txtPassword').on('keypress', function (e) {
+          if (e.which === 13) { $('#btnLogin').trigger('click'); }
+        });
+
+        // ─── Login handler ───
+        $('#btnLogin').on('click', function () {
+          var email    = $('#txtEmail').val().trim();
+          var password = $('#txtPassword').val();
 
           if (!email || !password) {
-            Swal.fire(
-              "Cảnh báo",
-              "Vui lòng điền đầy đủ Email và Mật khẩu",
-              "warning",
-            );
+            showLoginAlert('Vui lòng điền đầy đủ Email và Mật khẩu.');
             return;
           }
 
+          // Show loading state
           var btn = $(this);
-          $("#loginSpinner").removeClass("d-none");
-          btn.prop("disabled", true);
-          $("#loginAlert").addClass("d-none");
+          btn.prop('disabled', true);
+          $('#loginSpinner').css('display', 'block');
+          $('#loginBtnIcon').addClass('d-none');
+          $('#loginBtnText').text('Đang đăng nhập...');
+          $('#loginAlert').hide();
 
-          // Băm mật khẩu (SHA-256) trước khi gửi lên mạng
-          var hashedPassword = CryptoJS.SHA256(password).toString(
-            CryptoJS.enc.Hex,
-          );
+          // Hash password (SHA-256)
+          var hashedPassword = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
 
-          // Fetch IP trước khi request login
+          // Get client IP then login
           $.getJSON('https://api.ipify.org?format=json')
-            .done(function (data) {
-              executeLogin(data.ip);
-            })
-            .fail(function () {
-              executeLogin("Unknown IP");
-            });
+            .done(function (data) { executeLogin(data.ip); })
+            .fail(function ()      { executeLogin('Unknown IP'); });
 
           function executeLogin(clientIP) {
             google.script.run
               .withSuccessHandler(function (resStr) {
                 try {
-                  var json =
-                    typeof resStr === "string" ? JSON.parse(resStr) : resStr;
+                  var json = typeof resStr === 'string' ? JSON.parse(resStr) : resStr;
 
-                  if (json.status === "success") {
-                    var loginData = json.data; // {token, user}
-                    localStorage.setItem("SESSIONTOKEN", loginData.token);
-                    localStorage.setItem("LOGIN_TIMESTAMP", String(Date.now()));
-
-                    // Lưu nhanh IP để xài về sau
+                  if (json.status === 'success') {
+                    var loginData = json.data;
+                    localStorage.setItem('SESSIONTOKEN', loginData.token);
+                    localStorage.setItem('LOGIN_TIMESTAMP', String(Date.now()));
                     if (window.APP_CONTEXT) window.APP_CONTEXT.ClientIP = clientIP;
 
-                    if (
-                      window.AppManager &&
-                      typeof window.AppManager.init === "function"
-                    ) {
-                      window.AppManager.init();
-                    } else {
-                      try {
-                        var url = "<?= ScriptApp.getService().getUrl() ?>";
-                        window.top.location.href = url;
-                      } catch (e) {
-                        Swal.fire(
-                          "Thông báo",
-                          "Đăng nhập thành công. Vui lòng F5 lại trang.",
-                          "success",
-                        );
+                    // Brief success flash before redirect
+                    btn.css('background', 'linear-gradient(135deg, #065f46, #34d399)');
+                    $('#loginBtnText').text('Thành công! Đang vào hệ thống...');
+
+                    setTimeout(function () {
+                      if (window.AppManager && typeof window.AppManager.init === 'function') {
+                        window.AppManager.init();
+                      } else {
+                        try {
+                          var url = "<?= ScriptApp.getService().getUrl() ?>";
+                          window.top.location.href = url;
+                        } catch (e) {
+                          Swal.fire('Thông báo', 'Đăng nhập thành công. Vui lòng F5 lại trang.', 'success');
+                        }
                       }
-                    }
+                    }, 600);
                   } else {
-                    $("#loginAlert").removeClass("d-none").html(json.message);
-                    btn.prop("disabled", false);
-                    $("#loginSpinner").addClass("d-none");
+                    showLoginAlert(json.message || 'Sai thông tin đăng nhập. Vui lòng thử lại.');
+                    resetBtn();
                   }
                 } catch (e) {
-                  console.error("Parse Error:", e, resStr);
-                  Swal.fire("Lỗi", "Dữ liệu phản hồi không hợp lệ.", "error");
-                  btn.prop("disabled", false);
-                  $("#loginSpinner").addClass("d-none");
+                  console.error('Parse Error:', e, resStr);
+                  showLoginAlert('Dữ liệu phản hồi không hợp lệ. Liên hệ Admin.');
+                  resetBtn();
                 }
               })
               .withFailureHandler(function (err) {
-                $("#loginAlert")
-                  .removeClass("d-none")
-                  .html(err.message || "Không thể kết nối máy chủ.");
-                btn.prop("disabled", false);
-                $("#loginSpinner").addClass("d-none");
+                showLoginAlert(err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+                resetBtn();
               })
-              .doApiRequest("login", { email: email, hash: hashedPassword, ClientIP: clientIP });
+              .doApiRequest('login', { email: email, hash: hashedPassword, ClientIP: clientIP });
+          }
+
+          function resetBtn() {
+            btn.prop('disabled', false);
+            $('#loginSpinner').css('display', 'none');
+            $('#loginBtnIcon').removeClass('d-none');
+            $('#loginBtnText').text('Đăng nhập');
+          }
+
+          function showLoginAlert(msg) {
+            $('#loginAlert').html(
+              '<i class="bx bx-error-circle" style="vertical-align:-2px;margin-right:6px;"></i>' + msg
+            ).slideDown(200);
           }
         });
       });
     </script>
+
   </template>
 </body>
 
