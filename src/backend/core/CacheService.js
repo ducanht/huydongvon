@@ -25,9 +25,14 @@ var CacheServiceWrapper = {
 
       // Kiểm tra nếu là dữ liệu chia nhỏ (Chunks)
       if (metadata && metadata.__isChunked) {
+        var chunkKeys = [];
+        for (var i = 0; i < metadata.count; i++) {
+          chunkKeys.push(key + "_chunk_" + i);
+        }
+        var chunkData = cache.getAll(chunkKeys);
         var fullStr = "";
         for (var i = 0; i < metadata.count; i++) {
-          var chunk = cache.get(key + "_chunk_" + i);
+          var chunk = chunkData[key + "_chunk_" + i];
           if (chunk == null) return null; // Mất 1 chunk coi như hỏng cache
           fullStr += chunk;
         }
@@ -54,25 +59,29 @@ var CacheServiceWrapper = {
         cache.put(key, jsonStr, expiration);
       } else {
         // Dữ liệu quá lớn, thực hiện Chunking
-        var chunks = [];
+        var chunksMap = {};
+        var count = 0;
         for (var i = 0; i < jsonStr.length; i += this.CHUNK_SIZE_LIMIT) {
-          chunks.push(jsonStr.substring(i, i + this.CHUNK_SIZE_LIMIT));
+          chunksMap[key + "_chunk_" + count] = jsonStr.substring(i, i + this.CHUNK_SIZE_LIMIT);
+          count++;
         }
 
         // Lưu metadata để biết đường ghép lại
         var metadata = {
           __isChunked: true,
-          count: chunks.length,
+          count: count,
           totalLength: jsonStr.length,
           timestamp: Date.now()
         };
         
-        cache.put(key, JSON.stringify(metadata), expiration);
-        
-        // Lưu từng chunk
-        for (var j = 0; j < chunks.length; j++) {
-          cache.put(key + "_chunk_" + j, chunks[j], expiration);
+        // Tạo map ghi hàng loạt
+        var batchMap = {};
+        batchMap[key] = JSON.stringify(metadata);
+        for (var k in chunksMap) {
+          batchMap[k] = chunksMap[k];
         }
+        
+        cache.putAll(batchMap, expiration);
       }
     } catch (e) {
       LoggerService.log("SYSTEM_ERROR", "Cache put Error", "FAILED", { key: key, error: e.message });
@@ -90,10 +99,12 @@ var CacheServiceWrapper = {
         try {
           var metadata = JSON.parse(metadataStr);
           if (metadata && metadata.__isChunked) {
-            // Xóa hết các chunks
+            var keysToRemove = [key];
             for (var i = 0; i < metadata.count; i++) {
-              cache.remove(key + "_chunk_" + i);
+              keysToRemove.push(key + "_chunk_" + i);
             }
+            cache.removeAll(keysToRemove);
+            return;
           }
         } catch (e) {}
       }

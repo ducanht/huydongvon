@@ -3,6 +3,9 @@
        ========================================== */
 
   var AppManager = {
+    // Client-side cache for static API data (e.g. dropdown lists)
+    _clientCache: {},
+
     // Cấu hình ngôn ngữ tiếng Việt DataTables
     _DT_LANG_VI: {
       sProcessing: "Đang xử lý...",
@@ -495,6 +498,13 @@
      */
     _pendingActions: {},
     callApi: function (action, payload) {
+      var cacheKey = action + (payload ? JSON.stringify(payload) : "");
+      var cacheableActions = ['getAllChienDich', 'getNhanSuActive', 'getUserProfile'];
+      if (cacheableActions.indexOf(action) !== -1 && this._clientCache[cacheKey]) {
+        var dCached = $.Deferred();
+        return dCached.resolve(JSON.parse(JSON.stringify(this._clientCache[cacheKey]))).promise();
+      }
+
       var d = $.Deferred();
 
       // Intercept all API calls except allowed ones if password change is required
@@ -544,6 +554,7 @@
       var actionKey = action + (payload ? JSON.stringify(payload) : "");
 
       if (isWriteAction) {
+        this._clientCache = {}; // Xóa sạch client-side cache khi có bất kỳ tác vụ ghi nào
         if (this._pendingActions[actionKey]) {
           console.warn(
             "[Double-Click Prevented] Action " +
@@ -574,6 +585,9 @@
           try {
             var json = typeof resStr === "string" ? JSON.parse(resStr) : resStr;
             if (json.status === "success") {
+              if (cacheableActions.indexOf(action) !== -1) {
+                self._clientCache[cacheKey] = JSON.parse(JSON.stringify(json.data));
+              }
               d.resolve(json.data);
             } else {
               if (
