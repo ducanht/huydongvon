@@ -162,6 +162,7 @@
                         <table class="table table-hover align-middle mb-0 table-mobile-cards" id="tbReconciliationPreview">
                             <thead class="table-danger text-center small">
                                 <tr>
+                                    <th width="8%"><input type="checkbox" id="chkReconcileAll" checked onclick="toggleSelectAllReconcile(this)"></th>
                                     <th>Số Sổ</th>
                                     <th>Khách Hàng</th>
                                     <th>Cán bộ QL</th>
@@ -425,11 +426,12 @@
                 tempReconciliationList = res.danhSachThuHoi || [];
 
                 if (tempReconciliationList.length === 0) {
-                    tbody.html('<tr><td colspan="4" class="text-success py-4"><i class="bx bx-check-shield fs-1 d-block mb-2"></i>Tuyệt vời! Hệ thống khớp 100% với Sao kê Lõi.</td></tr>');
+                    tbody.html('<tr><td colspan="5" class="text-success py-4"><i class="bx bx-check-shield fs-1 d-block mb-2"></i>Tuyệt vời! Hệ thống khớp 100% với Sao kê Lõi.</td></tr>');
                     $('#reconciliationFooter').addClass('d-none');
                 } else {
                     tempReconciliationList.forEach(function (so) {
                         var row = `<tr>
+                            <td><input type="checkbox" class="chk-reconcile-item" data-soso="${so.SoSo}" checked onchange="updateSelectedReconcileStats()"></td>
                             <td data-label="Số Sổ" class="fw-bold text-primary">${so.SoSo}</td>
                             <td data-label="Khách Hàng">${so.TenKH}</td>
                             <td data-label="Cán bộ QL"><span class="badge bg-secondary">${so.MaVN}</span></td>
@@ -438,6 +440,8 @@
                         tbody.append(row);
                     });
                     $('#reconciliationFooter').removeClass('d-none');
+                    $('#chkReconcileAll').prop('checked', true);
+                    updateSelectedReconcileStats();
                 }
 
                 $('#reconciliationResultArea').removeClass('d-none').hide().fadeIn();
@@ -448,26 +452,66 @@
             });
     }
 
+    function toggleSelectAllReconcile(master) {
+        var checked = $(master).is(':checked');
+        $('.chk-reconcile-item').prop('checked', checked);
+        updateSelectedReconcileStats();
+    }
+
+    function updateSelectedReconcileStats() {
+        var selectedCount = 0;
+        var selectedTienBiTru = 0;
+        
+        $('.chk-reconcile-item').each(function() {
+            if ($(this).is(':checked')) {
+                selectedCount++;
+                var soso = $(this).data('soso');
+                var so = tempReconciliationList.find(function(item) { return item.SoSo === soso; });
+                if (so) {
+                    selectedTienBiTru += parseFloat(so.SoDuHienTai || 0);
+                }
+            }
+        });
+        
+        $('#lblTotalPhatHien').html(`<span class="text-danger fw-bold">${selectedCount}</span> / ${tempReconciliationList.length}`);
+        $('#lblTotalTienBiTru').text(AppManager.formatCurrency(selectedTienBiTru) + ' đ');
+        
+        var allChecked = $('.chk-reconcile-item').length > 0 && $('.chk-reconcile-item').length === selectedCount;
+        $('#chkReconcileAll').prop('checked', allChecked);
+        
+        $('#btnExecuteReconciliation').prop('disabled', selectedCount === 0);
+    }
+
     function executeReconciliation() {
-        if (!tempReconciliationList || tempReconciliationList.length === 0) {
-            Swal.fire('Cảnh báo', 'Không có dữ liệu sổ bị lệch để tất toán.', 'warning');
+        var selectedSoList = [];
+        $('.chk-reconcile-item:checked').each(function() {
+            var soso = $(this).data('soso');
+            var so = tempReconciliationList.find(function(item) { return item.SoSo === soso; });
+            if (so) {
+                selectedSoList.push(so);
+            }
+        });
+
+        if (selectedSoList.length === 0) {
+            Swal.fire('Cảnh báo', 'Vui lòng chọn ít nhất 1 sổ để tất toán.', 'warning');
             return;
         }
 
         Swal.fire({
-            title: `Bạn chắc chắn muốn Tất Toán ${tempReconciliationList.length} Sổ này?`,
+            title: `Bạn chắc chắn muốn Tất Toán ${selectedSoList.length} Sổ đã chọn?`,
             text: "Hành động này sẽ Tự động rút tiền, Tự động đóng sổ, và Lập tức trừ KPI của các nhân viên. Không thể hoàn tác!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Đồng ý, Tất Toán Hàng Loạt & Trừ Điểm!'
+            confirmButtonText: 'Đồng ý, Tất Toán Các Sổ Đã Chọn!'
         }).then((result) => {
             if (result.isConfirmed) {
                 var btn = $('#btnExecuteReconciliation');
-                btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang ghi sổ liên hoàn...');
+                var originalText = btn.html();
+                btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang ghi sổ...');
 
-                AppManager.callApi('executeReconciliation', { DanhSachSo: tempReconciliationList })
+                AppManager.callApi('executeReconciliation', { DanhSachSo: selectedSoList })
                     .done(function (res) {
                         $('#modalDoiChieu').modal('hide');
                         Swal.fire('Thành công', res.message, 'success');
@@ -476,7 +520,7 @@
                     })
                     .fail(function (err) {
                         Swal.fire('Lỗi Thực Thi', err, 'error');
-                        btn.prop('disabled', false).html('<i class="bx bxs-trash"></i> DUYỆT TẤT TOÁN HÀNG LOẠT');
+                        btn.prop('disabled', false).html(originalText);
                     });
             }
         });

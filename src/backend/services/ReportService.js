@@ -32,6 +32,7 @@ var ReportService = {
     var maCD = ValidatorService.normalizeId(filters.maCD);
     var maNV = ValidatorService.normalizeId(filters.maNV);
     var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    if (tuNgay) tuNgay.setHours(0, 0, 0, 0);
     var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
     if (denNgay) denNgay.setHours(23, 59, 59, 999);
 
@@ -101,8 +102,8 @@ var ReportService = {
     Object.keys(userMap).forEach(function(key) {
       var item = userMap[key];
       
-      // Bỏ qua USER không được giao chỉ tiêu theo yêu cầu
-      if (item.ChiTieu <= 0) return;
+      // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
+      if (item.ChiTieu <= 0 && item.Net === 0 && item.TongGui === 0 && item.TongRut === 0) return;
       
       // Chỉ push vào mảng nếu có Giao dịch trong thời gian này, HOẶC nếu không lọc by date
       if ((tuNgay || denNgay) && item.Net === 0 && item.ChiTieu === 0) return;
@@ -154,6 +155,7 @@ var ReportService = {
     var maCD = ValidatorService.normalizeId(filters.maCD);
     var maNV = ValidatorService.normalizeId(filters.maNV);
     var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    if (tuNgay) tuNgay.setHours(0, 0, 0, 0);
     var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
     
     // Chỉnh denNgay đến cuối ngày để so sánh
@@ -217,6 +219,7 @@ var ReportService = {
     var reconciled = this._getReconciledAccounts(maCD, maNV);
 
     var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    if (tuNgay) tuNgay.setHours(0, 0, 0, 0);
     var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
     if (denNgay) denNgay.setHours(23, 59, 59, 999);
 
@@ -321,8 +324,8 @@ var ReportService = {
     Object.keys(userMap).forEach(function(key) {
       var item = userMap[key];
       
-      // Bỏ qua USER không được giao chỉ tiêu theo yêu cầu
-      if (item.ChiTieu <= 0) return;
+      // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
+      if (item.ChiTieu <= 0 && item.Net === 0 && item.Gui === 0 && item.Rut === 0) return;
       
       var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
       var khMoiSet = khGDMoiMap[item.MaNV] || {};
@@ -376,6 +379,7 @@ var ReportService = {
     var reconciled = this._getReconciledAccounts(maCD, maNV);
 
     var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    if (tuNgay) tuNgay.setHours(0, 0, 0, 0);
     var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
     if (denNgay) denNgay.setHours(23, 59, 59, 999);
 
@@ -465,6 +469,7 @@ var ReportService = {
     var filters = payload.Filters || {};
     var maCD = ValidatorService.normalizeId(filters.maCD);
     var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    if (tuNgay) tuNgay.setHours(0, 0, 0, 0);
     var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
     if (denNgay) denNgay.setHours(23, 59, 59, 999);
 
@@ -830,10 +835,16 @@ var ReportService = {
     var chiTietKHCuTang = [];
 
     Object.keys(nvKHNetMap).forEach(function(maNV) {
-      // Bỏ qua NV không có chỉ tiêu (không tham gia chiến dịch này)
-      if ((chiTieuMap[maNV] || 0) <= 0) return;
-
       var khNetThisNV = nvKHNetMap[maNV];
+      
+      // Bỏ qua NV không có chỉ tiêu và không có giao dịch phát sinh trong chiến dịch
+      var hasTransactions = false;
+      if (khNetThisNV) {
+        Object.keys(khNetThisNV).forEach(function(maKH) {
+          if (khNetThisNV[maKH].gui > 0 || khNetThisNV[maKH].rut > 0) hasTransactions = true;
+        });
+      }
+      if ((chiTieuMap[maNV] || 0) <= 0 && !hasTransactions) return;
       var tongTangTruongKHMoi = 0;
       var tongTangTruongKHCu  = 0;
       var soKHMoi = 0;
@@ -902,11 +913,7 @@ var ReportService = {
     summary.sort(function(a, b) { return b.TongTangTruong - a.TongTangTruong; });
 
     return {
-      cdInfo: {
-        TenCD: cdInfo.TenCD,
-        NgayBatDau: cdInfo.NgayBatDau,
-        NgayKetThuc: cdInfo.NgayKetThuc
-      },
+      cdInfo: cdInfo,
       summary: summary,
       chiTietKHMoi: chiTietKHMoi,
       chiTietKHCuTang: chiTietKHCuTang

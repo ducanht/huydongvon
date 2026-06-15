@@ -83,6 +83,7 @@ var KPIService = {
     var maCD = ValidatorService.normalizeId(filters.maCD);
     var maNV = ValidatorService.normalizeId(filters.maNV);
     var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    if (tuNgay) tuNgay.setHours(0, 0, 0, 0);
     var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
     
     if (denNgay) denNgay.setHours(23, 59, 59, 999);
