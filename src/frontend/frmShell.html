@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>QTDND Yên Thọ - Web App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Hệ thống Web App quản lý chỉ tiêu mở tài khoản toàn diện - Quỹ Tín dụng Nhân dân Yên Thọ. Công cụ dành cho cán bộ theo dõi số liệu gửi/rút tiết kiệm, khách hàng và thi đua KPI." />
+  <meta property="og:title" content="QTDND Yên Thọ - Web App" />
+  <meta property="og:description" content="Hệ thống quản lý chỉ tiêu mở tài khoản và thống kê thi đua huy động vốn của Quỹ Tín dụng Nhân dân Yên Thọ." />
+  <meta property="og:type" content="website" />
+
+  <!-- CSS Dependencies -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+  <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+  <!-- Select2 -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+    rel="stylesheet" />
+
+  <?!= include('src/frontend/assets/css/app.css'); ?>
+</head>
+
+<body>
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Sidebar -->
+  <div class="app-sidebar" id="sidebar">
+    <div class="sidebar-header d-flex justify-content-between align-items-center">
+      <h4 class="m-0 fw-bold text-truncate" id="lblSidebarBrandName" style="max-width: 200px" title="Yên Thọ">
+        Yên Thọ
+      </h4>
+      <button id="btnCloseSidebar" class="btn btn-link text-white d-lg-none p-0 border-0"
+        style="font-size: 1.5rem; line-height: 1">
+        <i class="bx bx-x"></i>
+      </button>
+    </div>
+    <ul class="nav flex-column sidebar-nav" id="mainMenu">
+      <li class="nav-item">
+        <a class="nav-link nav-state-active" href="#" data-page="frmDashboard">
+          <i class="bx bxs-dashboard"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item mt-3 mb-1 px-3 text-muted" style="
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+          ">
+        Nghiệp vụ
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" data-page="frmGiaoDichGui">
+          <i class="bx bx-plus-circle"></i> Giao dịch Gửi
+        </a>
+      </li>
+
+      <li class="nav-item admin-only d-none">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmGiaoDichRut">
+          <i class="bx bx-minus-circle"></i> Giao dịch Rút (Tất toán)
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link d-flex justify-content-between align-items-center" href="javascript:void(0)"
+          data-page="frmLichSuGiaoDich">
+          <span><i class="bx bx-history"></i> Lịch sử Giao dịch</span>
+          <span class="badge bg-danger rounded-pill d-none" id="badgePendingCount">0</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmKhachHang">
+          <i class="bx bx-user-circle"></i> Khách Hàng
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmSoTietKiem">
+          <i class="bx bx-book-content"></i> Sổ Tiết Kiệm
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmBaoCao">
+          <i class="bx bx-bar-chart-alt-2"></i> Xuất Báo Cáo
+        </a>
+      </li>
+      <li class="nav-item admin-only d-none">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmTangTruong">
+          <i class="bx bx-trending-up"></i> Tăng Trưởng Tiền Gửi
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link text-warning" href="javascript:void(0)" onclick="
+              frmDoiMatKhau_init();
+              $('#modalDoiMatKhau').modal('show');
+            ">
+          <i class="bx bx-key"></i> Đổi mật khẩu
+        </a>
+      </li>
+
+      <li class="nav-item admin-only d-none mt-3 mb-1 px-3 text-muted" style="
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+          ">
+        Quản trị Hệ thống
+      </li>
+      <li class="nav-item admin-only d-none">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmChiTieu">
+          <i class="bx bx-calendar-star"></i> Quản lý chiến dịch
+        </a>
+      </li>
+      <li class="nav-item admin-only d-none">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmNhanSu">
+          <i class="bx bx-user-circle"></i> Nhân sự
+        </a>
+      </li>
+      <li class="nav-item admin-only d-none">
+        <a class="nav-link" href="javascript:void(0)" data-page="frmHeThong">
+          <i class="bx bx-server"></i> Lịch Sử Hệ Thống
+        </a>
+      </li>
+      <li class="nav-item mt-5 pt-3 border-top">
+        <a class="nav-link text-danger" href="javascript:void(0)" onclick="AppManager.logout()">
+          <i class="bx bx-log-out"></i> Đăng xuất
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div class="app-main-wrapper" id="mainWrapper">
+    <!-- Top Navbar -->
+    <nav class="app-topbar d-flex d-lg-none shadow-sm" id="header">
+      <!-- Hamburger Menu -->
+      <button id="btnToggleSideBar" aria-label="Toggle Menu">
+        <i class="bx bx-menu"></i>
+      </button>
+
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <!-- Theme Toggle -->
+        <button class="btn btn-link text-white p-0" id="btnThemeToggle" title="Chế độ Giao diện">
+          <i class="bx bx-moon fs-4"></i>
+        </button>
+
+        <!-- User Info -->
+        <div class="text-end d-none d-sm-block">
+          <div class="fw-600 text-white" style="font-size: 14px; line-height: 1.2" id="lblHeaderName">
+            Người dùng
+          </div>
+          <div style="font-size: 11px" class="text-white-50" id="lblHeaderRole">
+            Loading...
+          </div>
+        </div>
+
+        <!-- Logout Button -->
+        <button class="btn btn-outline-danger btn-sm hide-mobile" onclick="AppManager.logout()" title="Đăng Xuất">
+          <i class="bx bx-log-out"></i> Đăng Xuất
+        </button>
+
+        <!-- Avatar Dropdown -->
+        <div class="dropdown">
+          <div class="d-flex align-items-center justify-content-center text-white fw-bold rounded-circle" style="
+                width: 38px;
+                height: 38px;
+                cursor: pointer;
+                background: var(--primary);
+                font-size: 16px;
+                flex-shrink: 0;
+              " id="lblHeaderAvatar" data-bs-toggle="dropdown" aria-expanded="false">
+            ?
+          </div>
+          <ul class="dropdown-menu dropdown-menu-end mt-2">
+            <li>
+              <a class="dropdown-item" href="javascript:void(0);" onclick="
+                    frmDoiMatKhau_init();
+                    $('#modalDoiMatKhau').modal('show');
+                  ">
+                <i class="bx bx-key text-warning"></i> Đổi mật khẩu
+              </a>
+            </li>
+            <li>
+              <hr class="dropdown-divider my-1" />
+            </li>
+            <li>
+              <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="AppManager.logout()">
+                <i class="bx bx-log-out"></i> Đăng xuất
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Change Password Modal -->
+    <?!= include('src/frontend/frmDoiMatKhau'); ?>
+
+    <!-- Page Content (SPA area) -->
+    <div class="page-content p-0" id="appContent" style="min-height: calc(100vh - 70px)">
+      <!-- Nội dung trang sẽ được AppManager.loadPage nạp vào đây -->
+    </div>
+
+    <!-- =============================== -->
+    <!-- BAO GỒM TẤT CẢ CÁC FORM Ở ĐÂY    -->
+    <div id="html-templates" style="display: none">
+      <!-- Templates will be loaded here dynamically -->
+      <?!= include('src/frontend/frmLogin'); ?>
+    </div>
+  </div>
+
+  <!-- JS Context variables -->
+  <script>
+    window.APP_CONTEXT = {
+      User: null,
+      Roles: { ADMIN: "ADMIN", USER: "USER" },
+    };
+  </script>
+
+  <!-- JS Dependencies -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+  <!-- DataTables Export -->
+  <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <!-- Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <!-- SheetJS (Excel Export) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <?!= include('src/frontend/assets/js/app.js'); ?>
+
+  <script>
+    $(document).ready(function () {
+      AppManager.init();
+    });
+
+    const themeBtn = document.getElementById("btnThemeToggle");
+    const themeIcon = themeBtn.querySelector("i");
+    const currentTheme = localStorage.getItem("THEME") || "light";
+
+    if (currentTheme === "dark") {
+      document.documentElement.setAttribute("data-bs-theme", "dark");
+      themeIcon.className = "bx bx-sun fs-4 text-warning";
+    }
+
+    themeBtn.addEventListener("click", function () {
+      const isDark =
+        document.documentElement.getAttribute("data-bs-theme") === "dark";
+      if (isDark) {
+        document.documentElement.setAttribute("data-bs-theme", "light");
+        localStorage.setItem("THEME", "light");
+        themeIcon.className = "bx bx-moon fs-4 text-dark";
+      } else {
+        document.documentElement.setAttribute("data-bs-theme", "dark");
+        localStorage.setItem("THEME", "dark");
+        themeIcon.className = "bx bx-sun fs-4 text-warning";
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,396 @@
+<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="page-title"><i class='bx bx-user-circle'></i> Quản lý Khách Hàng / Thành Viên</h1>
+        <p class="text-muted small mb-0">Tra cứu, chỉnh sửa thông tin Khách hàng & Cấp thẻ Thành viên QTDND.</p>
+    </div>
+    <div>
+        <button class="btn btn-primary shadow-sm" onclick="KHModule.add()">
+            <i class='bx bx-plus-circle'></i> Thêm Mới Khách Hàng
+        </button>
+    </div>
+</div>
+
+<!-- Thanh công cụ tìm kiếm & Lọc -->
+<div class="col-12 mb-4">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <form id="frmFilterKH" class="row g-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold text-muted small">Mã Khách Hàng</label>
+                    <input type="text" class="form-control" id="fMaKH" placeholder="Nhập Mã...">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-bold text-muted small">Họ và Tên</label>
+                    <input type="text" class="form-control" id="fHoTen" placeholder="Nhập Tên...">
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label fw-bold text-muted small">Địa Chỉ</label>
+                    <input type="text" class="form-control" id="fDiaChi" placeholder="Nhập địa chỉ...">
+                </div>
+                <div class="col-12 col-md-2" id="divFilterNV" style="display:none;">
+                    <label class="form-label fw-bold text-info small">Cán Bộ Quản Lý</label>
+                    <select class="form-select" id="fMaNV">
+                        <option value="">-- Tất cả --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2" id="divFilterMine" style="display:none;">
+                    <label class="form-label fw-bold text-info small">Phạm Vi</label>
+                    <div class="form-check form-switch pt-1">
+                        <input class="form-check-input" type="checkbox" id="chkOnlyMine">
+                        <label class="form-check-label small fw-bold text-info" for="chkOnlyMine">Chỉ tôi quản
+                            lý</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md-2 d-flex gap-2 align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-auto"
+                        onclick="resetFilterKH()">Xóa</button>
+                    <button type="submit" class="btn btn-primary w-100"><i class='bx bx-search-alt'></i>
+                        TÌM</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="col-12">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbKhachHang">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Mã KH</th>
+                            <th>Họ và Tên</th>
+                            <th>CMND/CCCD</th>
+                            <th>Số Thẻ Thành Viên</th>
+                            <th>Điện Thoại</th>
+                            <th>Địa Chỉ</th>
+                            <th>Ngày Tạo</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Modal Sửa Thông tin Khách Hàng -->
+<div class="modal fade" id="modalKhachHang" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="frmSaveKhachHang">
+                <input type="hidden" id="txtIsNew" name="isNew" value="false">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title text-primary fw-bold" id="modalKHTitle">Cập Nhật Thông Tin Khách Hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Dữ liệu Readonly / Key -->
+                    <div class="row mb-4 bg-light p-3 rounded border">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small mb-0 fw-bold">Mã Số Khách Hàng <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-primary fw-bold text-uppercase mt-1"
+                                id="txtMaKH" name="MaKH" placeholder="Nhập mã khách hàng (vd: KH_001)...">
+                        </div>
+                        <div class="col-md-6 text-md-end text-start mt-3 mt-md-0">
+                            <label class="form-label text-muted small mb-0">Ngày Tham Gia</label>
+                            <div class="fw-bold text-dark mt-1" id="lblNgayTao">--/--/----</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Họ và Tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-uppercase" id="txtHoTen_KH" name="HoTen"
+                                required placeholder="Nguyễn Văn A">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Số CCCD/CMND <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="txtCCCD_KH" name="CCCD" required
+                                placeholder="Nhập 12 số CCCD">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Số Điện Thoại</label>
+                            <input type="text" class="form-control" id="txtSdt_KH" name="Sdt"
+                                placeholder="Nhập số điện thoại">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Số Thẻ Thành Viên (Tùy chọn)</label>
+                            <input type="text" class="form-control" id="txtSoThe_KH" name="SoTheTV"
+                                placeholder="Nếu là thẻ viên dài hạn">
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-bold">Địa Chỉ</label>
+                            <input type="text" class="form-control" id="txtDiaChi_KH" name="DiaChi"
+                                placeholder="Xóm..., Xã..., Huyện...">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Trạng Thái</label>
+                            <select class="form-select" id="cboTrangThai_KH" name="TrangThai">
+                                <option value="ACTIVE" class="text-success fw-bold">Hoạt Động (ACTIVE)</option>
+                                <option value="INACTIVE" class="text-danger fw-bold">Khóa (INACTIVE)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light p-3">
+                    <button type="button" class="btn btn-outline-info px-4 fw-bold me-auto d-none" id="btnViewHistoryKH"
+                        onclick="KHModule.viewHistory($('#txtMaKH').val())">
+                        <i class='bx bx-history'></i> Lịch sử Giao dịch
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-4 fw-bold"
+                        data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold" id="btnSaveKhachHang">
+                        Lưu Thông Tin
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.KHModule = {
+        dt: null,
+        list: [],
+
+        init: function () {
+            var self = this;
+            // [ADMIN] Hiển thị lọc theo Nhân viên
+            var user = window.APP_CONTEXT?.User;
+            if (user && user.Role === 'ADMIN') {
+                $('#divFilterNV').show();
+                AppManager.callApi('getNhanSuActive').done(function (list) {
+                    var html = '<option value="">-- Tất cả --</option>';
+                    list.forEach(nv => {
+                        html += `<option value="${nv.MaNV}">${nv.HoTen} (${nv.MaNV})</option>`;
+                    });
+                    $('#fMaNV').html(html);
+                });
+            } else {
+                $('#divFilterMine').show();
+            }
+
+            self.loadGrid();
+
+            $('#frmFilterKH').off('submit').on('submit', function (e) {
+                e.preventDefault();
+                self.loadGrid();
+            });
+
+            $('#chkOnlyMine').on('change', function () {
+                self.loadGrid();
+            });
+            $('#fMaNV').on('change', function () {
+                self.loadGrid();
+            });
+
+            $('#frmSaveKhachHang').off('submit').on('submit', function (e) {
+                e.preventDefault();
+                var payload = {
+                    isNew: $('#txtIsNew').val() === 'true',
+                    MaKH: $('#txtMaKH').val().trim(),
+                    HoTen: $('#txtHoTen_KH').val().toUpperCase().trim(),
+                    CCCD: $('#txtCCCD_KH').val().trim(),
+                    SoTheTV: $('#txtSoThe_KH').val().trim(),
+                    Sdt: $('#txtSdt_KH').val().trim(),
+                    DiaChi: $('#txtDiaChi_KH').val().trim(),
+                    TrangThai: $('#cboTrangThai_KH').val()
+                };
+
+                if (!payload.MaKH || !payload.HoTen || !payload.CCCD) {
+                    AppManager.showToast('error', "Vui lòng nhập đầy đủ Mã KH, Họ Tên và CCCD!");
+                    return;
+                }
+
+                var btnHtml = AppManager.setBtnLoading('#btnSaveKhachHang', true);
+                var btnCancel = $('#modalKhachHang .btn-outline-secondary');
+                var btnClose = $('#modalKhachHang .btn-close');
+                var btnHistory = $('#btnViewHistoryKH');
+                var inputs = $('#frmSaveKhachHang input, #frmSaveKhachHang select');
+                
+                btnCancel.prop('disabled', true);
+                btnClose.prop('disabled', true);
+                btnHistory.prop('disabled', true);
+                inputs.prop('disabled', true);
+
+                AppManager.callApi('saveKhachHang', payload).done(function (res) {
+                    AppManager.showToast('success', res || 'Đã lưu thông tin khách hàng thành công.');
+                    $('#modalKhachHang').modal('hide');
+                    self.loadGrid();
+                }).fail(function (err) {
+                    AppManager.showToast('error', err);
+                }).always(function () {
+                    AppManager.setBtnLoading('#btnSaveKhachHang', false, btnHtml);
+                    btnCancel.prop('disabled', false);
+                    btnClose.prop('disabled', false);
+                    btnHistory.prop('disabled', false);
+                    inputs.prop('disabled', false);
+                    
+                    // Duy trì trạng thái readonly/disabled của mã KH nếu không phải thêm mới
+                    if ($('#txtIsNew').val() !== 'true') {
+                        $('#txtMaKH').prop('disabled', true).prop('readonly', true).addClass('bg-transparent border-0');
+                    } else {
+                        $('#txtMaKH').prop('disabled', false).prop('readonly', false).removeClass('bg-transparent border-0');
+                    }
+                });
+            });
+        },
+
+        loadGrid: function () {
+            var self = this;
+            if (self.dt) {
+                self.dt.destroy();
+                self.dt = null;
+            }
+
+            self.dt = $('#tbKhachHang').DataTable({
+                serverSide: true,
+                processing: true,
+                deferRender: true,
+                ajax: function (data, callback, settings) {
+                    var cleanPayload = {
+                        draw: data.draw || 1,
+                        start: data.start || 0,
+                        length: data.length || 10,
+                        search: { value: (data.search && data.search.value) ? data.search.value : '' },
+                        order: [{
+                            column: (data.order && data.order[0]) ? data.order[0].column : 6,
+                            dir: (data.order && data.order[0]) ? data.order[0].dir : 'desc'
+                        }],
+                        MaNV: $('#fMaNV').val() || '',
+                        onlyMine: $('#chkOnlyMine').is(':checked'),
+                        extraFilter: {
+                            MaKH: $('#fMaKH').val() || '',
+                            HoTen: $('#fHoTen').val() || '',
+                            DiaChi: $('#fDiaChi').val() || ''
+                        }
+                    };
+
+                    AppManager.callApi('getKhachHangDatatable', cleanPayload).done(function (res) {
+                        self.list = res.data || [];
+                        callback({
+                            draw: res.draw,
+                            recordsTotal: res.recordsTotal,
+                            recordsFiltered: res.recordsFiltered,
+                            data: res.data || []
+                        });
+                    }).fail(function (err) {
+                        console.error('[KhachHang] Lỗi API:', err);
+                        Swal.fire('Lỗi Tải Dữ Liệu', 'Không tải được danh sách Khách Hàng.', 'error');
+                        callback({ draw: cleanPayload.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+                    });
+                },
+                columnDefs: [
+                    {
+                        targets: "_all", createdCell: function (td, cellData, rowData, row, col) {
+                            var headers = ["Mã KH", "Họ và Tên", "CMND/CCCD", "Số Thẻ TV", "Điện Thoại", "Địa Chỉ", "Ngày Tạo", "Trạng Thái"];
+                            $(td).attr('data-label', headers[col]);
+                        }
+                    }
+                ],
+                dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                buttons: [
+                    { extend: 'excel', className: 'btn btn-sm btn-success', text: '<i class="bx bx-spreadsheet"></i> Excel' },
+                    { extend: 'pdf', className: 'btn btn-sm btn-danger', text: '<i class="bx bxs-file-pdf"></i> PDF' }
+                ],
+                order: [[6, "desc"]],
+                createdRow: function (row, data, dataIndex) {
+                    $(row).css('cursor', 'pointer').on('click', function (e) {
+                        if ($(e.target).closest('button').length === 0) self.edit(data.MaKH);
+                    });
+                },
+                columns: [
+                    { data: "MaKH", className: "text-center fw-bold text-primary" },
+                    { data: "HoTen", className: "fw-bold" },
+                    { data: "CCCD", className: "text-center" },
+                    {
+                        data: "SoTheTV",
+                        className: "text-center fw-bold",
+                        render: function (d) { return d ? `<span class="text-success">${d}</span>` : `<span class="text-muted">-</span>`; }
+                    },
+                    { data: "Sdt", className: "text-center" },
+                    { data: "DiaChi" },
+                    {
+                        data: "NgayTao",
+                        className: "text-center",
+                        render: function (d) { return d ? AppManager.formatDate(d) : ''; }
+                    },
+                    {
+                        data: "TrangThai",
+                        className: "text-center",
+                        render: function (d) {
+                            return d === 'ACTIVE' ? '<span class="badge bg-success">Hoạt Động</span>' : '<span class="badge bg-secondary">Khóa</span>';
+                        }
+                    }
+                ]
+            });
+        },
+
+        add: function () {
+            // Reset form
+            $('#frmSaveKhachHang')[0].reset();
+
+            // Set flag isNew and Mode
+            $('#txtIsNew').val('true');
+            $('#modalKHTitle').text('Thêm Mới Khách Hàng');
+
+            // Allow editing MaKH
+            $('#txtMaKH').prop('readonly', false).prop('disabled', false).removeClass('bg-transparent border-0').val('');
+            $('#lblNgayTao').text(AppManager.formatDate(new Date()));
+            $('#cboTrangThai_KH').val('ACTIVE').prop('disabled', false);
+
+            // Hide history button for new customer
+            $('#btnViewHistoryKH').addClass('d-none');
+
+            $('#modalKhachHang').modal('show');
+        },
+
+        edit: function (maKH) {
+            var kh = this.list.find(x => x.MaKH === maKH);
+            if (!kh) return;
+
+            // Set flag isNew and Mode
+            $('#txtIsNew').val('false');
+            $('#modalKHTitle').text('Cập Nhật Thông Tin Khách Hàng');
+            $('#txtMaKH').val(kh.MaKH).prop('readonly', true).prop('disabled', true).addClass('bg-transparent border-0');
+            $('#lblNgayTao').text(kh.NgayTao ? AppManager.formatDate(kh.NgayTao) : '--/--/----');
+            $('#txtHoTen_KH').val(kh.HoTen);
+            $('#txtCCCD_KH').val(kh.CCCD);
+            $('#txtSoThe_KH').val(kh.SoTheTV);
+            $('#txtSdt_KH').val(kh.Sdt);
+            $('#txtDiaChi_KH').val(kh.DiaChi);
+            $('#cboTrangThai_KH').val(kh.TrangThai);
+
+            // Show history button for existing customer
+            $('#btnViewHistoryKH').removeClass('d-none');
+
+            $('#modalKhachHang').modal('show');
+        },
+
+        viewHistory: function (maKH) {
+            if (!maKH) return;
+            $('#modalKhachHang').modal('hide');
+            window.PENDING_MAKH = maKH;
+            AppManager.loadPage('frmLichSuGiaoDich');
+        }
+    };
+
+    function frmKhachHang_init() {
+        window.KHModule.init();
+    }
+
+    function resetFilterKH() {
+        $('#frmFilterKH')[0].reset();
+        window.KHModule.loadGrid();
+    }
+
+    // Bridge functions for inline onclicks
+    function editKhachHang(id) { window.KHModule.edit(id); }
+    function viewLichSuKH(id) { window.KHModule.viewHistory(id); }
+</script>

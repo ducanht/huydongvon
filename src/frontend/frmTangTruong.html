@@ -1,0 +1,547 @@
+<!-- ============================================================
+  frmTangTruong.html — Báo Cáo Tăng Trưởng Tiền Gửi
+  Nghiệp vụ: KH Mới + phần tăng của KH Cũ theo từng Cán Bộ / Chiến Dịch
+============================================================ -->
+<div id="frmTangTruong" class="container-fluid py-3 px-3 px-md-4">
+
+  <!-- ── PAGE HEADER ───────────────────────────────────────────── -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+    <div>
+      <h1 class="h4 fw-bold mb-0" style="color:var(--primary)">
+        <i class="bx bx-trending-up me-2"></i>Tăng Trưởng Tiền Gửi
+      </h1>
+      <p class="text-muted mb-0" style="font-size:.85rem">
+        Phân tích đóng góp tăng trưởng theo Cán Bộ &amp; Chiến Dịch
+      </p>
+    </div>
+    <button class="btn btn-outline-success btn-sm" id="btnExportTangTruong" disabled>
+      <i class="bx bx-download me-1"></i> Xuất Excel
+    </button>
+  </div>
+
+  <!-- ── FILTER CARD ────────────────────────────────────────────── -->
+  <div class="card border-0 shadow-sm mb-4 rounded-4" style="background:linear-gradient(135deg,#f0fdf4,#f8fafc)">
+    <div class="card-body py-3">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-5">
+          <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151">
+            <i class="bx bx-calendar-star text-success me-1"></i>Chiến Dịch <span class="text-danger">*</span>
+          </label>
+          <select id="cboChienDichTT" class="form-select form-select-sm select2-tt" style="width:100%">
+            <option value="">— Chọn Chiến Dịch —</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold mb-1" style="font-size:.82rem;color:#374151">
+            <i class="bx bx-user me-1"></i>Cán Bộ
+          </label>
+          <select id="cboCBTangTruong" class="form-select form-select-sm select2-tt" style="width:100%">
+            <option value="">— Tất cả Cán Bộ —</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3 d-flex gap-2">
+          <button class="btn btn-success btn-sm flex-fill" id="btnPhanTich" onclick="frmTangTruong_load()">
+            <i class="bx bx-analyse me-1"></i> Phân Tích
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="frmTangTruong_reset()" title="Đặt lại bộ lọc">
+            <i class="bx bx-refresh"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI SUMMARY CARDS ──────────────────────────────────────── -->
+  <div class="row g-3 mb-4" id="rowKpiTangTruong" style="display:none!important">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+        <div class="card-body p-3 position-relative">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:rgba(16,185,129,.12)">
+              <i class="bx bx-trending-up" style="color:#10b981;font-size:1.2rem"></i>
+            </div>
+            <span class="text-muted" style="font-size:.78rem;font-weight:600">TỔNG TĂNG TRƯỞNG</span>
+          </div>
+          <div class="fw-bold" style="font-size:1.15rem;color:#059669" id="kpiTongTangTruong">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:rgba(245,158,11,.12)">
+              <i class="bx bx-user-plus" style="color:#f59e0b;font-size:1.2rem"></i>
+            </div>
+            <span class="text-muted" style="font-size:.78rem;font-weight:600">KH MỚI</span>
+          </div>
+          <div class="fw-bold" style="font-size:1.15rem;color:#d97706" id="kpiTongKHMoi">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:rgba(100,116,139,.12)">
+              <i class="bx bx-user-check" style="color:#64748b;font-size:1.2rem"></i>
+            </div>
+            <span class="text-muted" style="font-size:.78rem;font-weight:600">KH CŨ TĂNG</span>
+          </div>
+          <div class="fw-bold" style="font-size:1.15rem;color:#475569" id="kpiTongKHCuTang">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:rgba(16,185,129,.12)">
+              <i class="bx bx-check-double" style="color:#10b981;font-size:1.2rem"></i>
+            </div>
+            <span class="text-muted" style="font-size:.78rem;font-weight:600">TB HOÀN THÀNH</span>
+          </div>
+          <div class="fw-bold" style="font-size:1.15rem;color:#059669" id="kpiTbTyLe">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BẢNG TỔNG HỢP CÁN BỘ ──────────────────────────────────── -->
+  <div class="card border-0 shadow-sm rounded-4" id="cardTableTangTruong">
+    <div class="card-header border-0 rounded-top-4 d-flex align-items-center justify-content-between py-3"
+         style="background:linear-gradient(135deg,#10b981,#059669)">
+      <span class="text-white fw-bold">
+        <i class="bx bx-table me-2"></i>Bảng Tổng Hợp Cán Bộ
+      </span>
+      <span class="badge bg-white text-success" id="badgeSoCB">0 cán bộ</span>
+    </div>
+    <div class="card-body p-0">
+      <!-- Trạng thái trống mặc định -->
+      <div id="divEmptyStateTT" class="text-center py-5 text-muted">
+        <i class="bx bx-bar-chart-alt-2" style="font-size:3rem;color:#d1fae5"></i>
+        <p class="mt-2 mb-0">Chọn Chiến Dịch và nhấn <strong>Phân Tích</strong> để xem số liệu</p>
+      </div>
+      <!-- DataTable -->
+      <div class="table-responsive d-none" id="divTableTT">
+        <table id="tblTangTruong" class="table table-hover mb-0 align-middle" style="font-size:.85rem">
+          <thead style="background:#f0fdf4;color:#374151">
+            <tr>
+              <th class="ps-3">#</th>
+              <th>Cán Bộ</th>
+              <th class="text-end">Chỉ Tiêu</th>
+              <th class="text-center">KH Mới</th>
+              <th class="text-end">TT KH Mới</th>
+              <th class="text-center">KH Cũ Tăng</th>
+              <th class="text-end">TT KH Cũ</th>
+              <th class="text-end fw-bold">Tổng Tăng Trưởng</th>
+              <th class="text-center">% HT</th>
+              <th class="text-center">Chi Tiết</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyTangTruong"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /frmTangTruong -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+  MODAL CHI TIẾT CÁN BỘ
+═══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalChiTietTT" tabindex="-1" aria-labelledby="modalChiTietTTLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+
+      <div class="modal-header border-0 pb-0 rounded-top-4"
+           style="background:linear-gradient(135deg,#10b981,#059669);color:#fff">
+        <div>
+          <h5 class="modal-title fw-bold mb-0" id="modalChiTietTTLabel">
+            <i class="bx bx-user-detail me-2"></i><span id="modalTenNV">—</span>
+          </h5>
+          <small id="modalSubTitle" class="text-white-50">Chi tiết tăng trưởng</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Summary pills -->
+      <div class="modal-header border-0 pt-2 pb-3" style="background:linear-gradient(135deg,#10b981,#059669)">
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem">
+            <i class="bx bx-trending-up me-1"></i>Tổng TT: <strong id="pillTongTT">—</strong>
+          </span>
+          <span class="badge rounded-pill px-3 py-2" style="background:rgba(245,158,11,.35);font-size:.8rem">
+            <i class="bx bx-user-plus me-1"></i>KH Mới: <strong id="pillKHMoi">—</strong>
+          </span>
+          <span class="badge rounded-pill px-3 py-2" style="background:rgba(100,116,139,.35);font-size:.8rem">
+            <i class="bx bx-user-check me-1"></i>KH Cũ Tăng: <strong id="pillKHCuTang">—</strong>
+          </span>
+          <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem">
+            <i class="bx bx-pie-chart me-1"></i>% HT: <strong id="pillTyLe">—</strong>
+          </span>
+        </div>
+      </div>
+
+      <div class="modal-body p-0">
+        <!-- Nav Tabs -->
+        <ul class="nav nav-tabs nav-fill border-bottom px-3 pt-2" id="tabsChiTietTT" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tabKHMoiBtn" data-bs-toggle="tab"
+                    data-bs-target="#tabKHMoi" type="button" role="tab">
+              <i class="bx bx-user-plus me-1" style="color:#f59e0b"></i>
+              Khách Hàng Mới <span class="badge ms-1" style="background:#fef3c7;color:#d97706" id="badgeTabKHMoi">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tabKHCuBtn" data-bs-toggle="tab"
+                    data-bs-target="#tabKHCu" type="button" role="tab">
+              <i class="bx bx-user-check me-1" style="color:#64748b"></i>
+              KH Cũ Có Tăng Trưởng <span class="badge ms-1" style="background:#f1f5f9;color:#475569" id="badgeTabKHCu">0</span>
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content px-3 py-3">
+          <!-- Tab 1: KH Mới -->
+          <div class="tab-pane fade show active" id="tabKHMoi" role="tabpanel">
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle mb-0" style="font-size:.84rem">
+                <thead class="table-warning">
+                  <tr>
+                    <th>#</th>
+                    <th>Khách Hàng</th>
+                    <th class="text-end">Số Tiền Gửi</th>
+                    <th class="text-end">Số Tiền Rút</th>
+                    <th class="text-end fw-bold">Net Trong Kỳ</th>
+                    <th class="text-end" style="color:#10b981">Tính Vào TT</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyModalKHMoi">
+                  <tr><td colspan="6" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
+                </tbody>
+                <tfoot id="tfootModalKHMoi" class="table-success fw-bold" style="display:none">
+                  <tr>
+                    <td colspan="2" class="text-end">Tổng cộng:</td>
+                    <td class="text-end" id="tfKHMoiGui">—</td>
+                    <td class="text-end" id="tfKHMoiRut">—</td>
+                    <td class="text-end" id="tfKHMoiNet">—</td>
+                    <td class="text-end" id="tfKHMoiTT">—</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 2: KH Cũ Tăng -->
+          <div class="tab-pane fade" id="tabKHCu" role="tabpanel">
+            <div class="alert alert-info border-0 py-2 px-3 mb-2 rounded-3" style="font-size:.8rem;background:#eff6ff">
+              <i class="bx bx-info-circle me-1"></i>
+              Chỉ hiển thị KH Cũ có số dư <strong>tăng thêm</strong> trong chiến dịch. KH Cũ giảm số dư không được tính vào tăng trưởng.
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle mb-0" style="font-size:.84rem">
+                <thead class="table-secondary">
+                  <tr>
+                    <th>#</th>
+                    <th>Khách Hàng</th>
+                    <th class="text-end">Số Dư Đầu Kỳ</th>
+                    <th class="text-end">Net Trong Kỳ</th>
+                    <th class="text-end">Số Dư Cuối Kỳ</th>
+                    <th class="text-end fw-bold" style="color:#10b981">Phần Tăng Thêm</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyModalKHCu">
+                  <tr><td colspan="6" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
+                </tbody>
+                <tfoot id="tfootModalKHCu" class="table-success fw-bold" style="display:none">
+                  <tr>
+                    <td colspan="2" class="text-end">Tổng cộng:</td>
+                    <td class="text-end">—</td>
+                    <td class="text-end" id="tfKHCuNet">—</td>
+                    <td class="text-end">—</td>
+                    <td class="text-end" id="tfKHCuTang">—</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /modal-body -->
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+          <i class="bx bx-x me-1"></i> Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+</div><!-- /modalChiTietTT -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+  SCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Biến module cục bộ ────────────────────────────────────────────
+var _ttData       = null; // Kết quả API trả về
+var _ttSummary    = [];
+var _ttKHMoi      = [];
+var _ttKHCuTang   = [];
+
+/**
+ * Init module — được AppManager gọi khi trang được nạp
+ */
+function frmTangTruong_init() {
+  // Khởi tạo Select2
+  $('#cboChienDichTT, #cboCBTangTruong').select2({
+    theme: 'bootstrap-5',
+    dropdownParent: $('#frmTangTruong'),
+    placeholder: '— Chọn —',
+    allowClear: true,
+    width: '100%'
+  });
+
+  // Nạp danh sách chiến dịch
+  AppManager.callApi('getAllChienDich', {})
+    .done(function(data) {
+      var $sel = $('#cboChienDichTT').empty().append('<option value="">— Chọn Chiến Dịch —</option>');
+      (data || []).forEach(function(cd) {
+        $sel.append('<option value="' + cd.MaCD + '">' + (cd.TenCD || cd.MaCD) + '</option>');
+      });
+      $sel.trigger('change');
+    });
+
+  // Nạp danh sách cán bộ (chỉ cho ADMIN)
+  AppManager.callApi('getNhanSuActive', {})
+    .done(function(data) {
+      var $sel = $('#cboCBTangTruong').empty().append('<option value="">— Tất cả Cán Bộ —</option>');
+      (data || []).forEach(function(nv) {
+        $sel.append('<option value="' + nv.MaNV + '">' + (nv.HoTen || nv.MaNV) + '</option>');
+      });
+      $sel.trigger('change');
+    });
+}
+
+/**
+ * Đặt lại bộ lọc
+ */
+function frmTangTruong_reset() {
+  $('#cboChienDichTT, #cboCBTangTruong').val('').trigger('change');
+  _ttData = null; _ttSummary = []; _ttKHMoi = []; _ttKHCuTang = [];
+  _renderEmpty();
+}
+
+/**
+ * Tải và hiển thị dữ liệu tăng trưởng từ API
+ */
+function frmTangTruong_load() {
+  var maCD = $('#cboChienDichTT').val();
+  if (!maCD) {
+    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn Chiến Dịch trước khi Phân Tích.', timer: 2200, showConfirmButton: false });
+    return;
+  }
+
+  var $btn = $('#btnPhanTich');
+  var oldHtml = $btn.html();
+  $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Đang phân tích...');
+
+  var payload = {
+    maCD: maCD,
+    maNV: $('#cboCBTangTruong').val() || '',
+    kpiMode: 'THI_DUA'
+  };
+
+  AppManager.callApi('getBaoCaoTangTruong', payload)
+    .done(function(data) {
+      _ttData      = data;
+      _ttSummary   = data.summary   || [];
+      _ttKHMoi     = data.chiTietKHMoi    || [];
+      _ttKHCuTang  = data.chiTietKHCuTang || [];
+      _renderKpiCards();
+      _renderTable();
+      _initExportBtn();
+    })
+    .fail(function(err) {
+      Swal.fire({ icon: 'error', title: 'Lỗi Phân Tích', text: err });
+      _renderEmpty();
+    })
+    .always(function() {
+      $btn.prop('disabled', false).html(oldHtml);
+    });
+}
+
+// ── Render ────────────────────────────────────────────────────────
+
+function _renderEmpty() {
+  $('#divEmptyStateTT').removeClass('d-none');
+  $('#divTableTT').addClass('d-none');
+  $('#rowKpiTangTruong').hide();
+  $('#badgeSoCB').text('0 cán bộ');
+  $('#btnExportTangTruong').prop('disabled', true);
+}
+
+function _renderKpiCards() {
+  if (!_ttSummary.length) { _renderEmpty(); return; }
+
+  var tongTT    = _ttSummary.reduce(function(s,r){ return s + r.TongTangTruong; }, 0);
+  var tongKHMoi = _ttSummary.reduce(function(s,r){ return s + r.SoKHMoi; }, 0);
+  var tongKHCu  = _ttSummary.reduce(function(s,r){ return s + r.SoKHCuTang; }, 0);
+  var avgTyLe   = _ttSummary.length ? (_ttSummary.reduce(function(s,r){ return s+r.TyLeHoanThanh; },0) / _ttSummary.length) : 0;
+
+  $('#kpiTongTangTruong').text(AppManager.formatCurrency(tongTT));
+  $('#kpiTongKHMoi').text(tongKHMoi + ' khách hàng');
+  $('#kpiTongKHCuTang').text(tongKHCu + ' khách hàng');
+  $('#kpiTbTyLe').text(avgTyLe.toFixed(1) + '%');
+  $('#rowKpiTangTruong').css('display','').removeClass('d-none');
+}
+
+function _renderTable() {
+  if (!_ttSummary.length) { _renderEmpty(); return; }
+
+  $('#divEmptyStateTT').addClass('d-none');
+  $('#divTableTT').removeClass('d-none');
+  $('#badgeSoCB').text(_ttSummary.length + ' cán bộ');
+
+  var rows = _ttSummary.map(function(r, i) {
+    var tyLe = r.TyLeHoanThanh || 0;
+    var tyLeColor  = tyLe >= 100 ? '#10b981' : tyLe >= 70 ? '#f59e0b' : '#ef4444';
+    var badgeDat   = tyLe >= 100
+      ? '<span class="badge" style="background:#d1fae5;color:#065f46">ĐẠT</span>'
+      : '<span class="badge" style="background:#fee2e2;color:#991b1b">CHƯA</span>';
+
+    var progressHtml = '<div style="background:#e5e7eb;border-radius:99px;height:6px;min-width:80px">' +
+      '<div style="width:' + Math.min(tyLe,100).toFixed(0) + '%;height:6px;border-radius:99px;background:' + tyLeColor + ';transition:width .4s"></div></div>' +
+      '<small class="ms-1" style="color:' + tyLeColor + ';font-weight:600">' + tyLe.toFixed(1) + '%</small>';
+
+    return '<tr style="cursor:pointer" onclick="frmTangTruong_showDetail(\'' + r.MaNV + '\')">' +
+      '<td class="ps-3 text-muted" style="font-size:.78rem">' + (i+1) + '</td>' +
+      '<td><span class="fw-semibold">' + _escHtml(r.TenNV) + '</span></td>' +
+      '<td class="text-end text-muted">' + AppManager.formatCurrency(r.ChiTieu) + '</td>' +
+      '<td class="text-center"><span class="badge rounded-pill px-2" style="background:#fef3c7;color:#92400e">' + r.SoKHMoi + ' KH</span></td>' +
+      '<td class="text-end" style="color:#d97706">' + AppManager.formatCurrency(r.TangTruongKHMoi) + '</td>' +
+      '<td class="text-center"><span class="badge rounded-pill px-2" style="background:#f1f5f9;color:#475569">' + r.SoKHCuTang + ' KH</span></td>' +
+      '<td class="text-end" style="color:#64748b">' + AppManager.formatCurrency(r.TangTruongKHCu) + '</td>' +
+      '<td class="text-end fw-bold" style="color:#059669">' + AppManager.formatCurrency(r.TongTangTruong) + '</td>' +
+      '<td class="text-center"><div class="d-flex align-items-center gap-1">' + progressHtml + ' ' + badgeDat + '</div></td>' +
+      '<td class="text-center"><button class="btn btn-outline-success btn-xs py-0 px-2" style="font-size:.75rem" onclick="event.stopPropagation();frmTangTruong_showDetail(\'' + r.MaNV + '\')"><i class="bx bx-detail"></i></button></td>' +
+      '</tr>';
+  });
+
+  $('#tbodyTangTruong').html(rows.join(''));
+}
+
+// ── Modal Chi Tiết ────────────────────────────────────────────────
+
+function frmTangTruong_showDetail(maNV) {
+  var nv = _ttSummary.find(function(r){ return r.MaNV === maNV; });
+  if (!nv) return;
+
+  // Header
+  $('#modalTenNV').text(nv.TenNV);
+  $('#modalSubTitle').text('Tăng trưởng trong chiến dịch — ' + (_ttData && _ttData.cdInfo ? _ttData.cdInfo.TenCD : ''));
+  $('#pillTongTT').text(AppManager.formatCurrency(nv.TongTangTruong));
+  $('#pillKHMoi').text(nv.SoKHMoi + ' KH');
+  $('#pillKHCuTang').text(nv.SoKHCuTang + ' KH');
+  $('#pillTyLe').text(nv.TyLeHoanThanh.toFixed(1) + '%');
+
+  // Tab KH Mới
+  var khMoiRows = _ttKHMoi.filter(function(k){ return k.MaNV === maNV; });
+  $('#badgeTabKHMoi').text(khMoiRows.length);
+  if (khMoiRows.length === 0) {
+    $('#tbodyModalKHMoi').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="bx bx-user-x me-1"></i>Không có KH Mới</td></tr>');
+    $('#tfootModalKHMoi').hide();
+  } else {
+    var sumGui=0, sumRut=0, sumNet=0, sumTT=0;
+    var rows = khMoiRows.map(function(k, i) {
+      sumGui += k.SoTienGui; sumRut += k.SoTienRut;
+      sumNet += k.NetTrongKy; sumTT  += k.TinhVaoTangTruong;
+      var netColor = k.NetTrongKy >= 0 ? '#059669' : '#dc2626';
+      return '<tr>' +
+        '<td class="text-muted ps-2">' + (i+1) + '</td>' +
+        '<td><span class="fw-semibold">' + _escHtml(k.TenKH) + '</span><br><small class="text-muted">' + k.MaKH + '</small></td>' +
+        '<td class="text-end text-success">' + AppManager.formatCurrency(k.SoTienGui) + '</td>' +
+        '<td class="text-end text-danger">' + (k.SoTienRut > 0 ? AppManager.formatCurrency(k.SoTienRut) : '—') + '</td>' +
+        '<td class="text-end fw-semibold" style="color:' + netColor + '">' + AppManager.formatCurrency(k.NetTrongKy) + '</td>' +
+        '<td class="text-end fw-bold" style="color:#059669">' + AppManager.formatCurrency(k.TinhVaoTangTruong) + '</td>' +
+        '</tr>';
+    });
+    $('#tbodyModalKHMoi').html(rows.join(''));
+    $('#tfKHMoiGui').text(AppManager.formatCurrency(sumGui));
+    $('#tfKHMoiRut').text(sumRut > 0 ? AppManager.formatCurrency(sumRut) : '—');
+    $('#tfKHMoiNet').text(AppManager.formatCurrency(sumNet));
+    $('#tfKHMoiTT').text(AppManager.formatCurrency(sumTT));
+    $('#tfootModalKHMoi').show();
+  }
+
+  // Tab KH Cũ Tăng
+  var khCuRows = _ttKHCuTang.filter(function(k){ return k.MaNV === maNV; });
+  $('#badgeTabKHCu').text(khCuRows.length);
+  if (khCuRows.length === 0) {
+    $('#tbodyModalKHCu').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="bx bx-info-circle me-1"></i>Không có KH Cũ nào tăng trong kỳ này</td></tr>');
+    $('#tfootModalKHCu').hide();
+  } else {
+    var sumNet2=0, sumTang2=0;
+    var rows2 = khCuRows.map(function(k, i) {
+      sumNet2 += k.NetTrongKy; sumTang2 += k.TangThem;
+      return '<tr>' +
+        '<td class="text-muted ps-2">' + (i+1) + '</td>' +
+        '<td><span class="fw-semibold">' + _escHtml(k.TenKH) + '</span><br><small class="text-muted">' + k.MaKH + '</small></td>' +
+        '<td class="text-end">' + AppManager.formatCurrency(k.SoDuDauKy) + '</td>' +
+        '<td class="text-end text-success fw-semibold">+' + AppManager.formatCurrency(k.NetTrongKy) + '</td>' +
+        '<td class="text-end">' + AppManager.formatCurrency(k.SoDuCuoiKy) + '</td>' +
+        '<td class="text-end fw-bold" style="color:#059669">+' + AppManager.formatCurrency(k.TangThem) + '</td>' +
+        '</tr>';
+    });
+    $('#tbodyModalKHCu').html(rows2.join(''));
+    $('#tfKHCuNet').text('+' + AppManager.formatCurrency(sumNet2));
+    $('#tfKHCuTang').text('+' + AppManager.formatCurrency(sumTang2));
+    $('#tfootModalKHCu').show();
+  }
+
+  // Reset về tab đầu và mở modal
+  $('#tabKHMoiBtn').tab('show');
+  new bootstrap.Modal(document.getElementById('modalChiTietTT')).show();
+}
+
+// ── Export Excel ─────────────────────────────────────────────────
+
+function _initExportBtn() {
+  $('#btnExportTangTruong').prop('disabled', false).off('click').on('click', function() {
+    if (!_ttSummary.length) return;
+    var wb = XLSX.utils.book_new();
+
+    // Sheet 1: Tổng hợp
+    var ws1Data = [['Cán Bộ','Chỉ Tiêu','KH Mới','TT KH Mới','KH Cũ Tăng','TT KH Cũ','Tổng TT','% HT']];
+    _ttSummary.forEach(function(r) {
+      ws1Data.push([r.TenNV, r.ChiTieu, r.SoKHMoi, r.TangTruongKHMoi, r.SoKHCuTang, r.TangTruongKHCu, r.TongTangTruong, +(r.TyLeHoanThanh.toFixed(2))]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws1Data), 'Tổng Hợp');
+
+    // Sheet 2: KH Mới
+    var ws2Data = [['Cán Bộ','Khách Hàng','Mã KH','Gửi','Rút','Net','Tính Vào TT']];
+    _ttKHMoi.forEach(function(k) {
+      var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
+      ws2Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoTienGui, k.SoTienRut, k.NetTrongKy, k.TinhVaoTangTruong]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws2Data), 'KH Mới');
+
+    // Sheet 3: KH Cũ Tăng
+    var ws3Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Dư ĐK','Net Kỳ','Số Dư CK','Phần Tăng']];
+    _ttKHCuTang.forEach(function(k) {
+      var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
+      ws3Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoDuDauKy, k.NetTrongKy, k.SoDuCuoiKy, k.TangThem]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws3Data), 'KH Cũ Tăng');
+
+    var cdName = (_ttData && _ttData.cdInfo) ? _ttData.cdInfo.TenCD : 'ChienDich';
+    XLSX.writeFile(wb, 'TangTruong_' + cdName.replace(/\s+/g,'_') + '.xlsx');
+  });
+}
+
+// ── Utility ───────────────────────────────────────────────────────
+function _escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>

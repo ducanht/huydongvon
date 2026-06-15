@@ -1,0 +1,18 @@
+{
+  "name": "huydongvon",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "bundle": "node bundle_templates.js",
+    "dev": "npm run bundle && vite",
+    "build": "npm run bundle && vite build && node build.js",
+    "vercel-build": "npm run bundle && vite build"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.3.0",
+    "fs-extra": "^11.2.0",
+    "vite": "^5.2.11",
+    "vite-plugin-singlefile": "^2.0.1"
+  }
+}

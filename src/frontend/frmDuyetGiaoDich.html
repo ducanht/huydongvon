@@ -1,0 +1,344 @@
+<div class="row">
+  <div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+      <h1 class="page-title text-warning">
+        <i class="bx bx-check-shield"></i> Duyệt Giao Dịch (Gửi/Rút)
+      </h1>
+      <p class="text-muted small mb-0">
+        Danh sách các lệnh Gửi Tiền & Rút Tiền đang ở trạng thái chờ duyệt (PENDING) từ Cán bộ.
+      </p>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card-custom border-warning border-top border-3">
+      <div class="card-body p-4">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbDuyetGD">
+            <thead class="table-light text-center">
+              <tr>
+                <th>Mã GD</th>
+                <th>Ngày Lập</th>
+                <th>Loại GD</th>
+                <th>Số Sổ</th>
+                <th>Mã KH</th>
+                <th>Nhân Viên</th>
+                <th class="text-primary">Số Tiền</th>
+                <th>Ghi Chú Lệnh</th>
+                <th>Thao Tác Duyệt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Rendered via DataTables -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var dtDuyetGD = null;
+  var listChienDichDuyet = [];
+
+  function frmDuyetGiaoDich_init() {
+    if ($.fn.DataTable.isDataTable("#tbDuyetGD")) {
+      $("#tbDuyetGD").DataTable().destroy();
+    }
+
+    var tbody = $("#tbDuyetGD tbody");
+    tbody.html(
+      '<tr><td colspan="9" class="text-center p-4"><div class="spinner-border text-warning" role="status"></div><br><small class="text-muted mt-2">Đang tải lệnh chờ...</small></td></tr>',
+    );
+
+    // Tải song song danh sách chiến dịch
+    AppManager.callApi("getAllChienDich").done(function (res) {
+      listChienDichDuyet = res || [];
+    });
+
+    // Reuse getLichSuGiaoDich (vì Admin gọi thì Service trả hết data)
+    AppManager.callApi("getLichSuGiaoDich")
+      .done(function (data) {
+        if (!data) data = [];
+
+        // FILTER ONLY PENDING GIAO DICH
+        var pendingData = data.filter(function (x) {
+          return x.TrangThai === "PENDING";
+        });
+
+        dtDuyetGD = $("#tbDuyetGD").DataTable({
+          data: pendingData,
+          destroy: true,
+          deferRender: true,
+          language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json",
+          },
+          order: [[1, "asc"]], // Xếp cái lập trước lên trên để duyệt
+          columnDefs: [
+            {
+              targets: "_all", createdCell: function (td, cd, rd, row, col) {
+                var h = ["Mã GD", "Ngày Lập", "Loại GD", "Số Sổ", "Mã KH", "Nhân Viên", "Số Tiền", "Ghi Chú", "Thao Tác"];
+                $(td).attr('data-label', h[col] || '');
+              }
+            }
+          ],
+          columns: [
+            { data: "MaGD", className: "text-center fw-bold text-warning" },
+            {
+              data: "NgayGD",
+              render: function (d) {
+                var dt = new Date(d);
+                return AppManager.formatDateTime(dt);
+              },
+            },
+            {
+              data: "LoaiGD",
+              className: "text-center",
+              render: function (d) {
+                return d === "GUI"
+                  ? '<span class="badge bg-success">Gửi Tiền</span>'
+                  : '<span class="badge bg-danger">Rút Tiền</span>';
+              },
+            },
+            { data: "SoSo", className: "text-center fw-bold" },
+            { data: "MaKH", className: "text-center" },
+            { data: "MaNV", className: "text-center" },
+            {
+              data: "SoTien",
+              className: "text-end fw-bold text-primary",
+              render: function (d) {
+                return new Intl.NumberFormat("vi-VN").format(d) + " ₫";
+              },
+            },
+            {
+              data: "GhiChu",
+              render: function (d) {
+                return d ? d.split(" | SYS_DATA:")[0] : "";
+              },
+            },
+            {
+              data: "MaGD",
+              className: "text-center all",
+              render: function (d, type, row) {
+                return '<div class="d-flex flex-column gap-1 align-items-end">'
+                  + '<button class="btn btn-sm btn-success btn-approve-gd" data-id="' + d + '"><i class="bx bx-check"></i> Duyệt</button>'
+                  + '<button class="btn btn-sm btn-danger btn-reject-gd" data-id="' + d + '"><i class="bx bx-x"></i> Từ chối</button>'
+                  + '</div>';
+              },
+            },
+          ],
+        });
+
+        // Action: APPROVE
+        $("#tbDuyetGD")
+          .off("click", ".btn-approve-gd")
+          .on("click", ".btn-approve-gd", function () {
+            var btn = $(this);
+            var magd = btn.data("id");
+
+            var gd = pendingData.find((x) => x.MaGD === magd);
+            if (!gd) return;
+
+            var isRut = gd.LoaiGD === "RUT";
+            var curKyHan = "";
+            if (gd.GhiChu) {
+              var match = gd.GhiChu.match(/\[Kỳ Hạn:\s*(.*?)\s*\|/);
+              if (match) curKyHan = match[1].trim();
+            }
+            var curNgay = "";
+            if (gd.NgayGD) {
+              curNgay = new Date(gd.NgayGD).toISOString().split("T")[0];
+            }
+
+            var kyhanOpts = [
+              "KKH",
+              "1TH",
+              "2TH",
+              "3TH",
+              "4TH",
+              "5TH",
+              "6TH",
+              "7TH",
+              "8TH",
+              "9TH",
+              "10TH",
+              "11TH",
+              "12TH",
+              "13TH",
+              "15TH",
+              "18TH",
+              "24TH",
+              "36TH",
+            ];
+            var kyhanHtml = kyhanOpts
+              .map(
+                (k) =>
+                  `<option value="${k}" ${k === curKyHan ? "selected" : ""}>${k === "KKH" ? "Không kỳ hạn" : k.replace("TH", " Tháng")}</option>`,
+              )
+              .join("");
+
+            var campaignOptionsHtml = `<option value="">-- Không tham gia Chiến dịch --</option>`;
+            if (listChienDichDuyet && listChienDichDuyet.length) {
+              var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+              listChienDichDuyet.forEach(function (cd) {
+                var isExpired = false;
+                if (cd.NgayKetThuc) {
+                  var endStr = cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc;
+                  if (endStr < todayStr) isExpired = true;
+                }
+                var isNotStarted = false;
+                if (cd.NgayBatDau) {
+                  var startStr = cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau;
+                  if (startStr > todayStr) isNotStarted = true;
+                }
+                var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
+                var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                var selected = cd.MaCD === gd.MaCD ? 'selected' : '';
+                campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cd.TenCD}${statusMark}</option>`;
+              });
+            }
+
+            var htmlForm = `
+                    <div class="text-start mt-3">
+                        <label class="form-label text-muted fw-bold small mb-1">Số Số Tiết Kiệm (*)</label>
+                        <input id="swal-soso" class="form-control mb-3 border-primary" value="${gd.SoSo}" ${isRut ? "disabled" : ""}>
+                        
+                        <label class="form-label text-muted fw-bold small mb-1">Số Tiền Khớp Thực Tế (VNĐ)</label>
+                        <input id="swal-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${gd.SoTien}">
+                        
+                        ${!isRut
+                ? `
+                        <label class="form-label text-muted fw-bold small mb-1">Kỳ Hạn (*)</label>
+                        <select id="swal-kyhan" class="form-select mb-3">
+                            ${kyhanHtml}
+                        </select>
+                        
+                        <label class="form-label text-muted fw-bold small mb-1">Chiến Dịch KPI</label>
+                        <select id="swal-macd" class="form-select mb-3">
+                            ${campaignOptionsHtml}
+                        </select>
+                        `
+                : ""}
+                        
+                        <label class="form-label text-muted fw-bold small mb-1">Ngày GD Thực Tế (*)</label>
+                        <input id="swal-ngaygd" type="text" class="form-control mb-3 border-info" value="${curNgay}" placeholder="dd/mm/yyyy">
+                    </div>
+                `;
+
+            Swal.fire({
+              title: "Khớp Thông Tin & Duyệt Lệnh",
+              html: htmlForm,
+              showCancelButton: true,
+              confirmButtonText: '<i class="bx bx-check"></i>Xác Nhận & Duyệt',
+              cancelButtonText: "Bỏ Qua",
+              didOpen: () => {
+                if (typeof AutoNumeric !== "undefined") {
+                  new AutoNumeric("#swal-sotien", {
+                    digitGroupSeparator: ",",
+                    decimalCharacter: ".",
+                    decimalPlaces: 0,
+                  });
+                }
+                flatpickr("#swal-ngaygd", {
+                  dateFormat: "Y-m-d",
+                  altInput: true,
+                  altFormat: "d/m/Y",
+                  allowInput: true,
+                  defaultDate: curNgay,
+                });
+              },
+              preConfirm: () => {
+                var newSoSo = document.getElementById("swal-soso").value.trim();
+                var newSoTienEl = document.getElementById("swal-sotien");
+                var newSoTien = newSoTienEl.value
+                  .replace(/,/g, "")
+                  .replace(/\./g, "");
+                var newKyHanEl = document.getElementById("swal-kyhan");
+                var newKyHan = newKyHanEl ? newKyHanEl.value : null;
+                var newMaCDEl = document.getElementById("swal-macd");
+                var newMaCD = newMaCDEl ? newMaCDEl.value : null;
+                var newNgayGD = document.getElementById("swal-ngaygd").value;
+
+                if (!newSoSo || !newSoTien || !newNgayGD) {
+                  Swal.showValidationMessage(
+                    "Vui lòng điền đủ thông tin quan trọng (Số Sổ, Tiền, Ngày)!",
+                  );
+                  return false;
+                }
+                return {
+                  SoSoMoi: newSoSo,
+                  SoTienMoi: newSoTien,
+                  KyHanMoi: newKyHan,
+                  NgayGDMoi: newNgayGD,
+                  MaCDMoi: newMaCD
+                };
+              },
+            }).then((r) => {
+              if (r.isConfirmed) {
+                btn.prop("disabled", true).html('<i class="bx bx-loader"></i>');
+                var payload = { MaGD: magd, Action: "APPROVE" };
+                Object.assign(payload, r.value);
+
+                AppManager.callApi("duyetGiaoDich", payload)
+                  .done(function (res) {
+                    Swal.fire({
+                      title: "Duyệt Thành Công!",
+                      text: `Giao dịch ${magd} đã được duyệt thành công.`,
+                      icon: "success",
+                    });
+                    frmDuyetGiaoDich_init(); // Reload
+                  })
+                  .fail(function (err) {
+                    Swal.fire("Lỗi", err, "error");
+                    frmDuyetGiaoDich_init(); // Reload để mở nút
+                  });
+              }
+            });
+          });
+
+        // Action: REJECT
+        $("#tbDuyetGD")
+          .off("click", ".btn-reject-gd")
+          .on("click", ".btn-reject-gd", function () {
+            var btn = $(this);
+            var magd = btn.data("id");
+
+            Swal.fire({
+              title: "Từ Chối lệnh này?",
+              text: `Lệnh ${magd} sẽ bị khóa vĩnh viễn và đổi sang Đỏ.`,
+              icon: "warning",
+              input: "textarea",
+              inputPlaceholder: "Nhập lý do từ chối (Không bắt buộc)...",
+              showCancelButton: true,
+              confirmButtonText: "Từ Chối Giao Dịch",
+              cancelButtonText: "Hủy bỏ",
+              confirmButtonColor: "#dc3545",
+            }).then((r) => {
+              if (r.isConfirmed) {
+                var lyDo = r.value ? r.value.trim() : "";
+                btn.prop("disabled", true).html('<i class="bx bx-loader"></i>');
+                AppManager.callApi("duyetGiaoDich", {
+                  MaGD: magd,
+                  Action: "REJECT",
+                  LyDo: lyDo
+                })
+                  .done(function (res) {
+                    Swal.fire("Đã từ chối", res, "info");
+                    frmDuyetGiaoDich_init();
+                  })
+                  .fail(function (err) {
+                    Swal.fire("Lỗi", err, "error");
+                    frmDuyetGiaoDich_init();
+                  });
+              }
+            });
+          });
+      })
+      .fail(function (err) {
+        tbody.html(
+          `<tr><td colspan="9" class="text-center text-danger">Lỗi tải dữ liệu: ${err}</td></tr>`,
+        );
+      });
+  }
+</script>

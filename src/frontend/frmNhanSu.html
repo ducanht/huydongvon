@@ -1,0 +1,270 @@
+<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="page-title"><i class='bx bx-group'></i> Quản lý Nhân Sự & Phân Quyền</h1>
+        <p class="text-muted small mb-0">Danh sách Cán bộ Hệ thống. Phân quyền Admin / Cán bộ User.</p>
+    </div>
+    <div>
+        <button class="btn btn-primary shadow-sm" onclick="showModalNhanSu()"><i class='bx bx-plus'></i> Thêm Nhân
+            Viên</button>
+    </div>
+</div>
+
+<div class="col-12">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbNhanSu">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Mã NV</th>
+                            <th>Họ Tên</th>
+                            <th>Email Login</th>
+                            <th>Số Di Động</th>
+                            <th>Chức vụ (Role)</th>
+                            <th>Trạng Thái</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm/Sửa -->
+<div class="modal fade" id="modalNhanSu" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="frmSaveNhanSu">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title text-primary fw-bold" id="modalNhanSuTitle">Thêm Nhân Sự Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="txtMaNV" name="MaNV">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ và Tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtHoTen" name="HoTen" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email Học Mệnh (Google Gmail) <span
+                                class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="txtEmail" name="Email" required
+                            placeholder="vidu@qtdndyentho.com.vn">
+                        <small class="text-muted">Mail này dùng để phân quyền Google Authenticate khi vào App.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số điện thoại</label>
+                        <input type="text" class="form-control" id="txtSdt" name="Sdt">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">Phân Quyền (Role) <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select border-primary" id="cboRole" name="Role" required>
+                                <option value="USER">USER (Cán bộ HĐ)</option>
+                                <option value="ADMIN">ADMIN (Quản trị)</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">Trạng Thái</label>
+                            <select class="form-select" id="cboTrangThai" name="TrangThai">
+                                <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+                                <option value="INACTIVE">Khóa thẻ (INACTIVE)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveNhanSu"><i class='bx bx-save'></i> Lưu Thay
+                        Đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    var dtNhanSu = null;
+    var listNhanSu = []; // Giữ cache để binding sửa
+
+    function frmNhanSu_init() {
+        loadDataNhanSu();
+
+        // Handle Form Submit
+        $('#frmSaveNhanSu').off('submit').on('submit', function (e) {
+            e.preventDefault();
+
+            var form = $(this)[0];
+            if (!form.checkValidity()) {
+                e.stopPropagation();
+                $(this).addClass('was-validated');
+                return;
+            }
+
+            var btnHtml = AppManager.setBtnLoading('#btnSaveNhanSu', true, null, 'Đang lưu...');
+
+            var payload = {
+                MaNV: $('#txtMaNV').val(),
+                HoTen: $('#txtHoTen').val(),
+                Email: $('#txtEmail').val(),
+                Sdt: $('#txtSdt').val(),
+                Role: $('#cboRole').val(),
+                TrangThai: $('#cboTrangThai').val()
+            };
+
+            AppManager.callApi('saveNhanSu', payload)
+                .done(function (res) {
+                    Swal.fire('Thành công', res, 'success');
+                    $('#modalNhanSu').modal('hide');
+                    loadDataNhanSu(); // Tải lại bảng
+                })
+                .fail(function (err) {
+                    Swal.fire('Lỗi', err, 'error');
+                })
+                .always(function () {
+                    AppManager.setBtnLoading('#btnSaveNhanSu', false, btnHtml);
+                });
+        });
+    }
+
+    function loadDataNhanSu() {
+        if ($.fn.DataTable.isDataTable('#tbNhanSu')) {
+            $('#tbNhanSu').DataTable().destroy();
+        }
+
+        var tbody = $('#tbNhanSu tbody');
+        tbody.html('<tr><td colspan="7" class="text-center p-4"><div class="spinner-border text-primary" role="status"></div><br><small class="text-muted mt-2">Đang tải dữ liệu...</small></td></tr>');
+
+        AppManager.callApi('getAllNhanSu').done(function (data) {
+            listNhanSu = data || [];
+
+            dtNhanSu = $('#tbNhanSu').DataTable({
+                data: listNhanSu,
+                deferRender: true,
+                columnDefs: [
+                    { targets: 0, createdCell: function (td) { $(td).attr('data-label', 'Mã NV'); } },
+                    { targets: 1, createdCell: function (td) { $(td).attr('data-label', 'Họ Tên'); } },
+                    { targets: 2, createdCell: function (td) { $(td).attr('data-label', 'Email Login'); } },
+                    { targets: 3, createdCell: function (td) { $(td).attr('data-label', 'Số Di Động'); } },
+                    { targets: 4, createdCell: function (td) { $(td).attr('data-label', 'Chức vụ'); } },
+                    { targets: 5, createdCell: function (td) { $(td).attr('data-label', 'Trạng Thái'); } },
+                    { targets: 6, createdCell: function (td) { $(td).attr('data-label', 'Thao Tác'); } }
+                ],
+                createdRow: function (row, data, dataIndex) {
+                    $(row).css('cursor', 'pointer');
+                    // Hover effect handled by CSS
+                    $(row).on('click', function (e) {
+                        if ($(e.target).closest('button').length === 0) {
+                            editNhanSu(data.MaNV);
+                        }
+                    });
+                },
+                columns: [
+                    { data: "MaNV", className: "text-center fw-bold text-primary" },
+                    { data: "HoTen", className: "fw-bold" },
+                    {
+                        data: "Email",
+                        render: function (d) {
+                            if (!d) return '';
+                            return '<div style="word-break:break-all;white-space:normal;max-width:100%;">' + d + '</div>';
+                        }
+                    },
+                    { data: "Sdt", className: "text-center" },
+                    {
+                        data: "Role",
+                        className: "text-center",
+                        render: function (d) {
+                            return d === 'ADMIN' ? '<span class="badge bg-danger rounded-pill"><i class="bx bxs-shield"></i> ADMIN</span>'
+                                : '<span class="badge bg-info rounded-pill">USER</span>';
+                        }
+                    },
+                    {
+                        data: "TrangThai",
+                        className: "text-center",
+                        render: function (d) {
+                            return d === 'ACTIVE' ? '<span class="text-success fw-bold"><i class="bx bxs-check-circle"></i> ACTIVE</span>'
+                                : '<span class="text-secondary"><i class="bx bx-block"></i> Khóa</span>';
+                        }
+                    },
+                    {
+                        data: "MaNV",
+                        className: "text-center all",
+                        orderable: false,
+                        render: function (d) {
+                            return '<div class="d-flex flex-column gap-1 align-items-end">'
+                                + '<button class="btn btn-sm btn-outline-primary" onclick="editNhanSu(\'' + d + '\')" title="Sửa thông tin"><i class="bx bx-edit-alt"></i> Sửa</button>'
+                                + '<button class="btn btn-sm btn-outline-warning" onclick="resetPasswordNhanSu(\'' + d + '\')" title="Đặt lại Mật khẩu"><i class="bx bx-key"></i> Mật khẩu</button>'
+                                + '</div>';
+                        }
+                    }
+                ]
+            });
+        }).fail(function (err) {
+            tbody.html(`<tr><td colspan="7" class="text-center text-danger">Lỗi tải dữ liệu: ${err}</td></tr>`);
+        });
+    }
+
+    function showModalNhanSu() {
+        $('#frmSaveNhanSu')[0].reset();
+        $('#txtMaNV').val(''); // Clear ID for insert
+        $('#modalNhanSuTitle').text('Thêm Cán Bộ / Nhân Sự Mới');
+
+        // Reset role to USER for safety
+        $('#cboRole').val('USER');
+        $('#cboTrangThai').val('ACTIVE');
+
+        $('#modalNhanSu').modal('show');
+    }
+
+    function editNhanSu(maNV) {
+        var n = listNhanSu.find(x => x.MaNV === maNV);
+        if (!n) return;
+
+        $('#modalNhanSuTitle').text('Sửa Thông Tin: ' + n.HoTen);
+        $('#txtMaNV').val(n.MaNV);
+        $('#txtHoTen').val(n.HoTen);
+        $('#txtEmail').val(n.Email);
+        $('#txtSdt').val(n.Sdt);
+        $('#cboRole').val(n.Role);
+        $('#cboTrangThai').val(n.TrangThai);
+
+        $('#modalNhanSu').modal('show');
+    }
+
+    function resetPasswordNhanSu(maNV) {
+        var n = listNhanSu.find(x => x.MaNV === maNV);
+        if (!n) return;
+
+        Swal.fire({
+            title: 'Khôi phục Mật khẩu?',
+            text: "Hệ thống sẽ tạo một mật khẩu bảo mật ngẫu nhiên mới cho " + n.HoTen + ". Bạn cần thông báo mật khẩu này cho nhân viên sau khi thực hiện.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f39c12',
+            cancelButtonColor: '#secondary',
+            confirmButtonText: 'Đồng ý, Đặt lại!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                AppManager.showLoading();
+                AppManager.callApi('resetPassword', { targetMaNV: maNV })
+                    .done(function (msg) {
+                        AppManager.hideLoading();
+                        Swal.fire('Thành công', msg, 'success');
+                    })
+                    .fail(function (err) {
+                        AppManager.hideLoading();
+                        Swal.fire('Lỗi', err, 'error');
+                    });
+            }
+        })
+    }
+</script>

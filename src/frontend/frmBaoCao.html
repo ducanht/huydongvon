@@ -1,0 +1,472 @@
+<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="page-title"><i class='bx bx-bar-chart-alt-2'></i> Trình xuất Báo cáo Giao Dịch</h1>
+        <p class="text-muted small mb-0">Lọc và xuất dữ liệu giao dịch dưới dạng Excel (thông qua bảng DataTables).</p>
+    </div>
+</div>
+
+<div class="col-12 mb-4">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <form id="frmFilterBaoCao" class="row g-3">
+                <div class="col-12 col-md-2">
+                    <label class="form-label text-muted fw-bold small">Từ ngày</label>
+                    <input type="text" class="form-control" name="tuNgay" id="dtpTuNgay" placeholder="dd/mm/yyyy">
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label text-muted fw-bold small">Đến ngày</label>
+                    <input type="text" class="form-control" name="denNgay" id="dtpDenNgay" placeholder="dd/mm/yyyy">
+                </div>
+                <div class="col-12 col-md-2" id="colNhanVien" style="display:none;">
+                    <label class="form-label text-muted fw-bold small">Nhân Viên</label>
+                    <select class="form-select" name="maNV" id="cboNhanVien_Filter">
+                        <option value="">-- Tất cả NV --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label text-muted fw-bold small">Chiến dịch</label>
+                    <select class="form-select" name="maCD" id="cboChienDich_Filter">
+                        <option value="">-- Tất cả CD --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label text-muted fw-bold small">Chế độ Thống kê</label>
+                    <select class="form-select" name="kpiMode" id="cboKpiMode_Filter">
+                        <option value="THI_DUA" selected>KPI Thi Đua chiến dịch</option>
+                        <option value="HIEN_TAI">Thực Tế Hiện Tại</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex flex-column flex-sm-row justify-content-end gap-2 mt-3">
+                    <button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" id="btnXoaLocBaoCao"
+                        onclick="resetBaoCaoFilter()">
+                        <i class='bx bx-x-circle'></i> Xóa bộ lọc
+                    </button>
+                    <button type="submit" class="btn btn-primary w-100 w-sm-auto" id="btnLocBaoCao">
+                        <i class='bx bx-filter'></i> Lọc Dữ Liệu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="col-12">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <!-- Alert đối chiếu sổ ảo -->
+            <div class="alert alert-warning alert-dismissible fade show d-none" role="alert" id="alertReconciliation" style="border-radius: var(--radius-md); border-left: 5px solid var(--warning); margin-bottom: 20px;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class='bx bx-error fs-4 text-warning'></i>
+                    <div>
+                        <span>Phát hiện <strong id="lblReconciledCount">0</strong> sổ tiết kiệm ảo thuộc chiến dịch này đã bị hệ thống tự động tất toán đóng để khớp số liệu Core.</span>
+                        <a href="javascript:void(0)" class="alert-link text-decoration-underline ms-1" id="lnkShowReconciled">Xem danh sách sổ bị tất toán đối chiếu</a>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <div class="table-responsive">
+                <!-- Summary Stats for filtered results -->
+                <div class="d-flex flex-column flex-sm-row mb-4 gap-3" id="divStats" style="display:none!important;">
+                    <div class="flex-fill p-3 rounded-4"
+                        style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <div class="text-muted x-small text-uppercase fw-bold mb-1">Tổng Gửi</div>
+                        <div class="fw-bold text-success fs-5"><span id="stTongGui">0</span> ₫</div>
+                    </div>
+                    <div class="flex-fill p-3 rounded-4"
+                        style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
+                        <div class="text-muted x-small text-uppercase fw-bold mb-1">Tổng Rút</div>
+                        <div class="fw-bold text-danger fs-5"><span id="stTongRut">0</span> ₫</div>
+                    </div>
+                </div>
+
+                <!-- Bảng Dữ Liệu Động -->
+                <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbBaoCao">
+                    <thead class="table-light text-center" id="theadBaoCao">
+                        <!-- Sẽ được điền bằng JS tùy vai trò -->
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="8" class="text-center text-muted p-4" id="tdEmptyBaoCao">Hãy nhấn nút Lọc Dữ
+                                Liệu để Tải báo cáo
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+
+<script>
+    function resetBaoCaoFilter() {
+        // Reset form
+        $('#frmFilterBaoCao')[0].reset();
+        // Reset flatpickr date pickers
+        var fpTu = document.getElementById('dtpTuNgay')._flatpickr;
+        var fpDen = document.getElementById('dtpDenNgay')._flatpickr;
+        if (fpTu) fpTu.clear();
+        if (fpDen) fpDen.clear();
+    }
+    var dtBaoCao = null;
+
+    function frmBaoCao_init() {
+        var fpTu = flatpickr("#dtpTuNgay", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: true
+        });
+
+        var fpDen = flatpickr("#dtpDenNgay", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: true
+        });
+
+        // Hiện combobox nhân viên nếu là ADMIN
+        var role = window.APP_CONTEXT && window.APP_CONTEXT.User ? window.APP_CONTEXT.User.Role : '';
+        if (role === 'ADMIN') {
+            $('#colNhanVien').show();
+            AppManager.callApi('getNhanSuActive').done(function (res) {
+                var cbo = $('#cboNhanVien_Filter');
+                cbo.find('option:not(:first)').remove(); // Giữ lại option mặc định
+                if (res) {
+                    res.forEach(function (nv) {
+                        cbo.append(`<option value="${nv.MaNV}">${nv.HoTen} (${nv.MaNV})</option>`);
+                    });
+                }
+                cbo.select2({ theme: 'bootstrap-5', width: '100%', placeholder: '-- Chọn nhân viên --' });
+            });
+        }
+
+        // Lấy danh sách CD (bao gồm cũ và mới)
+        AppManager.callApi('getAllChienDich').done(function (res) {
+            var cbo = $('#cboChienDich_Filter');
+            cbo.find('option:not(:first)').remove();
+            if (res) {
+                var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+                res.forEach(function (cd) {
+                    var isExpired = false;
+                    if (cd.NgayKetThuc) {
+                        var endStr = cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc;
+                        if (endStr < todayStr) isExpired = true;
+                    }
+                    var isNotStarted = false;
+                    if (cd.NgayBatDau) {
+                        var startStr = cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau;
+                        if (startStr > todayStr) isNotStarted = true;
+                    }
+                    var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
+                    var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                    
+                    cbo.append(`<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`);
+                });
+            }
+            cbo.select2({ theme: 'bootstrap-5', width: '100%', placeholder: '-- Chọn chiến dịch --' });
+        });
+
+        // Xử lý Lọc
+        $('#frmFilterBaoCao').off('submit').on('submit', function (e) {
+            e.preventDefault();
+
+            var btn = $('#btnLocBaoCao');
+            var originalText = btn.html();
+            btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang tải...');
+
+            var payload = {
+                tuNgay: $('#dtpTuNgay').val(),
+                denNgay: $('#dtpDenNgay').val(),
+                maCD: $('#cboChienDich_Filter').val(),
+                maNV: $('#cboNhanVien_Filter').val(),
+                kpiMode: $('#cboKpiMode_Filter').val() || 'THI_DUA'
+            };
+
+            window.CURRENT_RECONCILED_LIST = [];
+
+            // Nếu Admin chọn cụ thể một nhân viên, ta ưu tiên hiển thị báo cáo Chi Tiết của nhân viên đó
+            // Nếu Admin TRỐNG nhân viên, hiển thị báo cáo Tổng Hợp toàn quỹ
+            if (role === 'ADMIN' && !payload.maNV) {
+                AppManager.callApi('getBaoCaoTongHop_ChienDich', payload)
+                    .done(function (res) {
+                        $('#divStats').hide();
+                        var reportData = res && res.report ? res.report : [];
+                        window.CURRENT_RECONCILED_LIST = res && res.reconciled ? res.reconciled : [];
+                        
+                        renderBaoCaoAdmin(reportData);
+                        _updateReconciliationAlert(window.CURRENT_RECONCILED_LIST);
+                    })
+                    .fail(function (err) { Swal.fire('Lỗi', err, 'error'); })
+                    .always(function () { btn.prop('disabled', false).html(originalText); });
+            } else {
+                // USER hoặc Admin chọn 1 NV cụ thể -> Xem chi tiết
+                AppManager.callApi('getBaoCaoChiTietUser', payload)
+                    .done(function (res) {
+                        renderBaoCaoUser(res);
+                        window.CURRENT_RECONCILED_LIST = res && res.reconciled ? res.reconciled : [];
+                        
+                        _updateReconciliationAlert(window.CURRENT_RECONCILED_LIST);
+                    })
+                    .fail(function (err) { Swal.fire('Lỗi', err, 'error'); })
+                    .always(function () { btn.prop('disabled', false).html(originalText); });
+            }
+        });
+
+        // Đăng ký click xem chi tiết sổ ảo tất toán đối chiếu
+        $(document).off('click', '#lnkShowReconciled').on('click', '#lnkShowReconciled', function(e) {
+            e.preventDefault();
+            showReconciledModal(window.CURRENT_RECONCILED_LIST);
+        });
+    }
+
+    function renderBaoCaoAdmin(data) {
+        if ($.fn.DataTable.isDataTable('#tbBaoCao')) {
+            $('#tbBaoCao').DataTable().destroy();
+            $('#tbBaoCao').empty(); // Xóa sạch bảng cũ bao gồm Thead
+        }
+
+        $('#tbBaoCao').html(`
+            <thead class="table-light text-center">
+                <tr>
+                    <th>TT</th>
+                    <th>Họ tên</th>
+                    <th>Chỉ tiêu giao</th>
+                    <th>Thực Đạt (NET)</th>
+                    <th>Tổng Số sổ</th>
+                    <th>Số KH</th>
+                    <th>KH Mới</th>
+                    <th>Tổng rút</th>
+                    <th>Tỷ lệ%</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `);
+
+        dtBaoCao = $('#tbBaoCao').DataTable({
+            data: data,
+            deferRender: true,
+            columnDefs: [
+                { targets: 0, createdCell: function (td) { $(td).attr('data-label', 'TT'); } },
+                { targets: 1, createdCell: function (td) { $(td).attr('data-label', 'Họ tên'); } },
+                { targets: 2, createdCell: function (td) { $(td).attr('data-label', 'Chỉ tiêu'); } },
+                { targets: 3, createdCell: function (td) { $(td).attr('data-label', 'Thực Đạt (NET)'); } },
+                { targets: 4, createdCell: function (td) { $(td).attr('data-label', 'Tổng Số sổ'); } },
+                { targets: 5, createdCell: function (td) { $(td).attr('data-label', 'Số KH'); } },
+                { targets: 6, createdCell: function (td) { $(td).attr('data-label', 'KH Mới'); } },
+                { targets: 7, createdCell: function (td) { $(td).attr('data-label', 'Rút'); } },
+                { targets: 8, createdCell: function (td) { $(td).attr('data-label', 'Tỷ lệ%'); } }
+            ],
+            dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
+                "<'row'<'col-sm-12'tr>>" +
+                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            buttons: [
+                { extend: 'excel', className: 'btn btn-sm btn-success', text: '<i class="bx bx-spreadsheet"></i> Excel', title: 'BaoCaoAdmin_' + new Date().getTime() },
+                { extend: 'pdf', className: 'btn btn-sm btn-danger', text: '<i class="bx bxs-file-pdf"></i> PDF', title: 'BaoCaoAdmin_' + new Date().getTime() }
+            ],
+            columns: [
+                { data: null, className: "text-center text-muted fw-bold", render: function (d, type, row, meta) { return meta.row + 1; } },
+                { data: "TenNV", className: "fw-bold text-primary" },
+                { data: "ChiTieu", className: "text-end text-muted", render: function (d) { return new Intl.NumberFormat('vi-VN').format(d); } },
+                {
+                    data: "Net",
+                    className: "text-end fw-bold",
+                    render: function (d) {
+                        var val = new Intl.NumberFormat('vi-VN').format(d);
+                        return d >= 0 ? `<span class="text-success">+${val}</span>` : `<span class="text-danger">${val}</span>`;
+                    }
+                },
+                { data: "TongSoSo", className: "text-center fw-bold text-success" },
+                { data: "SoKH", className: "text-center fw-bold text-info" },
+                { data: "SoKHMoi", className: "text-center fw-bold text-success", render: function (d) { return d > 0 ? `<span class="badge bg-success">${d}</span>` : '0'; } },
+                { data: "Rut", className: "text-end text-danger", render: function (d) { return new Intl.NumberFormat('vi-VN').format(d); } },
+                {
+                    data: "TyLe",
+                    className: "text-center",
+                    render: function (d) { return `<span class="badge ${d >= 100 ? 'bg-success' : 'bg-warning text-dark'}">${d.toFixed(1)}%</span>`; }
+                }
+            ],
+            order: [[3, "desc"]] // Sắp xếp theo Net (which is at index 3)
+        });
+    }
+
+    function renderBaoCaoUser(data) {
+        if ($.fn.DataTable.isDataTable('#tbBaoCao')) {
+            $('#tbBaoCao').DataTable().destroy();
+            $('#tbBaoCao').empty();
+        }
+
+        $('#tbBaoCao').html(`
+            <thead class="table-light text-center">
+                <tr>
+                    <th>Số Sổ</th>
+                    <th>Khách hàng gửi</th>
+                    <th>Khách hàng rút</th>
+                    <th>Chiến dịch</th>
+                    <th>Tổng số tiền</th>
+                    <th>Ngày GD</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `);
+
+        var sGui = 0, sRut = 0;
+        var rows = Array.isArray(data) ? data : (data.data || []);
+        rows.forEach(function (d) {
+            if (d.LoaiGD === 'GUI') sGui += d.SoTien;
+            else if (d.LoaiGD === 'RUT') sRut += d.SoTien;
+        });
+
+        $('#stTongGui').text(new Intl.NumberFormat('vi-VN').format(sGui));
+        $('#stTongRut').text(new Intl.NumberFormat('vi-VN').format(sRut));
+        $('#divStats').attr('style', 'display: flex !important;');
+
+        dtBaoCao = $('#tbBaoCao').DataTable({
+            data: rows,
+            deferRender: true,
+            columnDefs: [
+                { targets: 0, createdCell: function (td) { $(td).attr('data-label', 'Số Sổ'); } },
+                { targets: 1, createdCell: function (td) { $(td).attr('data-label', 'Khách gửi'); } },
+                { targets: 2, createdCell: function (td) { $(td).attr('data-label', 'Khách rút'); } },
+                { targets: 3, createdCell: function (td) { $(td).attr('data-label', 'Chiến dịch'); } },
+                { targets: 4, createdCell: function (td) { $(td).attr('data-label', 'Tổng tiền'); } },
+                { targets: 5, createdCell: function (td) { $(td).attr('data-label', 'Ngày GD'); } }
+            ],
+            dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
+                "<'row'<'col-sm-12'tr>>" +
+                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            buttons: [
+                { extend: 'excel', className: 'btn btn-sm btn-success', text: '<i class="bx bx-spreadsheet"></i> Excel', title: 'BaoCaoUser_' + new Date().getTime() },
+                { extend: 'pdf', className: 'btn btn-sm btn-danger', text: '<i class="bx bxs-file-pdf"></i> PDF', title: 'BaoCaoUser_' + new Date().getTime() }
+            ],
+            columns: [
+                { data: "SoSo", className: "text-center fw-bold text-primary" },
+                {
+                    data: "TenKH",
+                    render: function (d, type, row) {
+                        return row.LoaiGD === 'GUI' ? `<span class="text-success"><i class='bx bxs-down-arrow-circle'></i> ${d}</span>` : '';
+                    }
+                },
+                {
+                    data: "TenKH",
+                    render: function (d, type, row) {
+                        return row.LoaiGD === 'RUT' ? `<span class="text-danger"><i class='bx bxs-up-arrow-circle'></i> ${d}</span>` : '';
+                    }
+                },
+                { data: "TenCD", className: "text-muted" },
+                {
+                    data: "SoTien",
+                    className: "text-end fw-bold",
+                    render: function (d, type, row) {
+                        var val = new Intl.NumberFormat('vi-VN').format(d);
+                        return row.LoaiGD === 'GUI' ? `<span class="text-success">+${val}</span>` : `<span class="text-danger">-${val}</span>`;
+                    }
+                },
+                {
+                    data: "NgayGD",
+                    className: "text-center text-muted",
+                    render: function (d) { return AppManager.formatDate(d); }
+                }
+            ],
+            order: [[5, "desc"]]
+        });
+    }
+
+    function _updateReconciliationAlert(list) {
+        var alertEl = $('#alertReconciliation');
+        if (alertEl.length === 0) return;
+        
+        if (list && list.length > 0) {
+            $('#lblReconciledCount').text(list.length);
+            alertEl.removeClass('d-none').addClass('show d-flex');
+        } else {
+            alertEl.addClass('d-none').removeClass('show d-flex');
+        }
+    }
+
+    function showReconciledModal(list) {
+        if (!list || list.length === 0) return;
+        
+        var tableHtml = `
+            <div class="table-responsive text-start" style="font-size: 0.85rem; max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbReconciledDetails">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th width="8%">TT</th>
+                            <th width="20%">Số sổ</th>
+                            <th width="28%">Họ tên KH</th>
+                            <th width="20%">Ngày mở</th>
+                            <th width="24%">CB quản lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        Swal.fire({
+            title: '<span class="text-warning fw-bold fs-5"><i class="bx bx-error-circle"></i> Danh Sách Sổ Ảo Tự Động Tất Toán Đối Chiếu</span>',
+            html: tableHtml,
+            width: '850px',
+            showCloseButton: true,
+            confirmButtonText: 'Đóng lại',
+            confirmButtonColor: '#64748b',
+            didOpen: function() {
+                var tableData = list.map(function(item, idx) {
+                    return {
+                        TT: idx + 1,
+                        SoSo: item.SoSo,
+                        TenKH: item.TenKH,
+                        NgayMo: AppManager.formatDate(item.NgayMo),
+                        TenNV: item.TenNV
+                    };
+                });
+                
+                $('#tbReconciledDetails').DataTable({
+                    data: tableData,
+                    deferRender: true,
+                    columnDefs: [
+                        { targets: 0, createdCell: function (td) { $(td).attr('data-label', 'TT'); } },
+                        { targets: 1, createdCell: function (td) { $(td).attr('data-label', 'Số sổ'); } },
+                        { targets: 2, createdCell: function (td) { $(td).attr('data-label', 'Họ tên KH'); } },
+                        { targets: 3, createdCell: function (td) { $(td).attr('data-label', 'Ngày mở'); } },
+                        { targets: 4, createdCell: function (td) { $(td).attr('data-label', 'CB quản lý'); } }
+                    ],
+                    dom: "<'row mb-2'<'col-6'l><'col-6 text-end'B>>" +
+                         "<'row'<'col-12'tr>>" +
+                         "<'row mt-2'<'col-5'i><'col-7'p>>",
+                    buttons: [
+                        {
+                            extend: 'excel',
+                            className: 'btn btn-sm btn-success px-3 py-1.5 fs-7',
+                            text: '<i class="bx bx-spreadsheet"></i> Excel',
+                            title: 'DanhSachSoAoTatToan_' + new Date().getTime(),
+                            exportOptions: { columns: [0, 1, 2, 3, 4] }
+                        },
+                        {
+                            extend: 'pdf',
+                            className: 'btn btn-sm btn-danger px-3 py-1.5 fs-7 ms-1',
+                            text: '<i class="bx bxs-file-pdf"></i> PDF',
+                            title: 'DanhSachSoAoTatToan_' + new Date().getTime(),
+                            exportOptions: { columns: [0, 1, 2, 3, 4] }
+                        }
+                    ],
+                    columns: [
+                        { data: "TT", className: "text-center fw-bold text-muted" },
+                        { data: "SoSo", className: "text-center fw-bold text-primary" },
+                        { data: "TenKH", className: "fw-bold text-dark" },
+                        { data: "NgayMo", className: "text-center text-muted" },
+                        { data: "TenNV", className: "text-center text-muted" }
+                    ],
+                    language: {
+                        url: "https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/i18n/Vietnamese.json"
+                    },
+                    destroy: true
+                });
+            }
+        });
+    }
+</script>

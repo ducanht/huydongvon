@@ -1,0 +1,170 @@
+<!-- Modal Đổi Mật Khẩu -->
+<div
+  class="modal fade"
+  id="modalDoiMatKhau"
+  tabindex="-1"
+  aria-labelledby="modalDoiMatKhauLabel"
+  aria-hidden="true"
+  data-bs-backdrop="static"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div
+      class="modal-content border-0 shadow-lg"
+      style="border-radius: var(--radius-lg); overflow: hidden"
+    >
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title page-title fs-5" id="modalDoiMatKhauLabel">
+          <i class="bx bx-lock-open-alt me-2"></i>Đổi Mật Khẩu
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="formDoiMatKhau">
+          <div class="row">
+            <div class="col-12 mb-3">
+              <label class="form-label fw-bold">Mật Khẩu Hiện Tại</label>
+              <input
+                type="password"
+                class="form-control"
+                id="txtMatKhauCu"
+                required
+              />
+            </div>
+            <div class="col-12 mb-3">
+              <label class="form-label fw-bold">Mật Khẩu Mới</label>
+              <input
+                type="password"
+                class="form-control"
+                id="txtMatKhauMoi"
+                required
+              />
+            </div>
+            <div class="col-12 mb-4">
+              <label class="form-label fw-bold">Nhập Lại Mật Khẩu Mới</label>
+              <input
+                type="password"
+                class="form-control"
+                id="txtXacNhanMatKhau"
+                required
+              />
+            </div>
+            <div class="col-12 text-md-end text-start d-flex flex-wrap gap-2 justify-content-start justify-content-md-end">
+              <button
+                type="button"
+                class="btn btn-outline-danger me-2 d-none"
+                id="btnForceLogout"
+                onclick="AppManager.logout()"
+              >
+                <i class="bx bx-log-out"></i> Đăng Xuất
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary me-2"
+                id="btnCancelPass"
+                data-bs-dismiss="modal"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                id="btnSubmitDoiPass"
+              >
+                <i class="bx bx-save"></i> Đổi Mật Khẩu
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function frmDoiMatKhau_init() {
+    var rpc =
+      window.APP_CONTEXT &&
+      window.APP_CONTEXT.User &&
+      window.APP_CONTEXT.User.RequirePasswordChange;
+    if (!rpc) {
+      $("#modalDoiMatKhau").find(".btn-close").removeClass("d-none");
+      $("#modalDoiMatKhau").find("#btnCancelPass").removeClass("d-none");
+      $("#modalDoiMatKhau").find("#btnForceLogout").addClass("d-none");
+    } else {
+      $("#modalDoiMatKhau").find(".btn-close").addClass("d-none");
+      $("#modalDoiMatKhau").find("#btnCancelPass").addClass("d-none");
+      $("#modalDoiMatKhau").find("#btnForceLogout").removeClass("d-none");
+    }
+
+    $("#formDoiMatKhau")
+      .off("submit")
+      .on("submit", function (e) {
+        e.preventDefault();
+
+        var mkCu = $("#txtMatKhauCu").val().trim();
+        var mkMoi = $("#txtMatKhauMoi").val().trim();
+        var xacNhan = $("#txtXacNhanMatKhau").val().trim();
+
+        if (!mkCu || !mkMoi || !xacNhan) {
+          Swal.fire("Lỗi", "Vui lòng điền đầy đủ các trường yêu cầu.", "error");
+          return;
+        }
+
+        if (mkMoi !== xacNhan) {
+          Swal.fire(
+            "Lỗi",
+            "Mật khẩu mới và Nhập lại mật khẩu không khớp.",
+            "error",
+          );
+          return;
+        }
+
+        if (mkCu === mkMoi) {
+          Swal.fire(
+            "Lỗi",
+            "Mật khẩu mới không được giống với mật khẩu hiện tại.",
+            "error",
+          );
+          return;
+        }
+
+        if (mkMoi.length < 6) {
+          Swal.fire("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự.", "error");
+          return;
+        }
+
+        // JS hash mk on client
+        var hashCu = CryptoJS.SHA256(mkCu).toString(CryptoJS.enc.Hex);
+        var hashMoi = CryptoJS.SHA256(mkMoi).toString(CryptoJS.enc.Hex);
+
+        AppManager.showLoading();
+        AppManager.callApi("changePassword", {
+          oldHash: hashCu,
+          newHash: hashMoi,
+        })
+          .done(function (msg) {
+            AppManager.hideLoading();
+            $("#modalDoiMatKhau").modal("hide");
+            $("#formDoiMatKhau")[0].reset();
+            Swal.fire({
+              title: "Thành công!",
+              text: msg + " Hệ thống sẽ đăng xuất...",
+              icon: "success",
+              timer: 3000,
+              showConfirmButton: false,
+            }).then(() => {
+              AppManager.logout();
+            });
+          })
+          .fail(function (err) {
+            AppManager.hideLoading();
+            Swal.fire("Lỗi", err, "error");
+          });
+      });
+  }
+</script>

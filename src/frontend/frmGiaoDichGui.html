@@ -1,0 +1,1179 @@
+<style>
+  :root {
+    --primary: #10b981;
+    --primary-dark: #059669;
+    --primary-soft: #d1fae5;
+    --success: #10b981;
+    --success-soft: #d1fae5;
+    --warning: #f59e0b;
+    --warning-soft: #fef3c7;
+    --danger: #ef4444;
+    --danger-soft: #fee2e2;
+    --surface: rgba(255, 255, 255, 0.72);
+    --surface-fallback: #ffffff;
+    --surface-alt: rgba(248, 250, 252, 0.5);
+    --border: rgba(16, 185, 129, 0.2);
+    --border-dark: rgba(16, 185, 129, 0.3);
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    --gpu-hint: translateZ(0);
+  }
+
+  /* Relying on global design tokens in app.css */
+
+  /* ── PAGE ───────────────────────────────────────────── */
+  .gd-page {
+    font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 8px 0 48px;
+  }
+
+  /* ── PAGE HEADER ────────────────────────────────────── */
+  .gd-page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: var(--glass-border);
+  }
+
+  .gd-page-header-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: var(--radius-md);
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 24px;
+    color: var(--primary);
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* ── STEP INDICATOR ─────────────────────────────────── */
+  .gd-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 28px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 6px;
+    box-shadow: var(--shadow-glow);
+  }
+
+  .gd-step {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: default;
+    transition: var(--transition);
+  }
+
+  .gd-step.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow-glow);
+  }
+
+  .gd-step.done {
+    color: var(--secondary);
+  }
+
+  .gd-step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-muted);
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+
+  .gd-step.active .gd-step-num {
+    background: #fff;
+    color: var(--primary);
+  }
+
+  .gd-step.done .gd-step-num {
+    background: var(--secondary);
+    color: #fff;
+  }
+
+  .gd-step-sep {
+    width: 1px;
+    height: 30px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* ── CARD ───────────────────────────────────────────── */
+  .gd-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .gd-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .gd-card-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .gd-card-header h5 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.2px;
+  }
+
+  .gd-card-header span {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+    display: block;
+  }
+
+  .gd-card-body {
+    padding: 24px;
+  }
+
+  /* ── FORM CONTROLS ──────────────────────────────────── */
+  .gd-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .gd-label-required {
+    color: var(--danger);
+    font-size: 0.7rem;
+  }
+
+  .gd-label-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: var(--warning-soft);
+    color: var(--warning);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .gd-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--surface);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+    outline: none;
+  }
+
+  .gd-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+  }
+
+  .gd-input:read-only {
+    background: var(--surface-alt);
+    color: var(--text-muted);
+  }
+
+  .gd-input.input-lg {
+    padding: 13px 16px;
+    font-size: 1rem;
+  }
+
+  select.gd-input {
+    cursor: pointer;
+  }
+
+  .gd-input-group {
+    display: flex;
+    align-items: stretch;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+
+  .gd-input-group:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+  }
+
+  .gd-input-group-prefix,
+  .gd-input-group-suffix {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 0.9rem;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    white-space: nowrap;
+    border: none;
+  }
+
+  .gd-input-group .gd-input {
+    border: none;
+    border-radius: 0;
+    box-shadow: none !important;
+    flex: 1;
+  }
+
+  .gd-hint {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── SELECT2 OVERRIDE ───────────────────────────────── */
+  .select2-container--bootstrap-5 .select2-selection {
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    min-height: 42px !important;
+    font-size: 0.9rem !important;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s !important;
+  }
+
+  .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+  .select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12) !important;
+  }
+
+  /* ── NAMECARD ───────────────────────────────────────── */
+  .gd-namecard {
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: linear-gradient(135deg,
+        var(--primary) 0%,
+        var(--primary-dark) 100%);
+    position: relative;
+  }
+
+  .gd-namecard::before {
+    content: "";
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 140px;
+    height: 140px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+  }
+
+  .gd-namecard::after {
+    content: "";
+    position: absolute;
+    bottom: -20px;
+    left: 40px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+  }
+
+  .gd-namecard-body {
+    padding: 20px 22px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .gd-namecard-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .gd-namecard-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .gd-namecard-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 10px;
+  }
+
+  .gd-namecard-meta-item {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .gd-namecard-meta-item strong {
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .gd-namecard-badge {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .gd-tv-badge {
+    background: #f59e0b;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── EMPTY STATE ────────────────────────────────────── */
+  .gd-empty {
+    padding: 28px 20px;
+    text-align: center;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+  }
+
+  .gd-empty i {
+    font-size: 32px;
+    color: var(--border-dark);
+    margin-bottom: 8px;
+  }
+
+  .gd-empty p {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin: 0;
+  }
+
+  /* ── ADMIN BADGE ────────────────────────────────────── */
+  .gd-admin-zone {
+    border: 1.5px solid #fbbf24;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    background: var(--warning-soft);
+    margin-bottom: 8px;
+  }
+
+  .gd-admin-zone-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--warning);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── AMOUNT INPUT SPECIAL ───────────────────────────── */
+  .gd-amount-display {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--success);
+    text-align: right;
+    letter-spacing: -0.5px;
+  }
+
+  /* ── NOTICE BANNER ──────────────────────────────────── */
+  .gd-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--warning-soft);
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    color: #92400e;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .gd-notice i {
+    font-size: 16px;
+    color: #f59e0b;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  /* ── FORM GRID ──────────────────────────────────────── */
+  .gd-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .gd-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gd-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  @media (max-width: 640px) {
+
+    .gd-grid-2,
+    .gd-grid-3 {
+      grid-template-columns: 1fr;
+    }
+
+    .gd-steps .gd-step span {
+      display: none;
+    }
+
+    .gd-steps .gd-step-sep {
+      display: none;
+    }
+
+    .gd-card-body {
+      padding: 16px;
+    }
+
+    .gd-page-header {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  /* ── FOOTER ACTIONS ─────────────────────────────────── */
+  .gd-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-alt);
+  }
+
+  .gd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.87rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: -0.1px;
+    text-decoration: none;
+  }
+
+  .gd-btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+  }
+
+  .gd-btn-ghost:hover {
+    background: var(--surface-alt);
+    border-color: var(--border-dark);
+  }
+
+  .gd-btn-primary {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(26, 86, 219, 0.3);
+  }
+
+  .gd-btn-primary:hover {
+    background: var(--primary-dark);
+    box-shadow: 0 4px 14px rgba(26, 86, 219, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .gd-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .gd-btn i {
+    font-size: 17px;
+  }
+
+  /* ── VALIDATION ─────────────────────────────────────── */
+  .was-validated .gd-input:invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(224, 36, 36, 0.1);
+  }
+
+  .was-validated .gd-input-group:has(.gd-input:invalid) {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(224, 36, 36, 0.1);
+  }
+
+  /* ── ANIMATE IN ─────────────────────────────────────── */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .gd-card {
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .gd-card:nth-child(2) {
+    animation-delay: 0.07s;
+  }
+
+  .gd-card:nth-child(3) {
+    animation-delay: 0.14s;
+  }
+</style>
+
+<div class="gd-page">
+  <div class="gd-page-header">
+    <div class="d-flex align-items-center gap-3">
+      <div class="gd-page-header-icon">
+        <i class="bx bx-plus-circle"></i>
+      </div>
+      <div>
+        <h1 class="page-title mb-1">Ghi nhận Lệnh Gửi Tiền</h1>
+        <p class="text-muted small mb-0">
+          Cán bộ ghi nhận lệnh dự kiến để báo cáo chỉ tiêu. ADMIN sẽ xác minh và
+          chỉnh sửa số liệu thực tế trước khi duyệt chính thức.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step Indicator -->
+  <div class="gd-steps">
+    <div class="gd-step active" id="step1">
+      <div class="gd-step-num">1</div>
+      <span>Khách hàng</span>
+    </div>
+    <div class="gd-step-sep"></div>
+    <div class="gd-step" id="step2">
+      <div class="gd-step-num">2</div>
+      <span>Thông tin giao dịch</span>
+    </div>
+    <div class="gd-step-sep"></div>
+    <div class="gd-step" id="step3">
+      <div class="gd-step-num">3</div>
+      <span>Xác nhận</span>
+    </div>
+  </div>
+
+  <form id="frmGuiTien" novalidate>
+    <!-- ── CARD 1: KHÁCH HÀNG ── -->
+    <div class="card-custom mb-5">
+      <div class="card-header">
+        <i class="bx bx-user-check me-2"></i>
+        <h5 class="card-header-title m-0">Thông tin Khách hàng</h5>
+      </div>
+      <div class="card-body p-4">
+        <!-- Hidden inputs -->
+        <input type="hidden" name="CCCD" id="hiddenCCCD" />
+        <input type="hidden" name="HoTen" id="hiddenHoTen" />
+        <input type="hidden" name="Sdt" id="hiddenSdt" />
+        <input type="hidden" name="DiaChi" id="hiddenDiaChi" />
+
+        <div style="margin-bottom: 16px">
+          <label class="gd-label"><i class="bx bx-search"></i> Tìm khách hàng
+            <span class="gd-label-required">*</span></label>
+          <select class="form-select" id="cboSearchKhachHang">
+            <option value="">-- Nhập thông tin để tìm kiếm --</option>
+          </select>
+        </div>
+
+        <!-- Namecard -->
+        <div class="d-none" id="customerNamecard">
+          <div class="gd-namecard">
+            <div class="gd-namecard-body">
+              <div class="d-flex align-items-center gap-3">
+                <div class="gd-namecard-avatar"><i class="bx bx-user"></i></div>
+                <div class="flex-1" style="min-width: 0">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="gd-namecard-name" id="ncHoTen">---</div>
+                    <div class="gd-tv-badge d-none" id="ncBadgeThanhVien">
+                      <i class="bx bx-star"></i> TV:
+                      <span id="ncSoTheTV">---</span>
+                    </div>
+                  </div>
+                  <div class="gd-namecard-meta">
+                    <div class="gd-namecard-meta-item">
+                      <i class="bx bx-id-card"></i> CCCD:
+                      <strong id="ncCCCD">---</strong>
+                    </div>
+                    <div class="gd-namecard-meta-item">
+                      <i class="bx bx-phone"></i> SĐT:
+                      <strong id="ncSdt">---</strong>
+                    </div>
+                    <div class="gd-namecard-meta-item" style="width: 100%">
+                      <i class="bx bx-map-pin"></i>
+                      <span id="ncDiaChi" style="color: rgba(255, 255, 255, 0.8)">---</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="customerSelectPrompt" class="gd-empty">
+          <i class="bx bx-user-circle"></i>
+          <p>Vui lòng tìm kiếm và chọn khách hàng từ ô phía trên</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CARD 2: THÔNG TIN GIAO DỊCH ── -->
+    <div class="card-custom mb-5">
+      <div class="card-header">
+        <i class="bx bx-wallet me-2"></i>
+        <h5 class="card-header-title m-0">Chi tiết Giao dịch</h5>
+      </div>
+      <div class="card-body p-4">
+        <div class="gd-notice">
+          <i class="bx bx-info-circle"></i>
+          <div>
+            <strong>Lưu ý:</strong> Số tiền, số sổ và ngày giao dịch phía dưới
+            là dự kiến. ADMIN sẽ xem lại và điều chỉnh cho khớp thực tế trước
+            khi phê duyệt chính thức.
+          </div>
+        </div>
+
+        <!-- Admin assign zone -->
+        <div id="adminAssignContainer" class="d-none" style="margin-bottom: 20px">
+          <div class="gd-admin-zone">
+            <div class="gd-admin-zone-label">
+              <i class="bx bx-user-pin"></i> Gán KPI cho Cán Bộ (Quyền ADMIN)
+            </div>
+            <label class="gd-label">Chọn Cán bộ</label>
+            <select class="form-select" name="MaNV_Assigned" id="cboNhanVien">
+              <option value="">-- Mặc định: Ghi nhận cho chính tôi --</option>
+            </select>
+            <div class="gd-hint">
+              <i class="bx bx-info-circle"></i> Chọn cán bộ để ghi nhận người
+              tạo lệnh và tính KPI thay vì tính cho bạn.
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 1: CD + Ngày -->
+        <div class="gd-grid gd-grid-2" style="margin-bottom: 16px">
+          <div>
+            <label class="gd-label"><i class="bx bx-flag"></i> Chiến Dịch
+              <span class="gd-label-required">*</span></label>
+            <select class="form-select gd-input" name="MaCD" id="cboChienDich" required>
+              <option value="">Đang tải...</option>
+            </select>
+          </div>
+          <div>
+            <label class="gd-label">
+              <i class="bx bx-calendar"></i> Ngày Gửi Dự Kiến
+              <span class="gd-label-badge">ADMIN chỉnh</span>
+            </label>
+            <input type="text" class="gd-input" name="NgayGD" id="txtNgayGD" placeholder="dd/mm/yyyy" required />
+          </div>
+        </div>
+
+        <!-- Row 2: Số tiền + Số sổ -->
+        <div class="gd-grid gd-grid-2" style="margin-bottom: 16px">
+          <div>
+            <label class="gd-label">
+              <i class="bx bx-money"></i> Số Tiền Dự Kiến
+              <span class="gd-label-required">*</span>
+              <span class="gd-label-badge">ADMIN chỉnh</span>
+            </label>
+            <div class="gd-input-group">
+              <span class="gd-input-group-prefix" style="color: #16a34a"><i class="bx bx-coin-stack"></i></span>
+              <input type="text" class="gd-input input-currency gd-amount-display" name="SoTien" required
+                placeholder="0" />
+              <span class="gd-input-group-suffix">VNĐ</span>
+            </div>
+          </div>
+          <div>
+            <label class="gd-label">
+              <i class="bx bx-book"></i> Mã Số Sổ
+              <span class="gd-label-badge" style="background: #e0e7ff; color: #4338ca">Tự động</span>
+            </label>
+            <input type="text" class="gd-input font-monospace" name="SoSo" id="txtSoSo" required readonly
+              title="Mã tạm — ADMIN sẽ đổi khi duyệt" />
+            <div class="gd-hint">
+              <i class="bx bx-info-circle"></i> Mã tạm: ABddmmyy-MaNV-HHmm
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Kỳ hạn + Loại sảnh -->
+        <div class="gd-grid gd-grid-2">
+          <div>
+            <label class="gd-label">
+              <i class="bx bx-time-five"></i> Kỳ Hạn Dự Kiến
+              <span class="gd-label-badge">ADMIN chỉnh</span>
+            </label>
+            <select class="gd-input" name="KyHan">
+              <option value="KKH">Không kỳ hạn</option>
+              <option value="1TH">1 Tháng</option>
+              <option value="2TH">2 Tháng</option>
+              <option value="3TH">3 Tháng</option>
+              <option value="4TH">4 Tháng</option>
+              <option value="5TH">5 Tháng</option>
+              <option value="6TH">6 Tháng</option>
+              <option value="7TH">7 Tháng</option>
+              <option value="8TH">8 Tháng</option>
+              <option value="9TH">9 Tháng</option>
+              <option value="10TH">10 Tháng</option>
+              <option value="11TH">11 Tháng</option>
+              <option value="12TH" selected>12 Tháng</option>
+              <option value="13TH">13 Tháng</option>
+              <option value="15TH">15 Tháng</option>
+              <option value="18TH">18 Tháng</option>
+              <option value="24TH">24 Tháng</option>
+              <option value="36TH">36 Tháng</option>
+            </select>
+          </div>
+          <div>
+            <label class="gd-label"><i class="bx bx-building-house"></i> Loại Sảnh</label>
+            <select class="gd-input" name="LoaiSanh">
+              <option value="BT">Bình thường</option>
+              <option value="VIP">KH VIP</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="gd-actions">
+        <button type="button" class="gd-btn gd-btn-ghost" onclick="
+            $('#frmGuiTien')[0].reset();
+            $('#frmGuiTien').removeClass('was-validated');
+            $('#customerNamecard').addClass('d-none');
+            $('#customerSelectPrompt').removeClass('d-none');
+            try {
+              $('#cboSearchKhachHang').val(null).trigger('change');
+            } catch (e) {}
+            _gdUpdateSteps(false);
+          ">
+          <i class="bx bx-refresh"></i> Làm lại
+        </button>
+        <button type="submit" class="gd-btn gd-btn-primary" id="btnSubmitGuiTien">
+          <i class="bx bx-save"></i> Ghi nhận Giao dịch
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  // ── Sinh Mã Số Sổ tạm ────────────────────────────────────────
+  function _gdGenerateTempSoSo() {
+    var now = new Date();
+    var parts = {};
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(now)
+      .forEach(function (x) {
+        parts[x.type] = x.value;
+      });
+
+    var tempSo =
+      "AC" +
+      parts.day +
+      parts.month +
+      parts.year +
+      "-" +
+      (window.APP_CONTEXT && window.APP_CONTEXT.User
+        ? window.APP_CONTEXT.User.MaNV
+        : "SYS") +
+      "-" +
+      parts.hour.replace(":", "") +
+      parts.minute;
+
+    $("#txtSoSo").val(tempSo);
+  }
+
+  // ── Cập nhật Step Indicator ──────────────────────────────────
+  function _gdUpdateSteps(hasCustomer) {
+    var s1 = document.getElementById("step1");
+    var s2 = document.getElementById("step2");
+    if (hasCustomer) {
+      s1.className = "gd-step done";
+      s1.querySelector(".gd-step-num").innerHTML =
+        '<i class="bx bx-check" style="font-size:13px;"></i>';
+      s2.className = "gd-step active";
+    } else {
+      s1.className = "gd-step active";
+      s1.querySelector(".gd-step-num").textContent = "1";
+      s2.className = "gd-step";
+    }
+  }
+
+  // ── Khởi tạo form ────────────────────────────────────────────
+  function frmGiaoDichGui_init() {
+    // Load Khách Hàng vào Select2
+    AppManager.callApi("getKhachHangActive").done(function (res) {
+      var cboKH = $("#cboSearchKhachHang");
+      cboKH
+        .empty()
+        .append('<option value="">-- Nhập thông tin để tìm kiếm --</option>');
+      if (res && res.length > 0) {
+        res.forEach(function (kh) {
+          cboKH.append(
+            $("<option>")
+              .val(kh.MaKH)
+              .text(kh.MaKH + " - " + kh.HoTen + " - " + kh.CCCD)
+              .data("hoten", kh.HoTen)
+              .data("cccd", kh.CCCD)
+              .data("sdt", kh.Sdt)
+              .data("diachi", kh.DiaChi)
+              .data("sothetv", kh.SoTheTV || ""),
+          );
+        });
+      }
+
+      // Custom matcher (4 số đuôi thẻ TV)
+      function customMatcher(params, data) {
+        if (!$.trim(params.term)) return data;
+        var term = params.term.toLowerCase();
+        var text = (data.text || "").toLowerCase();
+        var theTV = String($(data.element).data("sothetv") || "").toLowerCase();
+        if (term.length >= 4 && theTV.endsWith(term)) return data;
+        return text.indexOf(term) > -1 ? data : null;
+      }
+
+      cboKH.select2({
+        theme: "bootstrap-5",
+        width: "100%",
+        placeholder: "-- Tìm kiếm theo Tên, CCCD, hoặc Mã KH --",
+        allowClear: true,
+        matcher: customMatcher,
+      });
+
+      cboKH.on("select2:select", function (e) {
+        var opt = $(e.params.data.element);
+        var cccd = opt.data("cccd") || "";
+        var hoten = opt.data("hoten") || "Khách hàng";
+        var sdt = opt.data("sdt") || "Chưa cập nhật";
+        var diachi = opt.data("diachi") || "Chưa cập nhật";
+        var theTV = opt.data("sothetv");
+
+        $("#hiddenCCCD").val(cccd);
+        $("#hiddenHoTen").val(hoten);
+        $("#hiddenSdt").val(sdt);
+        $("#hiddenDiaChi").val(diachi);
+
+        $("#ncHoTen").text(hoten);
+        $("#ncCCCD").text(cccd);
+        $("#ncSdt").text(sdt);
+        $("#ncDiaChi").text(diachi);
+
+        if (theTV && String(theTV).trim()) {
+          $("#ncSoTheTV").text(theTV);
+          $("#ncBadgeThanhVien").removeClass("d-none");
+        } else {
+          $("#ncBadgeThanhVien").addClass("d-none");
+        }
+
+        $("#customerNamecard").removeClass("d-none").hide().fadeIn(200);
+        $("#customerSelectPrompt").addClass("d-none");
+        _gdUpdateSteps(true);
+      });
+
+      cboKH.on("select2:unselect", function () {
+        $("#hiddenCCCD, #hiddenHoTen, #hiddenSdt, #hiddenDiaChi").val("");
+        $("#customerNamecard").addClass("d-none");
+        $("#customerSelectPrompt").removeClass("d-none");
+        _gdUpdateSteps(false);
+      });
+    });
+
+    // Load Chiến Dịch
+    AppManager.callApi("getChienDichActive").done(function (res) {
+      var cbo = $("#cboChienDich").empty();
+      if (res && res.length > 0) {
+        res.forEach(function (cd) {
+          cbo.append($("<option>").val(cd.MaCD).text(cd.TenCD));
+        });
+      } else {
+        cbo.append('<option value="">(Không có chiến dịch Active)</option>');
+      }
+    });
+
+    // Admin: Hiển thị ô gán NV
+    if (window.APP_CONTEXT.User.Role === "ADMIN") {
+      $("#adminAssignContainer").removeClass("d-none");
+      AppManager.callApi("getAllNhanSu")
+        .done(function (res) {
+          var cboNV = $("#cboNhanVien");
+          if (res && res.length > 0) {
+            res.forEach(function (nv) {
+              if (nv.TrangThai === "ACTIVE" && nv.Role === "USER") {
+                cboNV.append(
+                  $("<option>")
+                    .val(nv.MaNV)
+                    .text(nv.MaNV + " - " + nv.HoTen),
+                );
+              }
+            });
+          }
+        })
+        .fail(function () {
+          console.warn("Không tải được danh sách nhân sự.");
+        });
+    }
+
+    // Mặc định ngày hôm nay (UTC+7)
+    var todayVN = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }).format(new Date());
+
+    // Khởi tạo Flatpickr cho ngày giao dịch (Chỉ chọn ngày)
+    flatpickr("#txtNgayGD", {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "d/m/Y",
+      allowInput: true,
+      defaultDate: todayVN,
+    });
+
+    // Sinh Mã Số Sổ tạm
+    _gdGenerateTempSoSo();
+
+    // AutoNumeric cho ô số tiền
+    if (typeof AutoNumeric !== "undefined") {
+      AutoNumeric.multiple("#frmGuiTien .input-currency", {
+        digitGroupSeparator: ",",
+        decimalCharacter: ".",
+        decimalPlaces: 0,
+        unformatOnSubmit: true,
+      });
+    }
+
+    // ── Submit ──────────────────────────────────────────────────
+    $("#frmGuiTien")
+      .off("submit")
+      .on("submit", function (e) {
+        e.preventDefault();
+
+        if (!this.checkValidity()) {
+          e.stopPropagation();
+          $(this).addClass("was-validated");
+          return;
+        }
+
+        // Kiểm tra khách hàng đã chọn chưa
+        if (!$("#hiddenCCCD").val() || !$("#hiddenHoTen").val()) {
+          Swal.fire({
+            icon: "warning",
+            title: "Chưa chọn khách hàng",
+            text: "Vui lòng tìm kiếm và chọn khách hàng từ danh sách phía trên.",
+            confirmButtonText: "Đã hiểu",
+          });
+          return;
+        }
+
+        // Thu thập payload
+        var payload = {};
+        $.each($(this).serializeArray(), function (i, f) {
+          payload[f.name] = f.value;
+        });
+
+        // Lấy số tiền từ AutoNumeric
+        var soTienRaw = "";
+        try {
+          var el = $('input[name="SoTien"]')[0];
+          soTienRaw =
+            window.AutoNumeric && AutoNumeric.getAutoNumericElement(el)
+              ? AutoNumeric.getAutoNumericElement(el).getNumericString()
+              : $(el)
+                .val()
+                .replace(/[^0-9]/g, "");
+        } catch (ex) {
+          soTienRaw = $('input[name="SoTien"]')
+            .val()
+            .replace(/[^0-9]/g, "");
+        }
+        payload.SoTien = soTienRaw;
+
+        if (isNaN(parseFloat(soTienRaw)) || parseFloat(soTienRaw) < 100000) {
+          Swal.fire({
+            icon: "warning",
+            title: "Số tiền không hợp lệ",
+            text: "Số tiền gửi tối thiểu là 100.000 VNĐ.",
+          });
+          return;
+        }
+
+        if (!payload.MaCD) {
+          Swal.fire({
+            icon: "warning",
+            title: "Chưa chọn chiến dịch",
+            text: "Vui lòng chọn chiến dịch trước khi ghi nhận.",
+          });
+          return;
+        }
+
+        // Cập nhật step 3
+        document.getElementById("step3").className = "gd-step active";
+
+        Swal.fire({
+          title: "Xác nhận ghi nhận lệnh",
+          html:
+            '<div style="text-align:left;font-size:.9rem;">' +
+            '<p style="margin:0 0 6px;"><strong>Khách hàng:</strong> ' +
+            ($("#hiddenHoTen").val() || "--") +
+            "</p>" +
+            '<p style="margin:0 0 6px;"><strong>Số tiền:</strong> <span style="color:#0d9f6e;font-weight:800;">' +
+            AppManager.formatCurrency(soTienRaw) +
+            " VNĐ</span></p>" +
+            '<p style="margin:0;"><strong>Trạng thái:</strong> <span style="color:#c27803;font-weight:700;">⏳ Chờ ADMIN duyệt</span></p>' +
+            "</div>",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: '<i class="bx bx-check"></i> Xác nhận',
+          cancelButtonText: "Huỷ bỏ",
+          confirmButtonColor: "#1a56db",
+        }).then(function (result) {
+          if (!result.isConfirmed) {
+            document.getElementById("step3").className = "gd-step";
+            return;
+          }
+
+          var btnHtml = AppManager.setBtnLoading(
+            "#btnSubmitGuiTien",
+            true,
+            null,
+            "Đang gửi...",
+          );
+
+          AppManager.callApi("submitGiaoDichGui", payload)
+            .done(function () {
+              // Reset toàn bộ form
+              document.getElementById("frmGuiTien").reset();
+              $("#frmGuiTien").removeClass("was-validated");
+              try {
+                if (window.AutoNumeric)
+                  AutoNumeric.getAutoNumericElement(
+                    $('input[name="SoTien"]')[0],
+                  ).set("");
+              } catch (e) { }
+              $("#customerNamecard").addClass("d-none");
+              $("#customerSelectPrompt").removeClass("d-none");
+              try {
+                $("#cboSearchKhachHang").val(null).trigger("change");
+              } catch (e) { }
+              $("#hiddenCCCD, #hiddenHoTen, #hiddenSdt, #hiddenDiaChi").val("");
+              _gdUpdateSteps(false);
+              _gdGenerateTempSoSo(); // Cấp mã số sổ mới cho giao dịch tiếp theo
+              document.getElementById("step3").className = "gd-step";
+
+              // Cập nhật Badge ngay lập tức
+              if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+
+              Swal.fire({
+                icon: "success",
+                title: "Đã ghi nhận!",
+                text: "Lệnh gửi đã được tạo và đang chờ ADMIN duyệt. Chỉ tiêu huy động sẽ được ghi nhận sau khi phê duyệt.",
+                confirmButtonText: "Hoàn tất",
+                confirmButtonColor: "#1a56db",
+              });
+            })
+            .fail(function (err) {
+              document.getElementById("step3").className = "gd-step";
+              Swal.fire({ icon: "error", title: "Lỗi Hệ Thống", text: err });
+            })
+            .always(function () {
+              AppManager.setBtnLoading("#btnSubmitGuiTien", false, btnHtml);
+            });
+        });
+      });
+  }
+</script>

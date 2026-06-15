@@ -1,0 +1,275 @@
+<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="page-title text-danger"><i class='bx bx-minus-circle'></i> Rút Tiền / Tất Toán</h1>
+        <p class="text-muted small mb-0">Ghi nhận lệnh rút tiền từ sổ tiết kiệm hiện có. Lệnh sẽ ở trạng thái <b>CHỜ
+                DUYỆT</b>.</p>
+    </div>
+</div>
+
+<div class="col-12 col-lg-10 mx-auto">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <form id="frmRutTien">
+                <!-- Bước 1: Lọc Cán Bộ (Nếu là ADMIN) -->
+                <div class="row mb-3" id="divAdminFilter" style="display:none;">
+                    <div class="col-12">
+                        <div class="p-3 bg-warning bg-opacity-10 border border-warning rounded shadow-sm">
+                            <label class="form-label text-dark fw-bold small"><i class='bx bx-filter-alt'></i> Bước
+                                1: Lọc Sổ Theo Cán Bộ (Admin)</label>
+                            <select class="form-select select2-nhanvien" id="cboNhanVien_Filter">
+                                <option value="ALL">-- Tất cả sổ đang hoạt động --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Chọn Sổ -->
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-muted fw-bold">Bước 2: Chọn Sổ Tiết Kiệm Cần Rút (*)</label>
+                        <select class="form-select select2-sotietkiem" id="cboSoTietKiem_Rut" name="SoSo" required>
+                            <option value="">Đang tải danh sách sổ...</option>
+                        </select>
+                        <small class="text-muted mt-1 d-block"><i class='bx bx-info-circle'></i> Chỉ hiển thị các sổ
+                            đang ACTIVE (còn số dư).</small>
+                    </div>
+
+                    <!-- Card Thông tin sổ -->
+                    <div class="col-12 mb-3 d-none" id="cardSoInfo">
+                        <div class="card bg-light border-0 shadow-none">
+                            <div class="card-body py-3 px-3">
+                                <h6 class="text-primary fw-bold mb-3 d-flex align-items-center">
+                                    <i class='bx bxs-book-content me-2'></i> THÔNG TIN SỔ: <span id="lblSoSo"
+                                        class="ms-1 text-dark">---</span>
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-12 text-center text-md-start">
+                                        <div class="small text-muted">Tên Khách Hàng:</div>
+                                        <div class="fw-bold fs-6" id="lblTenKH">---</div>
+                                    </div>
+                                    <div class="col-6 col-md-6 text-center text-md-start">
+                                        <div class="small text-muted">Ngày Giao Dịch:</div>
+                                        <div class="fw-bold fs-6" id="lblNgayGiaoDich">---</div>
+                                    </div>
+                                    <div class="col-6 col-md-6 text-center text-md-start">
+                                        <div class="small text-muted">Kỳ Hạn:</div>
+                                        <div class="fw-bold fs-6" id="lblKyHan">---</div>
+                                    </div>
+                                    <div class="col-12 mt-3 border-top pt-2 text-center text-md-start">
+                                        <div class="small text-muted">Số Dư Hiện Tại:</div>
+                                        <div class="fw-bold text-success fs-3" id="lblSoDu">0 ₫</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Số Tiền Rút -->
+                    <div class="col-12 mb-3 border-top pt-4">
+                        <label class="form-label text-danger fw-bold fs-6 text-center text-md-start w-100">Bước 3:
+                            Nhập Số Tiền Rút (*)</label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <span class="input-group-text bg-white border-danger text-danger d-none d-sm-flex"><i
+                                    class='bx bx-wallet'></i></span>
+                            <input type="text"
+                                class="form-control input-currency border-danger text-end fw-bold text-danger fs-3"
+                                name="SoTienRut" id="txtSoTienRut" required placeholder="0">
+                            <span class="input-group-text bg-white border-danger fw-bold d-none d-sm-flex">VNĐ</span>
+                        </div>
+                        <div
+                            class="d-flex flex-column flex-sm-row justify-content-between mt-2 align-items-center gap-2">
+                            <small class="text-muted fst-italic text-center text-sm-start">Lưu ý: Không rút vượt quá
+                                số dư.</small>
+                            <button type="button"
+                                class="btn btn-sm btn-outline-danger px-3 rounded-pill fw-bold w-100 w-sm-auto"
+                                id="btnRutToanBo">
+                                <i class='bx bx-check-double'></i> Rút Toàn Bộ (Tất Toán)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ghi Chú (Optional) -->
+                    <div class="col-12 mb-3">
+                        <label class="form-label fw-bold text-muted small">Lý Do Rút / Ghi Chú</label>
+                        <textarea class="form-control" name="GhiChu" id="txtGhiChuRut" rows="2"
+                            placeholder="Nhập lý do rút tiền (nếu có)..."></textarea>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-danger btn-lg py-3 shadow-sm border-0" id="btnSubmitRutTien">
+                        <i class='bx bx-check-square fs-4 me-2'></i> GỬI YÊU CẦU RÚT TIỀN
+                    </button>
+                    <p class="text-center small text-muted mt-2 mb-0">Lệnh rút sẽ được phê duyệt trước khi thực
+                        hiện.</p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    var dsSoTietKiem = [];
+
+    function frmGiaoDichRut_init() {
+        // [ADMIN] Kiểm tra vai trò để hiện bộ lọc nhân viên
+        var user = window.APP_CONTEXT?.User;
+        if (user && user.Role === 'ADMIN') {
+            $('#divAdminFilter').show();
+        }
+
+        // Init AutoNumeric
+        if (typeof AutoNumeric !== 'undefined') {
+            AutoNumeric.multiple('#frmRutTien .input-currency', {
+                digitGroupSeparator: ',', decimalCharacter: '.', decimalPlaces: 0, unformatOnSubmit: true
+            });
+        }
+
+        // Load Dữ liệu ban đầu
+        AppManager.showLoading();
+        Promise.all([
+            AppManager.callApi('getNhanSuActive'),
+            AppManager.callApi('getSoTietKiemActive')
+        ]).then(function (results) {
+            AppManager.hideLoading();
+            var lstNhanSu = results[0] || [];
+            dsSoTietKiem = results[1] || [];
+
+            // Build Nhan Su Dropdown cho Admin
+            var cboNV = $('#cboNhanVien_Filter');
+            lstNhanSu.forEach(function (nv) {
+                cboNV.append(`<option value="${nv.MaNV}">${nv.HoTen} (${nv.MaNV})</option>`);
+            });
+            cboNV.select2({ theme: 'bootstrap-5', width: '100%' });
+
+            // Hàm Build Sổ Dropdown
+            window.buildSoDropdownRut = function (filterMaNV) {
+                var cbo = $('#cboSoTietKiem_Rut');
+                var html = '<option value="">-- Chọn Sổ Khách Hàng --</option>';
+
+                var filtered = dsSoTietKiem.filter(s => filterMaNV === 'ALL' || s.MaNV === filterMaNV);
+                filtered.forEach(function (so) {
+                    html += `<option value="${so.SoSo}">${so.SoSo} - ${so.TenKH} (${AppManager.formatCurrency(so.SoDuHienTai)})</option>`;
+                });
+
+                cbo.html(html);
+
+                cbo.select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: '-- Nhập hoặc Chọn Sổ --'
+                });
+
+                // Reset UI
+                $('#cardSoInfo').addClass('d-none');
+                AutoNumeric.getAutoNumericElement('#txtSoTienRut').set('');
+            };
+
+            // Init Sổ 
+            window.buildSoDropdownRut(user.Role === 'ADMIN' ? 'ALL' : user.MaNV);
+
+            // Bắt Filter Nhân Viên
+            cboNV.on('change', function () {
+                window.buildSoDropdownRut($(this).val());
+            });
+
+        }).catch(function (err) {
+            AppManager.showLoading(false);
+            AppManager.showToast('error', 'Lỗi tải dữ liệu: ' + err);
+        });
+
+        // Event thay đổi sổ
+        $('#cboSoTietKiem_Rut').change(function () {
+            var selectedSo = $(this).val();
+            var cardInfo = $('#cardSoInfo');
+
+            if (!selectedSo) {
+                cardInfo.addClass('d-none');
+                return;
+            }
+
+            var soDetail = dsSoTietKiem.find(s => s.SoSo === selectedSo);
+            if (soDetail) {
+                cardInfo.removeClass('d-none');
+                $('#lblSoSo').text(soDetail.SoSo);
+                $('#lblTenKH').text(`${soDetail.TenKH} (CCCD: ${soDetail.CCCD || 'N/A'})`);
+                $('#lblKyHan').text(soDetail.KyHan);
+
+                var ngayPhatHanhStr = soDetail.NgayPhatHanh ? new Date(soDetail.NgayPhatHanh).toLocaleDateString('vi-VN') : '---';
+                $('#lblNgayGiaoDich').text(ngayPhatHanhStr);
+
+                $('#lblSoDu').text(AppManager.formatCurrency(soDetail.SoDuHienTai));
+                $('#txtSoTienRut').attr('data-max', soDetail.SoDuHienTai);
+
+                // Tiện ích: Focus vào ô nhập tiền sau khi chọn sổ
+                setTimeout(() => $('#txtSoTienRut').focus(), 300);
+            }
+        });
+
+        // Nut Rút Toàn Bộ
+        $('#btnRutToanBo').off('click').on('click', function () {
+            var max = $('#txtSoTienRut').attr('data-max');
+            if (max) {
+                AutoNumeric.getAutoNumericElement('#txtSoTienRut').set(max);
+            } else {
+                AppManager.showToast('warning', 'Vui lòng chọn sổ trước khi ấn Rút Toàn Bộ');
+            }
+        });
+
+        // Xử lý Form Submit
+        $('#frmRutTien').off('submit').on('submit', function (e) {
+            e.preventDefault();
+
+            var payload = {
+                SoSo: $('#cboSoTietKiem_Rut').val(),
+                SoTienRut: AutoNumeric.getAutoNumericElement('#txtSoTienRut').getNumericString(),
+                GhiChu: $('#txtGhiChuRut').val()
+            };
+
+            if (!payload.SoSo) {
+                AppManager.showToast('warning', 'Vui lòng chọn Sổ tiết kiệm'); return;
+            }
+            if (!payload.SoTienRut || parseFloat(payload.SoTienRut) <= 0) {
+                AppManager.showToast('warning', 'Số tiền rút không hợp lệ'); return;
+            }
+
+            var soDetail = dsSoTietKiem.find(s => s.SoSo === payload.SoSo);
+            if (parseFloat(payload.SoTienRut) > parseFloat(soDetail.SoDuHienTai)) {
+                AppManager.showToast('error', 'Số tiền rút không được vượt quá số dư hiện tại'); return;
+            }
+
+            Swal.fire({
+                title: 'Tạo Lệnh Rút Tiền?',
+                text: `Rút ${AppManager.formatCurrency(payload.SoTienRut)} từ sổ ${payload.SoSo}. Lệnh sẽ được chuyển đến Admin chờ duyệt.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận gửi',
+                cancelButtonText: 'Điều chỉnh lại',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var btnHtml = AppManager.setBtnLoading('#btnSubmitRutTien', true);
+                    AppManager.callApi('submitGiaoDichRut', payload)
+                        .done(function () {
+                            Swal.fire('Thành Công', 'Yêu cầu rút tiền đã được gửi. Vui lòng chờ phê duyệt.', 'success');
+                            $('#frmRutTien')[0].reset();
+                            $('#cardSoInfo').addClass('d-none');
+                            AutoNumeric.getAutoNumericElement('#txtSoTienRut').set('');
+                            // Cập nhật Badge ngay lập tức
+                            if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+
+                            // Reload trang
+                            AppManager.loadPage('frmLichSuGiaoDich');
+                        })
+                        .fail(function (err) {
+                            Swal.fire('Lỗi Gửi Lệnh', err, 'error');
+                        })
+                        .always(function () {
+                            AppManager.setBtnLoading('#btnSubmitRutTien', false, btnHtml);
+                        });
+                }
+            });
+        });
+    }
+</script>

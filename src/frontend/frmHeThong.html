@@ -1,0 +1,771 @@
+<div class="row">
+    <div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h1 class="page-title text-primary"><i class='bx bx-server'></i> Quản lý Hệ thống</h1>
+            <p class="text-muted small mb-0">Xem nhật ký hoạt động (Logs) và Kho lưu trữ dữ liệu (Archive) của hệ thống.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-header bg-white pb-0 border-0 pt-4">
+                <ul class="nav nav-tabs card-header-tabs" id="hethongTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold text-primary px-4 py-3" id="tab-logs-btn"
+                            data-bs-toggle="tab" data-bs-target="#tab-logs" type="button" role="tab">
+                            <i class='bx bx-history me-1'></i> Nhật ký Hệ thống (Logs)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-muted px-4 py-3" id="tab-archive-btn" data-bs-toggle="tab"
+                            data-bs-target="#tab-archive" type="button" role="tab">
+                            <i class='bx bx-archive-in me-1'></i> Kho lưu trữ (Archive)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-muted px-4 py-3" id="tab-maintenance-btn" data-bs-toggle="tab"
+                            data-bs-target="#tab-maintenance" type="button" role="tab">
+                            <i class='bx bx-wrench me-1'></i> Bảo trì & Đồng bộ
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="tab-content" id="hethongTabsContent">
+
+                    <!-- TAB 1: NHẬT KÝ HỆ THỐNG -->
+                    <div class="tab-pane fade show active" id="tab-logs" role="tabpanel">
+                        <!-- Toolbar -->
+                        <div class="row mb-4 align-items-center bg-light p-3 rounded-3 border">
+                            <div class="col-md-8">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-auto">
+                                        <label class="col-form-label fw-bold small text-muted">Bộ lọc:</label>
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="text" id="log-start-date" class="form-control form-control-sm"
+                                            placeholder="Từ ngày" style="width:110px">
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="text" id="log-end-date" class="form-control form-control-sm"
+                                            placeholder="Đến ngày" style="width:110px">
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="text" id="log-user-filter" class="form-control form-control-sm"
+                                            placeholder="Cán bộ..." style="width:120px">
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="text" id="log-action-filter" class="form-control form-control-sm"
+                                            placeholder="Hành động..." style="width:150px">
+                                    </div>
+                                    <div class="col-auto">
+                                        <button class="btn btn-sm btn-primary px-3" id="btnFilterLogs">
+                                            <i class='bx bx-filter-alt'></i> Lọc
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" id="btnResetLogs">
+                                            <i class='bx bx-reset'></i> Bỏ lọc
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
+                                <button class="btn btn-sm btn-danger shadow-sm" id="btnClearLogs">
+                                    <i class='bx bx-trash'></i> Dọn dẹp Logs cũ
+                                </button>
+                                <button class="btn btn-sm btn-light border shadow-sm" id="btnRefreshLogs">
+                                    <i class='bx bx-refresh'></i> Tải lại
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bảng Log -->
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards"
+                                id="tbLogs">
+                                <thead class="table-light text-center small">
+                                    <tr>
+                                        <th width="160">Thời gian</th>
+                                        <th>Cán bộ</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <!-- TAB 2: KHO LƯU TRỮ ARCHIVE -->
+                <div class="tab-pane fade" id="tab-archive" role="tabpanel">
+                    <!-- Toolbar -->
+                    <div class="row mb-4 align-items-center bg-light p-3 rounded-3 border">
+                        <div class="col-md-8">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-auto">
+                                    <label class="col-form-label fw-bold small text-muted">Lọc thời gian
+                                        Archive:</label>
+                                </div>
+                                <div class="col-auto">
+                                    <input type="text" id="arc-start-date" class="form-control form-control-sm"
+                                        placeholder="Từ ngày">
+                                </div>
+                                <div class="col-auto">
+                                    <input type="text" id="arc-end-date" class="form-control form-control-sm"
+                                        placeholder="Đến ngày">
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-sm btn-primary" id="btnFilterArchive">
+                                        <i class='bx bx-filter-alt'></i> Lọc
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="btnResetArchive">
+                                        <i class='bx bx-reset'></i> Bỏ lọc
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end gap-2">
+                            <button class="btn btn-sm btn-light border shadow-sm" id="btnRefreshArchive">
+                                <i class='bx bx-refresh'></i> Tải lại
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng Archive -->
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards"
+                            id="tbArchive">
+                            <thead class="table-light text-center small">
+                                <tr>
+                                    <th>Ngày GD/Hủy</th>
+                                    <th>Mã GD</th>
+                                    <th>Khách Hàng</th>
+                                    <th>Số Tiền</th>
+                                    <th>Trạng Thái</th>
+                                    <th>Ghi Chú</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: BẢO TRÌ & ĐỒNG BỘ -->
+                <div class="tab-pane fade" id="tab-maintenance" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12 col-md-8 col-lg-6 mx-auto">
+                            <div class="card border shadow-sm rounded-3">
+                                <div class="card-body p-4 text-center">
+                                    <div class="mb-4">
+                                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                            <i class="bx bx-sync" style="font-size: 3rem;"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="fw-bold mb-2">Đồng bộ & Tính toán lại KPI</h4>
+                                    <p class="text-muted small mb-4">
+                                        Nếu dữ liệu trong các bảng Google Sheets (như <b>DB_GIAODICH</b> hoặc <b>DB_CHITIEU</b>) được chỉnh sửa trực tiếp bằng tay, số liệu tổng hợp trong bảng <b>DB_SUMMARY</b> sẽ không chính xác và lệch với thực tế.
+                                        <br><br>
+                                        Hành động này sẽ quét toàn bộ giao dịch đang hoạt động (<b>ACTIVE</b>) và chỉ tiêu phân bổ để xây dựng lại bảng tổng hợp KPI, đảm bảo số liệu thi đua khớp 100% với thực tế.
+                                    </p>
+                                    
+                                    <div class="alert alert-warning border-0 border-start border-4 border-warning bg-light-warning text-start p-3 mb-4">
+                                        <h6 class="fw-bold mb-1 text-warning-emphasis"><i class="bx bx-error-circle"></i> Lưu ý quan trọng</h6>
+                                        <ul class="mb-0 small text-muted ps-3">
+                                            <li>Tác vụ này sẽ xóa và viết lại toàn bộ bảng tổng hợp KPI trên sheet.</li>
+                                            <li>Quá trình tính toán có thể mất vài giây phụ thuộc vào số lượng giao dịch.</li>
+                                            <li>Yêu cầu mật khẩu Quản trị hệ thống (Master Password) để thực hiện.</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <button class="btn btn-primary px-4 py-2 fw-bold" id="btnRecalculateKpi">
+                                        <i class="bx bx-sync me-1"></i> Bắt đầu tính toán lại KPI
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+
+<script>
+    var dtLogs = null;
+    var dtArchive = null;
+
+    // Flatpickr instances
+    var fpLogStart, fpLogEnd, fpArcStart, fpArcEnd;
+
+    function frmHeThong_init() {
+        if (window.APP_CONTEXT.User.Role !== 'ADMIN') {
+            Swal.fire('Từ chối truy cập', 'Bạn không có quyền xem chức năng này.', 'error');
+            AppManager.loadModule('frmDashboard');
+            return;
+        }
+
+        // Init datepickers
+        fpLogStart = flatpickr("#log-start-date", { dateFormat: "d/m/Y", allowInput: true });
+        fpLogEnd = flatpickr("#log-end-date", { dateFormat: "d/m/Y", allowInput: true });
+        fpArcStart = flatpickr("#arc-start-date", { dateFormat: "d/m/Y", allowInput: true });
+        fpArcEnd = flatpickr("#arc-end-date", { dateFormat: "d/m/Y", allowInput: true });
+
+        // Init grids
+        loadLogs();
+        loadArchive();
+
+        // Bind events
+        $('#btnRefreshLogs').click(() => loadLogs());
+        $('#btnFilterLogs').click(() => {
+            var start = fpLogStart.selectedDates[0];
+            var end = fpLogEnd.selectedDates[0];
+            if (start && end && start > end) {
+                Swal.fire("Lỗi", "Ngày bắt đầu không được lớn hơn ngày kết thúc", "warning");
+                return;
+            }
+            loadLogs(
+                start ? flatpickr.formatDate(start, "Y-m-d") : null,
+                end ? flatpickr.formatDate(end, "Y-m-d") : null,
+                $('#log-user-filter').val(),
+                $('#log-action-filter').val()
+            );
+        });
+        $('#btnResetLogs').click(() => {
+            fpLogStart.clear(); fpLogEnd.clear();
+            $('#log-user-filter, #log-action-filter').val('');
+            loadLogs();
+        });
+
+        $('#btnRefreshArchive').click(() => loadArchive());
+        $('#btnFilterArchive').click(() => {
+            var start = fpArcStart.selectedDates[0];
+            var end = fpArcEnd.selectedDates[0];
+            if (start && end && start > end) {
+                Swal.fire("Lỗi", "Ngày bắt đầu không được lớn hơn ngày kết thúc", "warning");
+                return;
+            }
+            loadArchive(
+                start ? flatpickr.formatDate(start, "Y-m-d") : null,
+                end ? flatpickr.formatDate(end, "Y-m-d") : null
+            );
+        });
+        $('#btnResetArchive').click(() => {
+            fpArcStart.clear(); fpArcEnd.clear();
+            loadArchive();
+        });
+
+        $('#btnClearLogs').click(handleClearLogs);
+        $('#btnRecalculateKpi').click(handleRecalculateKpi);
+
+        // Tab events styling
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+            $('button[data-bs-toggle="tab"]').removeClass('text-primary').addClass('text-muted');
+            $(e.target).removeClass('text-muted').addClass('text-primary');
+            // Redraw table on tab change to handle responsive issue
+            if (e.target.id === 'tab-logs-btn' && dtLogs) dtLogs.columns.adjust().responsive.recalc();
+            if (e.target.id === 'tab-archive-btn' && dtArchive) dtArchive.columns.adjust().responsive.recalc();
+        });
+    }
+
+    // ─── Helper: Dịch JSON Details thành các mục diễn giải tiếng Việt ───
+    var LOG_KEY_MAP = {
+        "maGD": "Mã Giao dịch", "oldState": "Trạng thái cũ", "oldSotien": "Số tiền cũ",
+        "newSotien": "Số tiền mới", "kyHan": "Kỳ hạn", "laisuat": "Lãi suất",
+        "error": "Chi tiết lỗi", "filename": "Tên Tệp", "HoTen": "Họ Tên", "ChucVu": "Chức vụ",
+        "oldEmail": "Email cũ", "newEmail": "Email mới", "SoSo": "Số Sổ", "SoTien": "Số Tiền",
+        "count": "Số lượng bản ghi", "daysToKeep": "Ngày giữ lại", "ip": null,
+        "payload": "Dữ liệu Payload"
+    };
+    var LOG_ACTION_MAP = {
+        "login": "Đăng nhập hệ thống",
+        "submitGiaoDichGui": "Tạo lệnh Gửi tiền",
+        "submitGiaoDichRut": "Tạo lệnh Rút tiền",
+        "duyetGiaoDich": "Duyệt Giao dịch",
+        "duyetGiaoDichGui": "Duyệt lệnh Gửi tiền",
+        "submitDuyetRutTatToan": "Duyệt lệnh Rút / Tất toán",
+        "submitHuyGiaoDich": "Hủy Giao dịch",
+        "revertGiaoDich": "Đảo ngược Giao dịch (Revert)",
+        "REVERT_GD": "Đảo ngược Giao dịch (Revert)",
+        "saveKhachHang": "Lưu thông tin Khách hàng",
+        "changePassword": "Đổi mật khẩu",
+        "resetPassword": "Cài lại mật khẩu",
+        "saveNhanSu": "Lưu thông tin Nhân sự",
+        "saveChienDich": "Lưu Chương trình tiết kiệm",
+        "saveChiTieu": "Lưu Chỉ tiêu",
+        "archiveTransactions": "Lưu kho (Archive) Giao dịch",
+        "clearServerCache": "Xóa Cache Hệ thống",
+        "initDummyData": "Khởi tạo Dữ liệu mẫu",
+        "clearSystemLogs": "Dọn dẹp Nhật ký hệ thống",
+        "SYSTEM_ERROR": "Lỗi Hệ thống",
+        "ROLLBACK": "Hoàn tác (Rollback)"
+    };
+
+    function parseLogDetails(d) {
+        if (!d || d === '{}') return [];
+        try {
+            var obj = JSON.parse(d);
+            var items = [];
+            var count = 0;
+            var MAX_ITEMS = 30; // Giới hạn số lượng mục hiển thị để tránh treo UI
+
+            for (var k in obj) {
+                if (count >= MAX_ITEMS) {
+                    items.push({ label: '...', value: '(Còn tiếp... dữ liệu quá lớn đã được ẩn bớt)' });
+                    break;
+                }
+
+                // Các khóa bị ẩn hoặc bỏ qua
+                if (k === 'html' || k === 'password' || k === 'token' || k === 'hash') continue;
+                if (LOG_KEY_MAP[k] === null) continue;
+
+                var label = LOG_KEY_MAP[k] || k;
+                var val = obj[k];
+                if (val === null || val === undefined) continue;
+
+                if (typeof val === 'object') {
+                    // Xử lý Object con (ví dụ payload) - Giới hạn 15 mục con
+                    var sub = [];
+                    var subCount = 0;
+                    for (var sk in val) {
+                        if (subCount >= 15) { sub.push('...'); break; }
+                        if (sk === 'token' || sk === 'hash' || sk === 'password' || sk === 'html') continue;
+
+                        var sv = val[sk];
+                        if (sv === null || sv === undefined || sv === '') continue;
+
+                        var sLabel = LOG_KEY_MAP[sk] || sk;
+                        // Format tiền nếu là số
+                        if ((sk.toLowerCase().includes('tien') || sk.toLowerCase().includes('sodu')) && typeof sv === 'number') {
+                            sv = sv.toLocaleString('vi-VN') + ' đ';
+                        }
+
+                        // Truncate giá trị con quá dài
+                        var svStr = String(sv);
+                        if (svStr.length > 200) svStr = svStr.substring(0, 200) + '... (truncated)';
+
+                        sub.push('<b>' + sLabel + ':</b> ' + svStr);
+                        subCount++;
+                    }
+                    if (sub.length) items.push({ label: label, value: sub.join(' | ') });
+                    count++;
+                    continue;
+                }
+
+                // Format tiền cho giá trị cấp 1
+                if ((k.toLowerCase().includes('tien') || k.toLowerCase().includes('sodu') || k.toLowerCase().includes('goc')) && typeof val === 'number') {
+                    val = val.toLocaleString('vi-VN') + ' đ';
+                }
+
+                // Truncate giá trị cấp 1 quá dài
+                var valStr = String(val);
+                if (valStr.length > 500) valStr = valStr.substring(0, 500) + '... (truncated)';
+
+                items.push({ label: label, value: valStr });
+                count++;
+            }
+            return items;
+        } catch (e) {
+            console.error("Lỗi parseLogDetails:", e);
+            return [{ label: 'Lỗi', value: 'Không thể phân tách dữ liệu chi tiết.' }];
+        }
+    }
+
+    function showLogDetail(row) {
+        var statusMap = { SUCCESS: ['success', 'Thành công ✓'], FAILED: ['danger', 'Thất bại ✗'], MISSING_MODULE: ['warning', 'Module bị thiếu'] };
+        var sm = statusMap[row.Status] || ['secondary', row.Status];
+        var actionLabel = LOG_ACTION_MAP[row.Action] || row.Action;
+
+        $('#logDt').text(AppManager.formatDateTime(row.Timestamp));
+        $('#logUser').html(row.User === 'SYSTEM' ? '<span class="badge bg-secondary">HỆ THỐNG</span>' : '<span class="fw-bold text-primary">' + row.User + '</span>');
+        $('#logIP').html('<i class="bx bx-globe me-1"></i>' + (row.IP || '0.0.0.0'));
+        $('#logStatus').html('<span class="badge bg-' + sm[0] + ' fs-6 px-3 py-2">' + sm[1] + '</span>');
+        $('#logAction').html('<span class="badge bg-primary fs-6 px-3 me-2">' + actionLabel + '</span><small class="text-muted">[' + row.Action + ']</small>');
+        $('#logDesc').text(row.Description || '');
+
+        // Header bar color theo Status
+        var hdrGrad = (row.Status === 'FAILED') ? 'linear-gradient(135deg,#b91c1c,#ef4444)' : 'linear-gradient(135deg,#059669,#10b981)';
+        $('#logDetailHeader').css('background', hdrGrad);
+
+        // Hiển thị phần nạp dữ liệu Details (Loading)
+        $('#logDetailsBlock').show();
+        $('#logDetailsBody').html('<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang nạp dữ liệu chi tiết...</div>');
+
+        // Hiện Modal trước
+        var modalEl = document.getElementById('modalLogDetail');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        // Đảm bảo không bị đọng backdrop từ các lần mở lỗi trước
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '');
+
+        modal.show();
+
+        // Tải chi tiết động từ Server
+        AppManager.callApi('getLogDetail', { LogID: row.LogID }).done(function (details) {
+            var items = parseLogDetails(details);
+            if (items.length) {
+                var html = items.map(function (it) {
+                    return '<div class="d-flex align-items-start py-2 border-bottom">' +
+                        '<span class="badge bg-light text-dark border me-3 text-start" style="min-width:150px;white-space:normal">' + it.label + '</span>' +
+                        '<span class="text-dark small">' + it.value + '</span></div>';
+                }).join('');
+                $('#logDetailsBody').html(html);
+            } else {
+                $('#logDetailsBody').html('<div class="text-center py-3 text-muted">Không có dữ liệu chi tiết bổ sung.</div>');
+            }
+        }).fail(function (err) {
+            $('#logDetailsBody').html('<div class="alert alert-danger py-2 m-0 small"><i class="bx bx-error"></i> Lỗi nạp chi tiết: ' + err + '</div>');
+        });
+    }
+
+    function loadLogs(tuNgay, denNgay, userFilter, actionFilter) {
+        if ($.fn.DataTable.isDataTable('#tbLogs')) {
+            $('#tbLogs').DataTable().destroy();
+        }
+        $('#tbLogs tbody').html('<tr><td colspan="3" class="text-center p-4"><div class="spinner-border text-primary" role="status"></div><br><small class="text-muted mt-2">Đang tải Logs hệ thống...</small></td></tr>');
+
+        var payload = {};
+        if (tuNgay) payload.tuNgay = tuNgay;
+        if (denNgay) payload.denNgay = denNgay;
+        if (userFilter) payload.userFilter = userFilter;
+        if (actionFilter) payload.actionFilter = actionFilter;
+
+        AppManager.callApi('getSystemLogs', payload).done(function (data) {
+            dtLogs = $('#tbLogs').DataTable({
+                data: data || [],
+                deferRender: true,
+                language: AppManager._DT_LANG_VI,
+                order: [],
+                columnDefs: [
+                    { targets: 0, createdCell: function (td) { $(td).attr('data-label', 'Thời gian'); } },
+                    { targets: 1, createdCell: function (td) { $(td).attr('data-label', 'Cán bộ'); } },
+                    { targets: 2, createdCell: function (td) { $(td).attr('data-label', 'Hành động'); } }
+                ],
+                columns: [
+                    {
+                        data: 'Timestamp',
+                        width: '160px',
+                        className: 'text-center small text-muted',
+                        render: function (d) { return AppManager.formatDateTime(d); }
+                    },
+                    {
+                        data: 'User',
+                        className: 'text-center fw-semibold',
+                        render: function (d) {
+                            if (d === 'SYSTEM') return '<span class="badge bg-secondary">HỆ THỐNG</span>';
+                            return '<span class="text-primary">' + d + '</span>';
+                        }
+                    },
+                    {
+                        data: 'Action',
+                        className: 'small',
+                        render: function (d, type, row) {
+                            var color = (row.Status === 'SUCCESS') ? 'success' : (row.Status === 'FAILED' ? 'danger' : 'secondary');
+                            var label = LOG_ACTION_MAP[d] || d;
+                            return '<span class="badge bg-' + color + ' me-1">' + label + '</span>' +
+                                '<br/><small class="text-muted">' + (row.Description || '') + '</small>' +
+                                '<span class="float-end text-muted" style="font-size:0.65rem"><i class="bx bx-info-circle"></i> Chi tiết</span>';
+                        }
+                    }
+                ]
+            });
+
+            // Click bất kỳ dòng nào -> mở modal chi tiết
+            $('#tbLogs tbody').off('click', 'tr').on('click', 'tr', function () {
+                var rowData = dtLogs.row(this).data();
+                if (rowData) showLogDetail(rowData);
+            });
+            // Thêm con trỏ pointer cho UX
+            $('#tbLogs tbody').css('cursor', 'pointer');
+
+        }).fail(function (err) {
+            $('#tbLogs tbody').html('<tr><td colspan="3" class="text-center text-danger">Lỗi tải dữ liệu: ' + err + '</td></tr>');
+        });
+    }
+
+    function loadArchive(tuNgay, denNgay) {
+        if ($.fn.DataTable.isDataTable('#tbArchive')) {
+            $('#tbArchive').DataTable().destroy();
+        }
+        $('#tbArchive tbody').html('<tr><td colspan="6" class="text-center p-4"><div class="spinner-border text-primary" role="status"></div><br><small class="text-muted mt-2">Đang tải Archive...</small></td></tr>');
+
+        var payload = {};
+        if (tuNgay) payload.tuNgay = tuNgay;
+        if (denNgay) payload.denNgay = denNgay;
+
+        AppManager.callApi('getArchiveData', payload).done(function (data) {
+            dtArchive = $('#tbArchive').DataTable({
+                data: data || [],
+                deferRender: true,
+                columnDefs: [
+                    { targets: 0, createdCell: function (td) { $(td).attr('data-label', 'Ngày GD/Hủy'); } },
+                    { targets: 1, createdCell: function (td) { $(td).attr('data-label', 'Mã GD'); } },
+                    { targets: 2, createdCell: function (td) { $(td).attr('data-label', 'Khách Hàng'); } },
+                    { targets: 3, createdCell: function (td) { $(td).attr('data-label', 'Số Tiền'); } },
+                    { targets: 4, createdCell: function (td) { $(td).attr('data-label', 'Trạng Thái'); } },
+                    { targets: 5, createdCell: function (td) { $(td).attr('data-label', 'Ghi Chú'); } }
+                ],
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
+                order: [], // Server sorted
+                columns: [
+                    {
+                        data: 'NgayGD',
+                        className: 'text-center small',
+                        render: function (d) { return AppManager.formatDateTime(d); }
+                    },
+                    { data: 'MaGD', className: 'text-center fw-bold text-primary small' },
+                    {
+                        data: 'TenKH',
+                        className: 'fw-bold',
+                        render: function (d, type, row) { return d ? `<div class="d-inline-block text-start">${d}<br><small class="text-muted fw-normal">${row.MaKH}</small></div>` : `<div class="d-inline-block text-start">${row.MaKH}</div>`; }
+                    },
+                    {
+                        data: 'SoTien',
+                        className: 'text-end fw-bold',
+                        render: function (d, type, row) {
+                            var txt = AppManager.formatCurrency(d);
+                            return row.LoaiGD === 'GUI' ? `<span class="text-success"><i class="bx bx-up-arrow-alt"></i> ${txt}</span>` : `<span class="text-danger"><i class="bx bx-down-arrow-alt"></i> ${txt}</span>`;
+                        }
+                    },
+                    {
+                        data: 'TrangThai',
+                        className: 'text-center',
+                        render: function (d) {
+                            if (d === 'CANCELLED') return `<span class="badge bg-secondary"><i class='bx bx-trash'></i> ĐÃ HỦY BỎ LỆNH</span>`;
+                            if (d === 'REJECTED') return `<span class="badge bg-danger"><i class='bx bx-x'></i> BỊ ADMIN TỪ CHỐI</span>`;
+                            return `<span class="badge bg-light text-dark">${d}</span>`;
+                        }
+                    },
+                    {
+                        data: 'GhiChu',
+                        className: 'small',
+                        render: function (d) {
+                            if (!d) return '';
+                            // 1. Tách đoạn lý do chối bỏ (nếu có)
+                            var reasonMatch = d.match(/(Lý do:.*(?=\|)|Lý do:.*$)/);
+                            var reasonStr = reasonMatch ? `<div class="text-danger fw-bold mt-1"><i class="bx bx-error-circle"></i> ${reasonMatch[1].trim()}</div>` : '';
+
+                            // 2. Chẻ nhỏ các siêu dữ liệu bổ trợ (Ngăn cách bởi " | " hoặc "[...]")
+                            // Các cụm nằm trong " | " 
+                            var tags = [];
+                            var parts = d.split(' | ');
+                            parts.forEach(function (p) {
+                                var txt = p.trim();
+                                // Bỏ chữ "Lý do:..." ra khỏi tags vì đã xử lý riêng ở trên
+                                if (txt && !txt.startsWith("Lý do:")) {
+                                    // Gọt giũa dấu ngoặc vuông nếu có: "[Kỳ Hạn: 1TH]" => "Kỳ Hạn: 1TH"
+                                    txt = txt.replace(/^\[/, '').replace(/\]$/, '').trim();
+
+                                    // Tô màu dựa trên keyword
+                                    var badgeClass = "bg-light text-dark border";
+                                    if (txt.includes("ADMIN ĐÃ CHỈNH SỬA") || txt.includes("SỬA KHI DUYỆT")) badgeClass = "bg-warning text-dark";
+                                    else if (txt.includes("Giao dịch gửi mới") || txt.includes("Mở mới") || txt.includes("Gửi thêm")) badgeClass = "bg-info text-dark";
+                                    else if (txt.includes("RÚT TIỀN")) badgeClass = "bg-danger text-white";
+
+                                    tags.push(`<span class="badge ${badgeClass} me-1 mb-1 fw-normal">${txt}</span>`);
+                                }
+                            });
+
+                            return `<div class="d-flex flex-wrap mt-1">${tags.join('')}</div>${reasonStr}`;
+                        }
+                    }
+                ]
+            });
+        }).fail(function (err) {
+            $('#tbArchive tbody').html(`<tr><td colspan="6" class="text-center text-danger">Lỗi tải dữ liệu: ${err}</td></tr>`);
+        });
+    }
+
+    function handleClearLogs() {
+        var start = fpLogStart.selectedDates[0];
+        var end = fpLogEnd.selectedDates[0];
+        var userF = $('#log-user-filter').val();
+        var actionF = $('#log-action-filter').val();
+
+        var filterDesc = [];
+        if (start) filterDesc.push('Từ ' + flatpickr.formatDate(start, "d/m/Y"));
+        if (end) filterDesc.push('Đến ' + flatpickr.formatDate(end, "d/m/Y"));
+        if (userF) filterDesc.push('Cán bộ: ' + userF);
+        if (actionF) filterDesc.push('Hành động: ' + actionF);
+
+        var confirmTitle = 'Dọn dẹp Logs?';
+        var confirmText = 'Bạn có chắc chắn muốn xóa các nhật ký hệ thống đang được lọc? Thao tác này không thể hoàn tác.';
+
+        if (filterDesc.length > 0) {
+            confirmText = '<strong>Bạn sắp xóa các logs thỏa mãn:</strong><br/>' + filterDesc.join(' | ') + '<br/><br/>Thao tác này không thể hoàn tác.';
+        } else {
+            confirmText = 'Bạn chưa chọn bộ lọc. Bạn muốn xoá đi các Nhật ký hệ thống cũ hơn bao nhiêu ngày?';
+        }
+
+        Swal.fire({
+            title: confirmTitle,
+            html: confirmText,
+            icon: 'warning',
+            input: filterDesc.length === 0 ? 'select' : undefined,
+            inputOptions: filterDesc.length === 0 ? {
+                '30': 'Cũ hơn 30 ngày',
+                '60': 'Cũ hơn 60 ngày',
+                '90': 'Cũ hơn 90 ngày (3 tháng)',
+                '180': 'Cũ hơn 180 ngày (6 tháng)'
+            } : undefined,
+            inputPlaceholder: 'Chọn thời gian giữ lại',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý xóa',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                var days = result.value || 0;
+                Swal.fire({
+                    title: 'Xác thực Quản trị',
+                    text: 'Vui lòng nhập Mật khẩu Quản trị Hệ thống để xoá LOG:',
+                    icon: 'warning',
+                    input: 'password',
+                    inputPlaceholder: 'Mật khẩu...',
+                    showCancelButton: true,
+                    confirmButtonText: 'Tiếp Tục Xoá',
+                    confirmButtonColor: '#dc3545',
+                    inputValidator: (val) => {
+                        if (!val) return 'Vui lòng nhập mật khẩu xác thực!'
+                    }
+                }).then((pwdRes) => {
+                    if (pwdRes.isConfirmed) {
+                        var hash = CryptoJS.SHA256(pwdRes.value).toString(CryptoJS.enc.Hex);
+                        var btn = $('#btnClearLogs').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang xóa...');
+
+                        var clearPayload = {
+                            daysToKeep: days,
+                            masterHash: hash,
+                            tuNgay: start ? flatpickr.formatDate(start, "Y-m-d") : null,
+                            denNgay: end ? flatpickr.formatDate(end, "Y-m-d") : null,
+                            userFilter: userF,
+                            actionFilter: actionF
+                        };
+
+                        AppManager.callApi('clearSystemLogs', clearPayload)
+                            .done(function (msg) {
+                                Swal.fire('Hoàn tất!', msg, 'success');
+                                loadLogs(); // Reload
+                            })
+                            .fail(function (err) {
+                                Swal.fire('Lỗi', err, 'error');
+                            })
+                            .always(function () {
+                                btn.prop('disabled', false).html("<i class='bx bx-trash'></i> Dọn dẹp Logs cũ");
+                            });
+                    }
+                });
+            }
+        });
+    }
+
+    function handleRecalculateKpi() {
+        Swal.fire({
+            title: 'Đồng bộ lại KPI?',
+            html: 'Bạn có chắc chắn muốn tính toán và ghi đè lại toàn bộ bảng tổng hợp KPI (DB_SUMMARY) từ dữ liệu giao dịch thực tế? Thao tác này có thể mất vài giây.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy bỏ'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Xác thực Quản trị',
+                    text: 'Vui lòng nhập Mật khẩu Quản trị Hệ thống để đồng bộ KPI:',
+                    icon: 'warning',
+                    input: 'password',
+                    inputPlaceholder: 'Mật khẩu...',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy',
+                    inputValidator: (val) => {
+                        if (!val) return 'Vui lòng nhập mật khẩu xác thực!'
+                    }
+                }).then((pwdRes) => {
+                    if (pwdRes.isConfirmed) {
+                        var hash = CryptoJS.SHA256(pwdRes.value).toString(CryptoJS.enc.Hex);
+                        var btn = $('#btnRecalculateKpi').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang tính toán & đồng bộ...');
+
+                        AppManager.callApi('recalculateAllKpi', { masterHash: hash })
+                            .done(function (msg) {
+                                Swal.fire('Thành công!', msg, 'success');
+                            })
+                            .fail(function (err) {
+                                Swal.fire('Lỗi', err, 'error');
+                            })
+                            .always(function () {
+                                btn.prop('disabled', false).html("<i class='bx bx-sync me-1'></i> Bắt đầu tính toán lại KPI");
+                            });
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+<!-- Modal Chi tiết Log (Moved to root for Z-Index safety) -->
+<div class="modal fade" id="modalLogDetail" tabindex="-1" aria-labelledby="modalLogDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden">
+            <div class="modal-header text-white" id="logDetailHeader"
+                style="background:linear-gradient(135deg,#059669,#10b981)">
+                <h5 class="modal-title" id="modalLogDetailLabel"><i class="bx bx-detail me-2"></i>Chi tiết Nhật ký Hệ
+                    thống</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="small text-muted fw-bold mb-1 text-uppercase"><i
+                                    class="bx bx-time-five me-1"></i>Thời gian</div>
+                            <div class="fw-semibold" id="logDt"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="small text-muted fw-bold mb-1 text-uppercase"><i class="bx bx-user me-1"></i>Cán
+                                bộ thực hiện</div>
+                            <div class="fw-semibold" id="logUser"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="small text-muted fw-bold mb-1 text-uppercase"><i
+                                    class="bx bx-globe me-1"></i>Địa chỉ IP</div>
+                            <div class="fw-semibold font-monospace" id="logIP"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="small text-muted fw-bold mb-1 text-uppercase"><i
+                                    class="bx bx-check-shield me-1"></i>Kết quả</div>
+                            <div id="logStatus"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-3 p-3 mb-3">
+                    <div class="small text-muted fw-bold mb-2 text-uppercase"><i class="bx bx-task me-1"></i>Hành động /
+                        Mô tả</div>
+                    <div id="logAction"></div>
+                    <div class="text-muted small mt-1" id="logDesc"></div>
+                </div>
+                <div id="logDetailsBlock" class="border rounded-3 p-3" style="display:none">
+                    <div class="small text-muted fw-bold mb-2 text-uppercase"><i class="bx bx-info-circle me-1"></i>Tham
+                        số chi tiết (Diễn giải)</div>
+                    <div id="logDetailsBody"></div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,623 @@
+<div class="row">
+  <div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+      <h1 class="page-title text-warning"><i class='bx bx-time-five'></i> Giao dịch Gửi/Rút (Chờ Duyệt)</h1>
+      <p class="text-muted small mb-0">
+        Danh sách các giao dịch <span class="badge bg-warning text-dark">PENDING</span> do bạn tạo đang chờ duyệt.
+      </p>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card-custom border-warning border-top border-4">
+      <div class="card-body p-4">
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbChoDuyet">
+            <thead class="table-light text-center">
+              <tr>
+                <th>Ngày GD</th>
+                <th>Số Sổ</th>
+                <th>Khách Hàng</th>
+                <th>Cán Bộ</th>
+                <th>Số Tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Rendered via DataTables -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Chi Tiết Giao Dịch Chờ Duyệt -->
+<div class="modal fade" id="modalChiTietChoDuyet" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning bg-opacity-10">
+        <h5 class="modal-title fw-bold text-dark">
+          <i class="bx bx-search-alt text-warning me-2"></i> Chi Tiết Lệnh
+          <span id="lblDetailMaGD" class="text-primary"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex flex-column gap-2">
+          <div class="d-flex justify-content-between border-bottom pb-2">
+            <span class="text-muted fw-bold">Ngày Tạo Lệnh</span>
+            <span class="fw-bold text-dark" id="lblDetailNgayGD"></span>
+          </div>
+          <div class="d-flex justify-content-between border-bottom pb-2">
+            <span class="text-muted fw-bold">Khách Hàng</span>
+            <span class="fw-bold text-dark" id="lblDetailMaKH"></span>
+          </div>
+          <div class="d-flex justify-content-between border-bottom pb-2">
+            <span class="text-muted fw-bold">Số Sổ Tiết Kiệm</span>
+            <span class="fw-bold text-primary" id="lblDetailSoSo"></span>
+          </div>
+          <div class="d-flex justify-content-between border-bottom pb-2">
+            <span class="text-muted fw-bold">Loại Giao Dịch</span>
+            <span class="fw-bold" id="lblDetailLoaiGD"></span>
+          </div>
+          <div class="d-flex justify-content-between border-bottom pb-2">
+            <span class="text-muted fw-bold">Số Tiền Giao Dịch</span>
+            <span class="fw-bold fs-5" id="lblDetailSoTien"></span>
+          </div>
+          <div class="d-flex justify-content-between pb-2">
+            <span class="text-muted fw-bold">Cán Bộ Lập Lệnh</span>
+            <span class="badge bg-secondary text-white px-3 fw-bold" id="lblDetailMaNV"></span>
+          </div>
+          <div id="lblDetailRejectedReason"></div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light" id="footerActionChoDuyet">
+        <!-- Nút động tuỳ theo Role (User: Rút Lệnh | Admin: Duyệt/Từ chối) -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var dtChoDuyet = null;
+  var listChoDuyet = [];
+
+  function frmChoDuyet_init() {
+    if ($.fn.DataTable.isDataTable("#tbChoDuyet")) {
+      $("#tbChoDuyet").DataTable().destroy();
+    }
+
+    var tbody = $("#tbChoDuyet tbody");
+    tbody.html(
+      '<tr><td colspan="8" class="text-center p-4"><div class="spinner-border text-warning" role="status"></div><br><small class="text-muted mt-2">Đang tải dữ liệu...</small></td></tr>',
+    );
+
+    AppManager.callApi("getPendingGiaoDich")
+      .done(function (data) {
+        if (!data) data = [];
+        listChoDuyet = data; // API đã filter sẵn PENDING + phân quyền
+
+        dtChoDuyet = $("#tbChoDuyet").DataTable({
+          data: listChoDuyet,
+          deferRender: true,
+          columnDefs: [
+            {
+              targets: 0,
+              createdCell: function (td) {
+                $(td).attr("data-label", "Ngày GD");
+              },
+            },
+            {
+              targets: 1,
+              createdCell: function (td) {
+                $(td).attr("data-label", "Số Sổ");
+              },
+            },
+            {
+              targets: 2,
+              createdCell: function (td) {
+                $(td).attr("data-label", "Khách Hàng");
+              },
+            },
+            {
+              targets: 3,
+              createdCell: function (td) {
+                $(td).attr("data-label", "Cán Bộ");
+              },
+            },
+            {
+              targets: 4,
+              createdCell: function (td) {
+                $(td).attr("data-label", "Số Tiền");
+              },
+            },
+          ],
+          language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json",
+          },
+          order: [[1, "desc"]],
+          columns: [
+            {
+              data: "NgayGD",
+              render: function (d) {
+                return AppManager.formatDateTime(d);
+              },
+            },
+            { data: "SoSo", className: "text-center fw-bold text-primary" },
+            {
+              data: "MaKH",
+              className: "text-center fw-bold",
+              render: function (d, type, row) {
+                return row.TenKH ? row.TenKH : d;
+              },
+            },
+            {
+              data: "MaNV",
+              className: "text-center",
+              render: function (d, type, row) {
+                var name = row.TenNV ? row.TenNV : d;
+                return `<span class="badge bg-secondary"><i class='bx bx-user'></i> ${name}</span>`;
+              },
+            },
+            {
+              data: "SoTien",
+              className: "text-end fw-bold all",
+              render: function (d, type, row) {
+                var txt = AppManager.formatCurrency(d);
+                if (row.LoaiGD === "GUI") {
+                  return `<span class="text-success"><i class="bx bx-up-arrow-alt"></i> ${txt}</span>`;
+                } else {
+                  return `<span class="text-danger"><i class="bx bx-down-arrow-alt"></i> ${txt}</span>`;
+                }
+              },
+            },
+          ],
+          createdRow: function (row, data, dataIndex) {
+            $(row).css("cursor", "pointer");
+            $(row).hover(
+              function () {
+                $(this).addClass("table-active");
+              },
+              function () {
+                $(this).removeClass("table-active");
+              },
+            );
+            $(row).on("click", function () {
+              showChiTietChoDuyet(data.MaGD);
+            });
+          },
+        });
+      })
+      .fail(function (err) {
+        tbody.html(
+          `<tr><td colspan="5" class="text-center text-danger">Lỗi tải dữ liệu: ${err}</td></tr>`,
+        );
+      });
+  }
+
+  // Hiển thị Modal Chi Tiết Giao Dịch Chờ Duyệt
+  window.showChiTietChoDuyet = function (maGD) {
+    var gd = listChoDuyet.find(function (x) {
+      return x.MaGD === maGD;
+    });
+    if (!gd) return;
+
+    var dt = new Date(gd.NgayGD);
+    $("#lblDetailMaGD").text(gd.MaGD);
+    $("#lblDetailNgayGD").text(AppManager.formatDateTime(dt));
+    // Hiển thị tên KH thay vì mã KH
+    $("#lblDetailMaKH").text(
+      gd.TenKH ? gd.TenKH + " (" + gd.MaKH + ")" : gd.MaKH,
+    );
+    $("#lblDetailSoSo").text(gd.SoSo);
+
+    var loaiGDHtml =
+      gd.LoaiGD === "GUI"
+        ? '<span class="text-success fw-bold">GỬI THÊM</span>'
+        : '<span class="text-danger fw-bold">RÚT TIỀN</span>';
+    $("#lblDetailLoaiGD").html(loaiGDHtml);
+
+    var soTienHtml =
+      gd.LoaiGD === "GUI"
+        ? `<span class="text-success">+${new Intl.NumberFormat("vi-VN").format(gd.SoTien)} ₫</span>`
+        : `<span class="text-danger">-${new Intl.NumberFormat("vi-VN").format(gd.SoTien)} ₫</span>`;
+    $("#lblDetailSoTien").html(soTienHtml);
+    $("#lblDetailMaNV").text(gd.TenNV ? `${gd.TenNV} (${gd.MaNV})` : gd.MaNV);
+
+    if (gd.TrangThai === 'REJECTED') {
+      var reasonMatch = (gd.GhiChu || '').match(/Lý do:\s*(.*)/);
+      var reasonStr = reasonMatch ? reasonMatch[1] : "Không rõ nguyên nhân";
+      $('#lblDetailRejectedReason').html(`<div class="alert alert-danger mt-3 mb-0 py-2"><i class="bx bx-error-circle"></i> <strong>Lý do từ chối:</strong> ${reasonStr}</div>`);
+    } else {
+      $('#lblDetailRejectedReason').empty();
+    }
+
+    // Render Action Buttons
+    var myNV = window.APP_CONTEXT.User.MaNV;
+    var role = window.APP_CONTEXT.User.Role;
+    var btnHtml = `<button type="button" class="btn btn-secondary me-auto" data-bs-dismiss="modal">Đóng</button>`;
+
+    if (role === "ADMIN") {
+      if (gd.LoaiGD === "GUI") {
+        btnHtml += `<button type="button" class="btn btn-primary btn-duyet-modal shadow-sm" data-id="${gd.MaGD}" data-soso="${gd.SoSo}" data-sotien="${gd.SoTien}" data-type="GUI"><i class='bx bx-check'></i> Duyệt Gửi</button>`;
+      } else if (gd.LoaiGD === "RUT") {
+        btnHtml += `<button type="button" class="btn btn-danger btn-duyet-modal shadow-sm" data-id="${gd.MaGD}" data-soso="${gd.SoSo}" data-sotien="${gd.SoTien}" data-type="RUT"><i class='bx bx-check'></i> Duyệt Rút</button>`;
+      }
+      btnHtml += `<button type="button" class="btn btn-outline-danger btn-tuchoi-modal" data-id="${gd.MaGD}"><i class='bx bx-x'></i> Từ Chối</button>`;
+    } else if (gd.MaNV === myNV) {
+      btnHtml += `<button type="button" class="btn btn-danger btn-huygd-modal" data-id="${gd.MaGD}" data-soso="${gd.SoSo}" data-sotien="${gd.SoTien}"><i class='bx bx-trash'></i> Rút & Hủy Lệnh</button>`;
+    }
+
+    $("#footerActionChoDuyet").html(btnHtml);
+
+    // Bind Events
+    $("#footerActionChoDuyet .btn-huygd-modal")
+      .off("click")
+      .on("click", function () {
+        var btn = $(this);
+        btn.prop("disabled", true);
+        handleHuyGD(btn.data("id"), btn.data("soso"), btn.data("sotien"), btn);
+      });
+
+    $("#footerActionChoDuyet .btn-duyet-modal")
+      .off("click")
+      .on("click", function () {
+        var btn = $(this);
+        btn.prop("disabled", true);
+        handleDuyetGD(
+          btn.data("id"),
+          btn.data("soso"),
+          btn.data("sotien"),
+          btn.data("type"),
+          btn,
+        );
+      });
+
+    $("#footerActionChoDuyet .btn-tuchoi-modal")
+      .off("click")
+      .on("click", function () {
+        var btn = $(this);
+        btn.prop("disabled", true);
+        handleTuChoiGD(btn.data("id"), btn);
+      });
+
+    $("#modalChiTietChoDuyet").modal("show");
+  };
+
+  /**
+   * Cán Bộ rút lại lệnh (SubmitHuyGiaoDich)
+   */
+  function handleHuyGD(magd, soso, sotien, btnElement) {
+    Swal.fire({
+      title: "Hủy Lệnh Chờ Duyệt?",
+      html: `Bạn có chắc muốn RÚT LẠI lệnh giao dịch <b>${magd}</b> (tiền: ${new Intl.NumberFormat("vi-VN").format(sotien)} ₫) chưa được duyệt này?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Đồng Ý Hủy",
+      cancelButtonText: "Bỏ Qua",
+      confirmButtonColor: "#dc3545",
+    }).then((r) => {
+      if (r.isConfirmed) {
+        btnElement
+          .prop("disabled", true)
+          .html('<i class="bx bx-loader-alt bx-spin"></i> Chờ chút...');
+        // Sửa lỗi: Gọi submitHuyGiaoDich thay vì duyetGiaoDich
+        AppManager.callApi("submitHuyGiaoDich", { MaGD: magd })
+          .done(function () {
+            $("#modalChiTietChoDuyet").modal("hide");
+            Swal.fire(
+              "Hoàn tất!",
+              "Đã huỷ lệnh chờ duyệt thành công.",
+              "success",
+            );
+            frmChoDuyet_init(); // reload grid
+            if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+          })
+          .fail(function (e) {
+            Swal.fire("Lỗi", e, "error");
+            btnElement
+              .prop("disabled", false)
+              .html('<i class="bx bx-trash"></i> Rút & Hủy Lệnh');
+          });
+      } else {
+        btnElement
+          .prop("disabled", false)
+          .html('<i class="bx bx-trash"></i> Rút & Hủy Lệnh');
+      }
+    });
+  }
+
+  /**
+   * Admin Duyệt Lệnh
+   */
+  function handleDuyetGD(magd, soso, sotien, loaiGD, btnElement) {
+    var endp = "duyetGiaoDich";
+
+    if (loaiGD === "GUI") {
+      $("#modalChiTietChoDuyet").modal("hide");
+      var gd = listChoDuyet.find((x) => x.MaGD === magd);
+      var curKyHan = "KKH";
+      if (gd && gd.GhiChu) {
+        // Thử parse từ SYS_DATA JSON (Format mới)
+        var sysMatch = gd.GhiChu.match(/SYS_DATA:\s*(\{.*?\})/);
+        if (sysMatch) {
+          try {
+            var sysObj = JSON.parse(sysMatch[1]);
+            curKyHan = sysObj.KyHan || "KKH";
+          } catch (e) { }
+        } else {
+          var matchOld = gd.GhiChu.match(/Kỳ hạn ([^,]+),/);
+          if (matchOld) curKyHan = matchOld[1].trim();
+        }
+      }
+      var curNgay = "";
+      if (gd && gd.NgayGD) {
+        curNgay = new Date(gd.NgayGD).toISOString().split("T")[0];
+      }
+
+      var kyhanOpts = [
+        "KKH",
+        "1TH",
+        "2TH",
+        "3TH",
+        "4TH",
+        "5TH",
+        "6TH",
+        "7TH",
+        "8TH",
+        "9TH",
+        "10TH",
+        "11TH",
+        "12TH",
+        "13TH",
+        "15TH",
+        "18TH",
+        "24TH",
+        "36TH",
+      ];
+      var kyhanHtml = kyhanOpts
+        .map(
+          (k) =>
+            `<option value="${k}" ${k === curKyHan ? "selected" : ""}>${k === "KKH" ? "Không kỳ hạn" : k.replace("TH", " Tháng")}</option>`,
+        )
+        .join("");
+
+      var htmlForm = `
+                <div class="text-start mt-3">
+                    <label class="form-label text-muted fw-bold small mb-1">Số Số Tiết Kiệm (*)</label>
+                    <input id="swal-soso" class="form-control mb-3 border-primary" value="${soso}">
+                    
+                    <label class="form-label text-muted fw-bold small mb-1">Số Tiền Khớp Thực Tế (VNĐ)</label>
+                    <input id="swal-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${sotien}">
+                    
+                    <label class="form-label text-muted fw-bold small mb-1">Kỳ Hạn (*)</label>
+                    <select id="swal-kyhan" class="form-select mb-3">
+                        ${kyhanHtml}
+                    </select>
+                    
+                    <label class="form-label text-muted fw-bold small mb-1">Ngày Gửi Thực Tế (*)</label>
+                    <input id="swal-ngaygd" type="text" class="form-control mb-3 border-info" value="${curNgay}" placeholder="dd/mm/yyyy">
+
+                    <div class="row g-2">
+                       <div class="col-6">
+                          <label class="form-label text-muted fw-bold small mb-1">Lãi Suất (%/năm)</label>
+                          <input id="swal-laisuat" class="form-control border-success" placeholder="Ví dụ: 6.5">
+                       </div>
+                       <div class="col-6">
+                          <label class="form-label text-muted fw-bold small mb-1">Loại Lãi</label>
+                          <select id="swal-loailai" class="form-select border-success">
+                             <option value="Standard">Lãi Đơn</option>
+                             <option value="Compound">Lãi Kép</option>
+                          </select>
+                       </div>
+                    </div>
+                </div>
+            `;
+
+      Swal.fire({
+        title: "Khớp Thông Tin & Duyệt Gửi",
+        html: htmlForm,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bx bx-check"></i> Xác Nhận & Duyệt',
+        cancelButtonText: "Bỏ Qua",
+        didOpen: () => {
+          if (typeof AutoNumeric !== "undefined") {
+            new AutoNumeric("#swal-sotien", {
+              digitGroupSeparator: ",",
+              decimalCharacter: ".",
+              decimalPlaces: 0,
+            });
+          }
+          flatpickr("#swal-ngaygd", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: true,
+            defaultDate: curNgay,
+          });
+        },
+        preConfirm: () => {
+          var newSoSo = document.getElementById("swal-soso").value.trim();
+          var newSoTienEl = document.getElementById("swal-sotien");
+          var newSoTien = newSoTienEl.value
+            .replace(/,/g, "")
+            .replace(/\./g, "");
+          var newKyHan = document.getElementById("swal-kyhan").value;
+          var newNgayGD = document.getElementById("swal-ngaygd").value;
+          var newLaiSuat = document.getElementById("swal-laisuat").value;
+          var newLoaiLai = document.getElementById("swal-loailai").value;
+
+          if (!newSoSo || !newSoTien || !newNgayGD) {
+            Swal.showValidationMessage(
+              "Vui lòng điền đủ thông tin quan trọng (Số Sổ, Tiền, Ngày)!",
+            );
+            return false;
+          }
+          return {
+            SoSoMoi: newSoSo,
+            SoTienMoi: newSoTien,
+            KyHanMoi: newKyHan,
+            NgayGDMoi: newNgayGD,
+            LaiSuat: newLaiSuat,
+            LoaiLai: newLoaiLai,
+          };
+        },
+      }).then((res) => {
+        if (res.isConfirmed) {
+          _doDuyet(endp, magd, res.value, btnElement);
+        } else {
+          btnElement
+            .prop("disabled", false)
+            .html('<i class="bx bx-check"></i> Duyệt Gửi');
+          $("#modalChiTietChoDuyet").modal("show");
+        }
+      });
+    } else {
+      // Duyệt lệnh RUT - Xác minh số tiền rút thực tế
+      $("#modalChiTietChoDuyet").modal("hide");
+      var gdRut = listChoDuyet.find((x) => x.MaGD === magd);
+      var curNgayRut = "";
+      if (gdRut && gdRut.NgayGD) {
+        curNgayRut = new Date(gdRut.NgayGD).toISOString().split("T")[0];
+      }
+
+      var htmlFormRut = `
+                <div class="text-start mt-2">
+                    <label class="form-label text-muted fw-bold small mb-1">Số Số Tiết Kiệm</label>
+                    <input id="swal-rut-soso" class="form-control mb-3 bg-light" value="${soso}" readonly>
+
+                    <label class="form-label text-muted fw-bold small mb-1">Số Tiền Rút Thực Tế (VNĐ) <span class="text-danger">*</span></label>
+                    <input id="swal-rut-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${sotien}">
+
+                    <label class="form-label text-muted fw-bold small mb-1">Ngày Rút Thực Tế <span class="text-danger">*</span></label>
+                    <input id="swal-rut-ngaygd" type="text" class="form-control mb-1 border-info" value="${curNgayRut}" placeholder="dd/mm/yyyy">
+                </div>
+            `;
+
+      Swal.fire({
+        title: "🔴 Duyệt Lệnh RÚT TIỀN",
+        html: htmlFormRut,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bx bx-check"></i> Xác Nhận Duyệt Rút',
+        cancelButtonText: "Bỏ Qua",
+        confirmButtonColor: "#dc3545",
+        didOpen: () => {
+          if (typeof AutoNumeric !== "undefined") {
+            new AutoNumeric("#swal-rut-sotien", {
+              digitGroupSeparator: ",",
+              decimalCharacter: ".",
+              decimalPlaces: 0,
+            });
+          }
+          flatpickr("#swal-rut-ngaygd", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: true,
+            defaultDate: curNgayRut,
+          });
+        },
+        preConfirm: () => {
+          var soTienStr = document
+            .getElementById("swal-rut-sotien")
+            .value.replace(/,/g, "")
+            .replace(/\./g, "")
+            .replace(/\s/g, "");
+          var ngayRut = document.getElementById("swal-rut-ngaygd").value;
+
+          if (!soTienStr || parseFloat(soTienStr) <= 0 || !ngayRut) {
+            Swal.showValidationMessage(
+              "Vui lòng nhập số tiền và ngày rút hợp lệ!",
+            );
+            return false;
+          }
+          return { SoSoMoi: soso, SoTienMoi: soTienStr, NgayGDMoi: ngayRut };
+        },
+      }).then((res) => {
+        if (res.isConfirmed) {
+          _doDuyet(endp, magd, res.value, btnElement);
+        } else {
+          btnElement
+            .prop("disabled", false)
+            .html('<i class="bx bx-check"></i> Duyệt Rút');
+          $("#modalChiTietChoDuyet").modal("show");
+        }
+      });
+    }
+
+    function _doDuyet(apiEndpoint, apiMagd, dataValue, btn) {
+      btn
+        .prop("disabled", true)
+        .html('<i class="bx bx-loader-alt bx-spin"></i> Xử lý...');
+      var payload = { MaGD: apiMagd, Action: "APPROVE" };
+      Object.assign(payload, dataValue);
+
+      AppManager.callApi(apiEndpoint, payload)
+        .done(function (r) {
+          $("#modalChiTietChoDuyet").modal("hide");
+          Swal.fire({
+            title: "Duyệt Thành Công!",
+            html: `Giao dịch đã được duyệt thành công.`,
+            icon: "success",
+          });
+          frmChoDuyet_init();
+          if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+          if (typeof loadDashboardData === "function") loadDashboardData();
+        })
+        .fail(function (err) {
+          Swal.fire("Lỗi", err, "error");
+          btn
+            .prop("disabled", false)
+            .html('<i class="bx bx-check"></i> Thử Lại');
+        });
+    }
+  }
+
+  /**
+   * Admin Từ Chối Lệnh
+   */
+  function handleTuChoiGD(magd, btnElement) {
+    $('#modalChiTietChoDuyet').modal('hide');
+    setTimeout(function () {
+      Swal.fire({
+        title: "Từ Chối Giao Dịch?",
+        text: `Bạn có chắc muốn từ chối vĩnh viễn giao dịch ${magd} này?`,
+        icon: "warning",
+        input: "textarea",
+        inputPlaceholder: "Nhập lý do từ chối (Không bắt buộc)...",
+        showCancelButton: true,
+        confirmButtonText: "Xác Nhận TỪ CHỐI",
+        confirmButtonColor: "#dc3545",
+      }).then((r) => {
+        if (r.isConfirmed) {
+          var lyDo = r.value ? r.value.trim() : "";
+          btnElement
+            .prop("disabled", true)
+            .html('<i class="bx bx-loader-alt bx-spin"></i>');
+          AppManager.callApi("duyetGiaoDich", { MaGD: magd, Action: "REJECT", LyDo: lyDo })
+            .done(function () {
+              Swal.fire(
+                "Hoàn tất!",
+                "Giao dịch đã được TỪ CHỐI thành công.",
+                "success",
+              );
+              frmChoDuyet_init();
+              if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+            })
+            .fail(function (err) {
+              Swal.fire("Lỗi", err, "error");
+              btnElement
+                .prop("disabled", false)
+                .html('<i class="bx bx-x"></i> Thử Lại');
+            });
+        } else {
+          btnElement
+            .prop("disabled", false)
+            .html('<i class="bx bx-x"></i> Từ Chối');
+          $('#modalChiTietChoDuyet').modal('show');
+        }
+      });
+    }, 300);
+  }
+</script>

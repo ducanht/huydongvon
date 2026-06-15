@@ -1,0 +1,526 @@
+<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="page-title"><i class='bx bx-history'></i> Lịch sử Giao dịch</h1>
+        <p class="text-muted small mb-0">Danh sách các giao dịch Gửi / Rút tiền đã thực hiện và bộ lọc nâng cao.</p>
+    </div>
+</div>
+
+<!-- BỘ LỌC NÂNG CAO -->
+<div class="col-12 mb-4">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-3">
+                    <label for="txtLichSuDateRange" class="form-label text-muted small fw-bold">Khoảng Thời Gian</label>
+                    <input type="text" class="form-control" id="txtLichSuDateRange" placeholder="Từ ngày - Đến ngày">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label for="cboLichSuTrangThai" class="form-label text-muted small fw-bold">Trạng Thái Giao Dịch</label>
+                    <select class="form-select" id="cboLichSuTrangThai">
+                        <option value="">-- Tất Cả Hệ Thống --</option>
+                        <option value="ACTIVE" selected>Đã Duyệt (ACTIVE)</option>
+                        <option value="PENDING">Chờ Duyệt (PENDING)</option>
+                        <option value="REJECTED">Từ Chối / Hủy Lênh</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 d-none" id="filterNhanVienContainer">
+                    <label for="cboLichSuNhanVien" class="form-label text-muted small fw-bold">Cán Bộ</label>
+                    <select class="form-select" id="cboLichSuNhanVien">
+                        <option value="">-- Tất cả --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label for="cboLichSuChienDich" class="form-label text-muted small fw-bold">Chiến Dịch</label>
+                    <select class="form-select" id="cboLichSuChienDich">
+                        <option value="">-- Tất Cả --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label for="txtLichSuMaKH" class="form-label text-muted small fw-bold">Mã Khách Hàng</label>
+                    <input type="text" class="form-control" id="txtLichSuMaKH" placeholder="Mã KH...">
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100 py-2" onclick="frmLichSuGiaoDich_loadGrid()"><i
+                            class='bx bx-filter-alt'></i> Lọc</button>
+                </div>
+                <div class="col-12 mt-2 text-center text-md-start">
+                    <button class="btn btn-sm btn-outline-danger admin-only d-none" id="btnArchiveTransactions"
+                        onclick="handleArchiveTransactions()" title="Nén giao dịch Hủy/Từ chối">
+                        <i class='bx bx-archive-in'></i> Dọn dẹp Database (Archive)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-12">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbLichSu">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Nhân Viên</th>
+                            <th>Ngày GD</th>
+                            <th>Số Sổ</th>
+                            <th>Tên KH</th>
+                            <th>Loại GD</th>
+                            <th>Số Tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rendered via DataTables -->
+                    </tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi Tiết Lịch Sử -->
+<div class="modal fade" id="modalChiTietLichSu" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-primary">
+            <div class="modal-header bg-primary bg-opacity-10">
+                <h5 class="modal-title fw-bold text-dark"><i class='bx bx-receipt text-primary me-2'></i> Giao Dịch
+                    <span id="lsDetailMaGD" class="text-primary"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-column gap-3">
+                    <div class="row border-bottom pb-2">
+                        <div class="col-6"><span class="text-muted small">Khách hàng</span><br><b id="lsDetailMaKH"></b>
+                        </div>
+                        <div class="col-6 text-end"><span class="text-muted small">Thời gian</span><br><b
+                                id="lsDetailNgayGD"></b></div>
+                    </div>
+                    <div class="row border-bottom pb-2">
+                        <div class="col-6"><span class="text-muted small">Số Sổ Tiết Kiệm</span><br><b id="lsDetailSoSo"
+                                class="text-primary"></b></div>
+                        <div class="col-6 text-end"><span class="text-muted small">Trạng Thái</span><br><span
+                                id="lsDetailTrangThai"></span></div>
+                    </div>
+                    <div class="row border-bottom pb-2">
+                        <div class="col-6"><span class="text-muted small">Loại Lệnh</span><br><b
+                                id="lsDetailLoaiGD"></b></div>
+                        <div class="col-6 text-end"><span class="text-muted small">Số Tiền</span><br><b
+                                id="lsDetailSoTien" class="fs-5"></b></div>
+                    </div>
+                    <div class="row pb-2">
+                        <div class="col-6"><span class="text-muted small">Cán Bộ Lập Lệnh</span><br><b
+                                id="lsDetailMaNV"></b></div>
+                        <div class="col-6 text-end"><span class="text-muted small">Mã Chiến Dịch</span><br><b
+                                id="lsDetailMaCD" class="text-muted"></b></div>
+                    </div>
+                </div>
+                <div id="lsDetailRejectedReason"></div>
+                <div id="lsDetailGhiChu"></div>
+            </div>
+            <div class="modal-footer bg-light" id="lsFooterAction">
+                <!-- Action Buttons: Cancel -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.LSModule = {
+        dt: null,
+        rawData: [],
+        listChienDich: [],
+
+        init: function (params) {
+            var self = this;
+            params = params || {};
+
+            // Init Flatpickr
+            flatpickr("#txtLichSuDateRange", {
+                mode: "range", dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", allowInput: true
+            });
+
+            var role = window.APP_CONTEXT.User.Role;
+            if (role === 'ADMIN') {
+                $('#cboLichSuTrangThai').val('PENDING');
+                $('#filterNhanVienContainer').removeClass('d-none');
+                AppManager.callApi('getAllNhanSu').done(function (ns) {
+                    var cbo = $('#cboLichSuNhanVien');
+                    cbo.empty().append('<option value="">-- Tất cả Cán Bộ --</option>');
+                    ns.forEach(function (n) {
+                        cbo.append(`<option value="${n.MaNV}">${n.MaNV} - ${n.HoTen}</option>`);
+                    });
+                });
+            }
+
+            AppManager.callApi('getAllChienDich').done(function (res) {
+                self.listChienDich = res || [];
+                var cbo = $('#cboLichSuChienDich');
+                cbo.empty().append('<option value="">-- Tất cả Chiến Dịch --</option>');
+                if (res) {
+                    var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+                    res.forEach(function (cd) {
+                        var isExpired = false;
+                        if (cd.NgayKetThuc) {
+                            var endStr = cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc;
+                            if (endStr < todayStr) isExpired = true;
+                        }
+                        var isNotStarted = false;
+                        if (cd.NgayBatDau) {
+                            var startStr = cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau;
+                            if (startStr > todayStr) isNotStarted = true;
+                        }
+                        var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
+                        var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                        
+                        cbo.append(`<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`);
+                    });
+                }
+            });
+
+            if (window.PENDING_MAKH || params.MaKH) {
+                $('#txtLichSuMaKH').val(window.PENDING_MAKH || params.MaKH);
+                $('#cboLichSuTrangThai').val('');
+                window.PENDING_MAKH = null;
+            }
+
+            self.loadGrid(params);
+        },
+
+        loadGrid: function (params) {
+            var self = this;
+            params = params || {};
+            if ($.fn.DataTable.isDataTable('#tbLichSu')) {
+                $('#tbLichSu').DataTable().destroy();
+            }
+
+            var btnFilter = $('button[onclick="frmLichSuGiaoDich_loadGrid()"]');
+            var oldText = btnFilter.html();
+            btnFilter.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>...');
+
+            self.dt = $('#tbLichSu').DataTable({
+                serverSide: true,
+                processing: true,
+                deferRender: true,
+                ajax: function (data, callback, settings) {
+                    var dateRangeStr = $('#txtLichSuDateRange').val() || '';
+                    var tuNgay = '', denNgay = '';
+                    if (dateRangeStr.includes(' to ')) {
+                        var parts = dateRangeStr.split(' to ');
+                        tuNgay = parts[0]; denNgay = parts[1];
+                    } else if (dateRangeStr) { tuNgay = denNgay = dateRangeStr; }
+
+                    var cleanPayload = {
+                        draw: data.draw || 1, start: data.start || 0, length: data.length || 10,
+                        search: { value: (params.SoSo) ? params.SoSo : ((data.search && data.search.value) ? data.search.value : '') },
+                        order: [{
+                            column: (data.order && data.order[0]) ? data.order[0].column : 1,
+                            dir: (data.order && data.order[0]) ? data.order[0].dir : 'desc'
+                        }],
+                        TrangThai: $('#cboLichSuTrangThai').val() || '',
+                        MaCD: $('#cboLichSuChienDich').val() || '',
+                        MaNV: $('#cboLichSuNhanVien').val() || '',
+                        MaKH: $('#txtLichSuMaKH').val().trim() || '',
+                        tuNgay: tuNgay, denNgay: denNgay
+                    };
+
+                    AppManager.callApi('getLichSuDatatable', cleanPayload).done(function (res) {
+                        res = res || {};
+                        self.rawData = res.data || [];
+                        callback({
+                            draw: res.draw || data.draw,
+                            recordsTotal: res.recordsTotal || 0,
+                            recordsFiltered: res.recordsFiltered || 0,
+                            data: res.data || []
+                        });
+                        if (params.MaGD && res.data && res.data.length > 0) {
+                            self.showDetail(params.MaGD);
+                            params.MaGD = null;
+                        }
+                    }).fail(function (err) {
+                        Swal.fire('Lỗi', err, 'error');
+                        callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+                    }).always(function () {
+                        btnFilter.prop('disabled', false).html(oldText);
+                    });
+                },
+                columnDefs: [
+                    {
+                        targets: "_all", createdCell: function (td, cd, rd, row, col) {
+                            var h = ["Nhân Viên", "Ngày GD", "Số Sổ", "Tên KH", "Loại GD", "Số Tiền"];
+                            $(td).attr('data-label', h[col]);
+                        }
+                    }
+                ],
+                dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                buttons: [
+                    { extend: 'excel', className: 'btn btn-sm btn-success', text: '<i class="bx bx-spreadsheet"></i> Excel' },
+                    { extend: 'pdf', className: 'btn btn-sm btn-danger', text: '<i class="bx bxs-file-pdf"></i> PDF' }
+                    // Nút Print bị gỡ bỏ do thiếu thư viện CDN hỗ trợ
+                ],
+                order: [[1, "desc"]],
+                createdRow: function (row, data) {
+                    $(row).css('cursor', 'pointer').on('click', function (e) {
+                        if (!$(e.target).closest('button').length) self.showDetail(data.MaGD);
+                    });
+                },
+                columns: [
+                    { data: "MaNV", className: "text-center", render: function (d, t, r) { return `<span class="badge bg-secondary"><i class='bx bx-user'></i> ${r.TenNV || d}</span>`; } },
+                    { data: "NgayGD", render: function (d) { return AppManager.formatDateTime(d); } },
+                    { data: "SoSo", className: "text-center fw-bold text-primary" },
+                    { data: "MaKH", className: "fw-bold", render: function (d, t, r) { return r.TenKH ? `<span title="${d}">${r.TenKH}</span>` : d; } },
+                    {
+                        data: "LoaiGD", className: "text-center", render: function (d, t, r) {
+                            if (r.TrangThai === 'CANCELLED') return '<span class="badge bg-secondary text-decoration-line-through">ĐÃ HỦY</span>';
+                            if (r.TrangThai === 'PENDING') return '<span class="badge bg-warning text-dark">CHỜ DUYỆT</span>';
+                            if (r.TrangThai === 'REJECTED') return '<span class="badge bg-danger">BỊ TỪ CHỐI</span>';
+                            if (r.TrangThai === 'REVERTED') return '<span class="badge bg-dark">ĐÃ REVERT</span>';
+                            return d === 'GUI' ? '<span class="badge bg-success bg-opacity-75"><i class="bx bx-up-arrow-alt"></i> GỬI</span>' : '<span class="badge bg-danger bg-opacity-75"><i class="bx bx-down-arrow-alt"></i> RÚT</span>';
+                        }
+                    },
+                    {
+                        data: "SoTien", className: "text-end fw-bold all", render: function (d, t, r) {
+                            var num = AppManager.formatCurrency(d).replace(' ₫', '');
+                            if (r.TrangThai === 'CANCELLED' || r.TrangThai === 'REJECTED' || r.TrangThai === 'REVERTED') {
+                                return `<span class="text-muted text-decoration-line-through">${num} ₫</span>`;
+                            }
+                            return r.LoaiGD === 'GUI' ? `<span class="text-success">+ ${num} ₫</span>` : `<span class="text-danger">- ${num} ₫</span>`;
+                        }
+                    }
+                ]
+            });
+        },
+
+        showDetail: function (magd) {
+            var self = this;
+            var gd = self.rawData.find(x => x.MaGD === magd);
+            if (!gd) return;
+
+            $('#lsDetailMaGD').text(gd.MaGD);
+            $('#lsDetailMaKH').text(gd.TenKH ? `${gd.TenKH} (${gd.MaKH})` : gd.MaKH);
+            $('#lsDetailNgayGD').text(AppManager.formatDateTime(gd.NgayGD));
+            $('#lsDetailSoSo').text(gd.SoSo);
+
+            var ttMap = { 'ACTIVE': 'success', 'PENDING': 'warning', 'REJECTED': 'danger', 'CANCELLED': 'secondary', 'REVERTED': 'dark' };
+            var ttLabel = { 'ACTIVE': 'HOÀN TẤT', 'PENDING': 'CHỜ DUYỆT', 'REJECTED': 'TỪ CHỐI', 'CANCELLED': 'HỦY LỆNH', 'REVERTED': 'ĐÃ REVERT' };
+            $('#lsDetailTrangThai').html(`<span class="badge bg-${ttMap[gd.TrangThai] || 'info'}">${ttLabel[gd.TrangThai] || gd.TrangThai}</span>`);
+
+            $('#lsDetailLoaiGD').html(gd.LoaiGD === 'GUI' ? '<span class="text-success fw-bold">GỬI THÊM</span>' : '<span class="text-danger fw-bold">RÚT TIỀN</span>');
+
+            var soTienText = AppManager.formatCurrency(gd.SoTien);
+            if (gd.TrangThai === 'CANCELLED' || gd.TrangThai === 'REJECTED' || gd.TrangThai === 'REVERTED') {
+                soTienText = `<span class="text-muted text-decoration-line-through">${soTienText}</span>`;
+            } else {
+                soTienText = gd.LoaiGD === 'GUI' ? `<span class="text-success">+${soTienText}</span>` : `<span class="text-danger">-${soTienText}</span>`;
+            }
+            $('#lsDetailSoTien').html(soTienText);
+
+            if (gd.TrangThai === 'REJECTED') {
+                var reasonMatch = (gd.GhiChu || '').match(/(Lý do:.*(?=\|)|Lý do:.*$)/);
+                var reasonStr = reasonMatch ? reasonMatch[1] : "Không rõ nguyên nhân";
+                $('#lsDetailRejectedReason').html(`<div class="alert alert-danger mt-3 mb-0 py-2"><i class="bx bx-error-circle"></i> <strong>Lý do từ chối:</strong> ${reasonStr}</div>`);
+            } else {
+                $('#lsDetailRejectedReason').empty();
+            }
+
+            $('#lsDetailMaNV').text(gd.TenNV ? `${gd.TenNV} (${gd.MaNV})` : gd.MaNV);
+            $('#lsDetailMaCD').text(gd.MaCD || 'Không áp dụng');
+
+            var btnHtml = `<button type="button" class="btn btn-secondary me-auto" data-bs-dismiss="modal">Đóng</button>`;
+            var role = window.APP_CONTEXT.User.Role;
+            if (gd.TrangThai === 'PENDING') {
+                if (role === 'ADMIN') {
+                    btnHtml += `<button type="button" class="btn btn-${gd.LoaiGD === 'GUI' ? 'primary' : 'danger'} btn-duyet-ls shadow-sm" data-id="${gd.MaGD}"><i class='bx bx-check'></i> Duyệt ${gd.LoaiGD === 'GUI' ? 'Gửi' : 'Rút'}</button>`;
+                    btnHtml += `<button type="button" class="btn btn-outline-danger btn-tuchoi-ls" data-id="${gd.MaGD}"><i class='bx bx-x'></i> Từ Chối</button>`;
+                } else if (gd.MaNV === window.APP_CONTEXT.User.MaNV) {
+                    btnHtml += `<button type="button" class="btn btn-danger btn-huygd-ls shadow-sm" data-id="${gd.MaGD}"><i class='bx bx-trash'></i> Rút Lại Lệnh</button>`;
+                }
+            } else if (gd.TrangThai === 'ACTIVE' && role === 'ADMIN') {
+                btnHtml += `<button type="button" class="btn btn-dark btn-revert-ls" data-id="${gd.MaGD}"><i class='bx bx-undo'></i> Đảo Ngược (Revert)</button>`;
+            }
+            $('#lsFooterAction').html(btnHtml);
+
+            $('#lsFooterAction .btn-huygd-ls').on('click', function () { self.handleHuy($(this).data('id'), gd.SoTien); });
+            $('#lsFooterAction .btn-duyet-ls').on('click', function () { self.handleDuyet(gd); });
+            $('#lsFooterAction .btn-tuchoi-ls').on('click', function () { self.handleTuChoi(gd.MaGD); });
+            $('#lsFooterAction .btn-revert-ls').on('click', function () { self.handleRevert(gd.MaGD); });
+
+            $('#modalChiTietLichSu').modal('show');
+        },
+
+        handleHuy: function (magd, sotien) {
+            var self = this;
+            Swal.fire({
+                title: 'Hủy Lệnh?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Đồng Ý Hủy', confirmButtonColor: '#dc3545'
+            }).then((r) => {
+                if (r.isConfirmed) {
+                    AppManager.callApi('submitHuyGiaoDich', { MaGD: magd }).done(function () {
+                        $('#modalChiTietLichSu').modal('hide');
+                        Swal.fire('Hoàn tất!', 'Giao dịch đã được hủy.', 'success');
+                        self.loadGrid();
+                        if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+                    }).fail(e => Swal.fire('Lỗi', e, 'error'));
+                }
+            });
+        },
+
+        handleRevert: function (magd) {
+            var self = this;
+            Swal.fire({
+                title: 'Đảo ngược Giao dịch?',
+                html: 'Bạn đang đảo ngược một giao dịch đã HOÀN TẤT. Hệ thống sẽ: <br/><b>1. Hoàn lại số dư Sổ Tiết Kiệm</b><br/><b>2. Trừ ngược dòng KPI Cán bộ</b><br/><span class="text-danger fw-bold mt-2 d-inline-block">Hành động này không thể vãn hồi. Bạn có chắc chắn?</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bx bx-undo"></i> Xác Nhận Revert',
+                confirmButtonColor: '#212529',
+                cancelButtonColor: '#6c757d'
+            }).then(function (r) {
+                if (r.isConfirmed) {
+                    Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+                    AppManager.callApi('revertGiaoDich', { MaGD: magd }).done(function (msg) {
+                        $('#modalChiTietLichSu').modal('hide');
+                        Swal.fire({ title: 'Thành Công', text: msg, icon: 'success' }).then(() => { self.loadGrid(); });
+                    }).fail(function (e) {
+                        Swal.fire({ title: 'Không thể Revert', text: e, icon: 'error' });
+                    });
+                }
+            });
+        },
+
+        handleDuyet: function (gd) {
+            var self = this;
+            $('#modalChiTietLichSu').modal('hide');
+            var curKyHan = "KKH";
+            if (gd.GhiChu) {
+                var match = gd.GhiChu.match(/\[Kỳ Hạn:\s*(.*?)\s*\|/);
+                if (match) curKyHan = match[1].trim();
+            }
+            var curNgay = new Date(gd.NgayGD).toISOString().split('T')[0];
+
+            var kyhanOpts = ['KKH', '1TH', '2TH', '3TH', '4TH', '5TH', '6TH', '9TH', '12TH', '18TH', '24TH', '36TH'];
+            var kyhanHtml = kyhanOpts.map(k => `<option value="${k}" ${k === curKyHan ? 'selected' : ''}>${k === 'KKH' ? 'Không kỳ hạn' : k.replace('TH', ' Tháng')}</option>`).join('');
+
+            var campaignOptionsHtml = `<option value="">-- Không tham gia Chiến dịch --</option>`;
+            if (self.listChienDich && self.listChienDich.length) {
+                var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+                self.listChienDich.forEach(function (cd) {
+                    var isExpired = false;
+                    if (cd.NgayKetThuc) {
+                        var endStr = cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc;
+                        if (endStr < todayStr) isExpired = true;
+                    }
+                    var isNotStarted = false;
+                    if (cd.NgayBatDau) {
+                        var startStr = cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau;
+                        if (startStr > todayStr) isNotStarted = true;
+                    }
+                    var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
+                    var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                    var selected = cd.MaCD === gd.MaCD ? 'selected' : '';
+                    campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cd.TenCD}${statusMark}</option>`;
+                });
+            }
+
+            var htmlForm = `
+                <div class="text-start mt-2">
+                    <label class="form-label small fw-bold">Số Sổ (*)</label><input id="swal-soso" class="form-control mb-2" value="${gd.SoSo}">
+                    <label class="form-label small fw-bold">Số Tiền (*)</label><input id="swal-sotien" class="form-control mb-2 text-primary fw-bold" value="${gd.SoTien}">
+                    ${gd.LoaiGD === 'GUI' ? `
+                    <label class="form-label small fw-bold">Kỳ Hạn</label><select id="swal-kyhan" class="form-select mb-2">${kyhanHtml}</select>
+                    <label class="form-label small fw-bold">Chiến Dịch KPI</label><select id="swal-macd" class="form-select mb-2">${campaignOptionsHtml}</select>
+                    ` : ''}
+                    <label class="form-label small fw-bold">Ngày GD Thực Tế</label><input id="swal-ngaygd" type="text" class="form-control mb-2" value="${curNgay}" placeholder="dd/mm/yyyy">
+                </div>`;
+
+            Swal.fire({
+                title: 'Duyệt Giao Dịch', html: htmlForm, showCancelButton: true, confirmButtonText: 'Xác Nhận',
+                didOpen: () => {
+                    if (typeof AutoNumeric !== 'undefined') new AutoNumeric('#swal-sotien', { digitGroupSeparator: ',', decimalPlaces: 0 });
+                    flatpickr("#swal-ngaygd", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", allowInput: true, defaultDate: curNgay });
+                },
+                preConfirm: () => {
+                    var soso = $('#swal-soso').val().trim();
+                    var sotien = $('#swal-sotien').val().replace(/,/g, '');
+                    var ngay = $('#swal-ngaygd').val();
+                    if (!soso || !sotien || !ngay) { Swal.showValidationMessage('Vui lòng điền đủ thong tin!'); return false; }
+                    var newMaCDEl = document.getElementById("swal-macd");
+                    var newMaCD = newMaCDEl ? newMaCDEl.value : null;
+                    return { SoSoMoi: soso, SoTienMoi: sotien, NgayGDMoi: ngay, KyHanMoi: $('#swal-kyhan').val(), MaCDMoi: newMaCD };
+                }
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    var payload = Object.assign({ MaGD: gd.MaGD, Action: 'APPROVE' }, res.value);
+                    AppManager.callApi('duyetGiaoDich', payload).done(function () {
+                        Swal.fire('Thành công!', 'Giao dịch đã được duyệt.', 'success');
+                        self.loadGrid();
+                        if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+                    }).fail(e => Swal.fire('Lỗi', e, 'error'));
+                } else { $('#modalChiTietLichSu').modal('show'); }
+            });
+        },
+
+        handleTuChoi: function (magd) {
+            var self = this;
+            $('#modalChiTietLichSu').modal('hide');
+            setTimeout(function () {
+                Swal.fire({
+                    title: 'Từ Chối?',
+                    text: `Từ chối giao dịch ${magd}? Vui lòng nhập lý do:`,
+                    icon: 'warning',
+                    input: 'text',
+                    inputPlaceholder: 'Nhập lý do tại đây...',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác Nhận',
+                    confirmButtonColor: '#dc3545',
+                    inputValidator: (value) => {
+                        if (!value || value.trim() === '') {
+                            return 'Vui lòng nhập lý do từ chối!';
+                        }
+                    }
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        AppManager.callApi('duyetGiaoDich', { MaGD: magd, Action: 'REJECT', LyDo: r.value.trim() }).done(function () {
+                            Swal.fire('Xong!', 'Giao dịch bị từ chối.', 'success');
+                            self.loadGrid();
+                            if (AppManager.updatePendingBadge) AppManager.updatePendingBadge();
+                        }).fail(e => Swal.fire('Lỗi', e, 'error'));
+                    } else {
+                        $('#modalChiTietLichSu').modal('show');
+                    }
+                });
+            }, 300);
+        },
+
+        archive: function () {
+            var self = this;
+            Swal.fire({
+                title: 'Lưu Trữ (Archive)?',
+                text: 'Di chuyển lệnh Hủy/Từ chối sang kho lưu trữ? Yêu cầu Mật khẩu Quản trị Hệ thống:',
+                icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Nhập mật khẩu...',
+                showCancelButton: true,
+                confirmButtonText: 'Xác Nhận & Lưu Trữ',
+                confirmButtonColor: '#dc3545',
+                inputValidator: (value) => {
+                    if (!value) return 'Vui lòng nhập mật khẩu!';
+                }
+            }).then((r) => {
+                if (r.isConfirmed) {
+                    var hash = CryptoJS.SHA256(r.value).toString(CryptoJS.enc.Hex);
+                    AppManager.callApi('archiveTransactions', { masterHash: hash }).done(msg => {
+                        Swal.fire('Thành công!', msg, 'success');
+                        self.loadGrid();
+                    }).fail(e => Swal.fire('Lỗi', e, 'error'));
+                }
+            });
+        }
+    };
+
+    function frmLichSuGiaoDich_init(params) { window.LSModule.init(params); }
+    function frmLichSuGiaoDich_loadGrid() { window.LSModule.loadGrid(); }
+    function handleArchiveTransactions() { window.LSModule.archive(); }
+</script>

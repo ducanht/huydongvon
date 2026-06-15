@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Đăng nhập | Quản Trị Hệ Thống Yên Thọ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Trang đăng nhập hệ thống Quản lý chỉ tiêu mở tài khoản - Quỹ Tín dụng Nhân dân Yên Thọ. Dành riêng cho cán bộ nhân viên để theo dõi thi đua và số liệu huy động." />
+  <meta property="og:title" content="Đăng nhập | Quản Trị Hệ Thống Yên Thọ" />
+  <meta property="og:description" content="Hệ thống quản lý chỉ tiêu mở tài khoản và thống kê thi đua huy động vốn của Quỹ Tín dụng Nhân dân Yên Thọ." />
+  <meta property="og:type" content="website" />
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- SweetAlert2 -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg,
+          #dcfce7 0%,
+          #dcfce7 20%,
+          #cffafe 40%,
+          #e0f2fe 60%,
+          #f3e8ff 80%,
+          #fce7f3 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Inter", system-ui, sans-serif;
+      padding: 16px;
+    }
+
+    .login-card {
+      max-width: 420px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+    }
+
+    .login-header {
+      background: linear-gradient(135deg, #98ffde 0%, #0f766e 100%);
+      color: white;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .login-header .logo-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .login-body {
+      padding: 28px 24px;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .form-control {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      outline: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-login:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .login-footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      padding: 16px 24px;
+      border-top: 1px solid #f1f5f9;
+    }
+  </style>
+</head>
+
+<body>
+  <template id="tpl-frmLogin">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon">🏦</div>
+        <h4 class="m-0 fw-bold">QTDND Yên Thọ</h4>
+        <small style="opacity: 0.8">Hệ thống Quản trị Huy động vốn</small>
+      </div>
+      <div class="login-body">
+        <div id="loginAlert" class="alert alert-danger d-none text-center"
+          style="border-radius: 8px; font-size: 0.875rem" role="alert"></div>
+        <div class="mb-3">
+          <label class="form-label">📧 Email đăng nhập</label>
+          <input type="email" id="txtEmail" class="form-control" placeholder="Nhập email của bạn" />
+        </div>
+        <div class="mb-4">
+          <label class="form-label">🔑 Mật khẩu</label>
+          <input type="password" id="txtPassword" class="form-control" placeholder="••••••••" />
+        </div>
+        <button id="btnLogin" class="btn-login" type="button">
+          <span id="loginSpinner" class="spinner-border spinner-border-sm d-none" role="status"
+            aria-hidden="true"></span>
+          Đăng nhập
+        </button>
+      </div>
+      <div class="login-footer">
+        QTDND Yên Thọ &copy; 2026 &mdash; Hệ thống nội bộ
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        // [C] Tự động trỏ focus vào email khi nạp form login
+        $("#txtEmail").focus();
+
+        // Cho phép ấn Enter để Đăng nhập
+        $("#txtPassword").keypress(function (e) {
+          if (e.which == 13) {
+            $("#btnLogin").click();
+          }
+        });
+
+        $("#btnLogin").click(function () {
+          var email = $("#txtEmail").val().trim();
+          var password = $("#txtPassword").val();
+
+          if (!email || !password) {
+            Swal.fire(
+              "Cảnh báo",
+              "Vui lòng điền đầy đủ Email và Mật khẩu",
+              "warning",
+            );
+            return;
+          }
+
+          var btn = $(this);
+          $("#loginSpinner").removeClass("d-none");
+          btn.prop("disabled", true);
+          $("#loginAlert").addClass("d-none");
+
+          // Băm mật khẩu (SHA-256) trước khi gửi lên mạng
+          var hashedPassword = CryptoJS.SHA256(password).toString(
+            CryptoJS.enc.Hex,
+          );
+
+          // Fetch IP trước khi request login
+          $.getJSON('https://api.ipify.org?format=json')
+            .done(function (data) {
+              executeLogin(data.ip);
+            })
+            .fail(function () {
+              executeLogin("Unknown IP");
+            });
+
+          function executeLogin(clientIP) {
+            google.script.run
+              .withSuccessHandler(function (resStr) {
+                try {
+                  var json =
+                    typeof resStr === "string" ? JSON.parse(resStr) : resStr;
+
+                  if (json.status === "success") {
+                    var loginData = json.data; // {token, user}
+                    localStorage.setItem("SESSIONTOKEN", loginData.token);
+                    localStorage.setItem("LOGIN_TIMESTAMP", String(Date.now()));
+
+                    // Lưu nhanh IP để xài về sau
+                    if (window.APP_CONTEXT) window.APP_CONTEXT.ClientIP = clientIP;
+
+                    if (
+                      window.AppManager &&
+                      typeof window.AppManager.init === "function"
+                    ) {
+                      window.AppManager.init();
+                    } else {
+                      try {
+                        var url = "<?= ScriptApp.getService().getUrl() ?>";
+                        window.top.location.href = url;
+                      } catch (e) {
+                        Swal.fire(
+                          "Thông báo",
+                          "Đăng nhập thành công. Vui lòng F5 lại trang.",
+                          "success",
+                        );
+                      }
+                    }
+                  } else {
+                    $("#loginAlert").removeClass("d-none").html(json.message);
+                    btn.prop("disabled", false);
+                    $("#loginSpinner").addClass("d-none");
+                  }
+                } catch (e) {
+                  console.error("Parse Error:", e, resStr);
+                  Swal.fire("Lỗi", "Dữ liệu phản hồi không hợp lệ.", "error");
+                  btn.prop("disabled", false);
+                  $("#loginSpinner").addClass("d-none");
+                }
+              })
+              .withFailureHandler(function (err) {
+                $("#loginAlert")
+                  .removeClass("d-none")
+                  .html(err.message || "Không thể kết nối máy chủ.");
+                btn.prop("disabled", false);
+                $("#loginSpinner").addClass("d-none");
+              })
+              .doApiRequest("login", { email: email, hash: hashedPassword, ClientIP: clientIP });
+          }
+        });
+      });
+    </script>
+  </template>
+</body>
+
+</html>

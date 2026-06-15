@@ -1,0 +1,484 @@
+<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="page-title"><i class='bx bx-book-content'></i> Theo dõi Sổ tiết kiệm & Khách hàng</h1>
+        <p class="text-muted small mb-0">Quản lý danh sách sổ tiết kiệm và khách hàng do cán bộ quản lý.</p>
+    </div>
+</div>
+
+<!-- Bộ lọc chung -->
+<div class="col-12 mb-4">
+    <div class="card-custom">
+        <div class="card-body p-4">
+            <div class="row g-3 align-items-end">
+                <!-- Chỉ hiện cho Admin -->
+                <div class="col-md-3 admin-only d-none" id="colNhanVien">
+                    <label class="form-label small fw-bold">Cán bộ quản lý</label>
+                    <select class="form-select form-select-sm" id="cboFillMaNV">
+                        <option value="">-- Tất cả cán bộ --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Chiến dịch</label>
+                    <select class="form-select form-select-sm" id="cboFillMaCD">
+                        <option value="">-- Tất cả chiến dịch --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Trạng thái sổ</label>
+                    <select class="form-select form-select-sm" id="cboFillTrangThai">
+                        <option value="ACTIVE">Đang hoạt động</option>
+                        <option value="CLOSED">Đã tất toán</option>
+                        <option value="">Tất cả</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-primary btn-sm flex-grow-1" onclick="reloadDataAll()"><i
+                            class='bx bx-filter-alt'></i> Lọc dữ liệu</button>
+                    <button class="btn btn-outline-warning btn-sm" id="btnManualRefresh" onclick="manualRefreshData()" title="Làm mới dữ liệu từ máy chủ (Xóa Cache)">
+                        <i class='bx bx-refresh'></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-12">
+    <div class="card-custom">
+        <div class="card-header p-0 pt-1">
+            <ul class="nav nav-tabs nav-tabs-bordered" id="tabMonitoring" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="so-tab" data-bs-toggle="tab" data-bs-target="#tab-so"
+                        type="button" role="tab">Theo dõi Sổ TK</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="kh-tab" data-bs-toggle="tab" data-bs-target="#tab-kh" type="button"
+                        role="tab">Khách hàng quản lý</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-4">
+            <div class="tab-content" id="tabMonitoringContent">
+                <!-- Tab 1: Sổ Tiết Kiệm -->
+                <div class="tab-pane fade show active" id="tab-so" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards"
+                            id="tbSoTietKiem">
+                            <thead class="table-light text-center small">
+                                <tr>
+                                    <th>TT</th>
+                                    <th>Số Sổ</th>
+                                    <th>Số Tiền</th>
+                                    <th>Người gửi</th>
+                                    <th>Ngày gửi</th>
+                                    <th>Kỳ hạn</th>
+                                    <th>Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Khách hàng quản lý -->
+                <div class="tab-pane fade" id="tab-kh" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards"
+                            id="tbManagedKhachHang">
+                            <thead class="table-light text-center small">
+                                <tr>
+                                    <th>TT</th>
+                                    <th>Mã KH</th>
+                                    <th>Họ tên</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Số sổ</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Hiện trạng</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đối chiếu DB_SYS_STK (ADMIN Only) -->
+<div class="modal fade" id="modalDoiChieu" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header header-gradient text-white">
+                <h5 class="modal-title fw-bold"><i class="bx bx-sync bx-spin"></i> Đồng Bộ & Đối Chiếu Dữ Liệu Lõi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
+                    <i class="bx bx-info-circle fs-3 me-3"></i>
+                    <div>
+                        <strong>Quy trình Hoạt động:</strong> Hệ thống sẽ chủ động kết nối vào Trang tính nội bộ
+                        <code>DB_SYS_STK</code> để đọc danh sách Sổ hiện hữu. Những sổ đang <b>ACTIVE</b> của các nhân
+                        viên nhưng không tồn tại trong DB_SYS_STK sẽ bị đánh dấu và tự động <b>Tất Toán / Trừ KPI</b>
+                        liên đới ngay lập tức sau khi bạn duyệt.
+                    </div>
+                </div>
+
+                <div class="text-center mb-3">
+                    <button class="btn btn-primary px-4 shadow-sm" id="btnAnalyzeReconciliation"
+                        onclick="analyzeReconciliation()">
+                        <i class="bx bx-search-alt"></i> Quét & Phân Tích Dữ Liệu Ngay
+                    </button>
+                </div>
+
+                <!-- Vùng hiển thị kết quả -->
+                <div id="reconciliationResultArea" class="d-none mt-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm text-center p-3 h-100">
+                                <h6 class="text-muted fw-bold">Tổng số sổ được quét</h6>
+                                <h3 class="text-primary mb-0" id="lblTotalKiemTra">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm text-center p-3 h-100">
+                                <h6 class="text-muted fw-bold">Sổ lệch (Ảo) phát hiện</h6>
+                                <h3 class="text-danger mb-0" id="lblTotalPhatHien">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm text-center p-3 h-100 bg-danger text-white">
+                                <h6 class="fw-bold text-white-50">Khấu trừ số dư dự kiến</h6>
+                                <h3 class="mb-0 text-white" id="lblTotalTienBiTru">0 đ</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3"><i class="bx bx-list-ul"></i> Chi tiết các Sổ tiết kiệm đã rút sẽ bị Tất
+                        toán &
+                        Trừ KPI:</h6>
+                    <div class="table-responsive bg-white rounded shadow-sm">
+                        <table class="table table-hover align-middle mb-0 table-mobile-cards" id="tbReconciliationPreview">
+                            <thead class="table-danger text-center small">
+                                <tr>
+                                    <th>Số Sổ</th>
+                                    <th>Khách Hàng</th>
+                                    <th>Cán bộ QL</th>
+                                    <th>Số trừ KPI (VNĐ)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyReconciliation" class="small text-center">
+                                <!-- Render from JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-top-0 d-none" id="reconciliationFooter">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-danger px-4" id="btnExecuteReconciliation"
+                    onclick="executeReconciliation()"><i class="bx bxs-trash"></i> DUYỆT TẤT TOÁN HÀNG LOẠT</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    var dtSoTietKiem = null;
+    var dtManagedKH = null;
+
+    function frmSoTietKiem_init() {
+        initFilters();
+        initTableSoTietKiem();
+        initTableManagedKH();
+    }
+
+    function initFilters() {
+        var role = window.APP_CONTEXT && window.APP_CONTEXT.User ? window.APP_CONTEXT.User.Role : '';
+        if (role === 'ADMIN') {
+            $('#colNhanVien').removeClass('d-none');
+            AppManager.callApi('getNhanSuActive').done(function (res) {
+                var html = '<option value="">-- Tất cả cán bộ --</option>';
+                res.forEach(function (item) {
+                    html += `<option value="${item.MaNV}">${item.HoTen} (${item.MaNV})</option>`;
+                });
+                $('#cboFillMaNV').html(html);
+            });
+        }
+
+        AppManager.callApi('getAllChienDich').done(function (res) {
+            var html = '<option value="">-- Tất cả chiến dịch --</option>';
+            res.forEach(function (item) {
+                html += `<option value="${item.MaCD}">${item.TenCD}</option>`;
+            });
+            $('#cboFillMaCD').html(html);
+        });
+    }
+
+    function reloadDataAll() {
+        if (dtSoTietKiem) dtSoTietKiem.ajax.reload();
+        if (dtManagedKH) dtManagedKH.ajax.reload();
+    }
+
+    function manualRefreshData() {
+        var btn = $('#btnManualRefresh');
+        var icon = btn.find('i');
+        
+        btn.prop('disabled', true);
+        icon.addClass('bx-spin');
+        
+        AppManager.callApi('clearServerCache')
+            .done(function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã làm mới',
+                    text: 'Dữ liệu hệ thống đã được đồng bộ mới nhất từ Trang tính.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                reloadDataAll();
+            })
+            .fail(function(err) {
+                Swal.fire('Lỗi', 'Không thể làm mới cache: ' + err, 'error');
+            })
+            .always(function() {
+                btn.prop('disabled', false);
+                icon.removeClass('bx-spin');
+            });
+    }
+
+    function initTableSoTietKiem() {
+        if ($.fn.DataTable.isDataTable('#tbSoTietKiem')) {
+            $('#tbSoTietKiem').DataTable().destroy();
+        }
+
+        dtSoTietKiem = $('#tbSoTietKiem').DataTable({
+            serverSide: true,
+            processing: true,
+            deferRender: true,
+            ajax: function (data, callback, settings) {
+                var payload = {
+                    draw: data.draw,
+                    start: data.start,
+                    length: data.length,
+                    search: data.search,
+                    order: data.order,
+                    MaNV: $('#cboFillMaNV').is(':visible') ? $('#cboFillMaNV').val() : null, // Chỉ gửi MaNV nếu là Admin
+                    MaCD: $('#cboFillMaCD').val(),
+                    TrangThai: $('#cboFillTrangThai').val()
+                };
+                AppManager.callApi('getSoTietKiemDatatable', payload)
+                    .done(function (res) {
+                        callback(res);
+                    })
+                    .fail(function (err) {
+                        Swal.fire('Lỗi', err, 'error');
+                        callback({ data: [], recordsTotal: 0, recordsFiltered: 0 });
+                    });
+            },
+            dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
+                "<'row'<'col-sm-12'tr>>" +
+                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            buttons: [
+                {
+                    text: '<i class="bx bx-sync"></i> Đồng bộ dữ liệu Sổ tiết kiệm',
+                    className: 'btn btn-sm btn-warning fw-bold text-dark admin-only d-none',
+                    action: function (e, dt, node, config) {
+                        $('#modalDoiChieu').modal('show');
+                        $('#reconciliationResultArea').addClass('d-none');
+                        $('#reconciliationFooter').addClass('d-none');
+                        $('#btnAnalyzeReconciliation').prop('disabled', false).html('<i class="bx bx-search-alt"></i> Quét & Phân Tích Dữ Liệu Ngay');
+                    }
+                },
+                { extend: 'excel', className: 'btn btn-sm btn-success ms-2', text: '<i class="bx bx-spreadsheet"></i> Excel' },
+                { extend: 'pdf', className: 'btn btn-sm btn-danger', text: '<i class="bx bxs-file-pdf"></i> PDF' }
+            ],
+            order: [[4, "desc"]], // Sắp xếp theo Ngày gửi
+            columnDefs: [
+                {
+                    targets: "_all", createdCell: function (td, cd, rd, row, col) {
+                        var h = ["TT", "Số Sổ", "Số Tiền", "Người gửi", "Ngày gửi", "Kỳ hạn", "Trạng Thái"];
+                        $(td).attr('data-label', h[col] || '');
+                    }
+                }
+            ],
+            columns: [
+                { data: null, className: "text-center text-muted small", render: function (d, type, row, meta) { return meta.row + 1 + meta.settings._iDisplayStart; } },
+                { data: "SoSo", className: "text-center fw-bold text-primary" },
+                {
+                    data: "SoDuHienTai",
+                    className: "text-end fw-bold text-success",
+                    render: function (d) { return AppManager.formatCurrency(d); }
+                },
+                { data: "TenKH", className: "fw-bold" },
+                {
+                    data: "NgayPhatHanh",
+                    className: "text-center",
+                    render: function (d) { return d ? AppManager.formatDate(d) : ''; }
+                },
+                {
+                    data: "KyHan",
+                    className: "text-center small",
+                    render: function (d) { return d === 'KKH' ? 'Không kỳ hạn' : d.replace('TH', ' tháng'); }
+                },
+                {
+                    data: "TrangThai",
+                    className: "text-center",
+                    render: function (d) {
+                        return d === 'ACTIVE' ? '<span class="badge bg-success">Đang hoạt động</span>' : '<span class="badge bg-secondary">Đã tất toán</span>';
+                    }
+                }
+            ],
+            drawCallback: function () {
+                var role = window.APP_CONTEXT && window.APP_CONTEXT.User ? window.APP_CONTEXT.User.Role : '';
+                if (role === 'ADMIN') {
+                    $('.admin-only').removeClass('d-none');
+                }
+            }
+        });
+    }
+
+    function initTableManagedKH() {
+        if ($.fn.DataTable.isDataTable('#tbManagedKhachHang')) {
+            $('#tbManagedKhachHang').DataTable().destroy();
+        }
+
+        dtManagedKH = $('#tbManagedKhachHang').DataTable({
+            serverSide: true,
+            processing: true,
+            deferRender: true,
+            ajax: function (data, callback, settings) {
+                var payload = {
+                    draw: data.draw,
+                    start: data.start,
+                    length: data.length,
+                    search: data.search,
+                    MaNV: $('#cboFillMaNV').val(),
+                    MaCD: $('#cboFillMaCD').val()
+                };
+                AppManager.callApi('getManagedKhachHangDatatable', payload)
+                    .done(function (res) {
+                        callback(res);
+                    })
+                    .fail(function (err) {
+                        callback({ data: [], recordsTotal: 0, recordsFiltered: 0 });
+                    });
+            },
+            dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
+                "<'row'<'col-sm-12'tr>>" +
+                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            buttons: [
+                { extend: 'excel', className: 'btn btn-sm btn-success', text: '<i class="bx bx-spreadsheet"></i> Excel' },
+                { extend: 'pdf', className: 'btn btn-sm btn-danger', text: '<i class="bx bxs-file-pdf"></i> PDF' }
+            ],
+            columnDefs: [
+                {
+                    targets: "_all", createdCell: function (td, cd, rd, row, col) {
+                        var h = ["TT", "Mã KH", "Họ Tên", "Địa Chỉ", "Số Sổ", "Tổng Tiền", "Hiện Trạng"];
+                        $(td).attr('data-label', h[col] || '');
+                    }
+                }
+            ],
+            columns: [
+                { data: null, className: "text-center text-muted small", render: function (d, type, row, meta) { return meta.row + 1 + meta.settings._iDisplayStart; } },
+                { data: "MaKH", className: "text-center fw-bold text-muted small" },
+                { data: "HoTen", className: "fw-bold text-primary" },
+                { data: "DiaChi", className: "small" },
+                { data: "TongSoSo", className: "text-center fw-bold" },
+                {
+                    data: "TongTien",
+                    className: "text-end fw-bold text-success",
+                    render: function (d) { return AppManager.formatCurrency(d); }
+                },
+                {
+                    data: "HienTrang",
+                    className: "text-center all",
+                    render: function (d) {
+                        return d === 'Còn gửi' ? '<span class="badge bg-success">Còn gửi</span>' : '<span class="badge bg-warning text-dark">Đã tất toán</span>';
+                    }
+                }
+            ]
+        });
+    }
+
+    // ==========================================
+    // MODULE ĐỐI CHIẾU SỔ (RECONCILIATION)
+    // ==========================================
+    var tempReconciliationList = [];
+
+    function analyzeReconciliation() {
+        var btn = $('#btnAnalyzeReconciliation');
+        btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang đọc dữ liệu STK từ hệ thống...');
+
+        AppManager.callApi('analyzeReconciliation')
+            .done(function (res) {
+                btn.html('<i class="bx bx-check"></i> Đã hoàn tất quét');
+
+                $('#lblTotalKiemTra').text(res.totalKiemTra);
+                $('#lblTotalPhatHien').text(res.totalPhatHien);
+                $('#lblTotalTienBiTru').text(AppManager.formatCurrency(res.totalTienBiTru));
+
+                var tbody = $('#tbodyReconciliation');
+                tbody.empty();
+                tempReconciliationList = res.danhSachThuHoi || [];
+
+                if (tempReconciliationList.length === 0) {
+                    tbody.html('<tr><td colspan="4" class="text-success py-4"><i class="bx bx-check-shield fs-1 d-block mb-2"></i>Tuyệt vời! Hệ thống khớp 100% với Sao kê Lõi.</td></tr>');
+                    $('#reconciliationFooter').addClass('d-none');
+                } else {
+                    tempReconciliationList.forEach(function (so) {
+                        var row = `<tr>
+                            <td data-label="Số Sổ" class="fw-bold text-primary">${so.SoSo}</td>
+                            <td data-label="Khách Hàng">${so.TenKH}</td>
+                            <td data-label="Cán bộ QL"><span class="badge bg-secondary">${so.MaVN}</span></td>
+                            <td data-label="Số trừ KPI" class="text-danger fw-bold">-${AppManager.formatCurrency(so.SoDuHienTai)}</td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                    $('#reconciliationFooter').removeClass('d-none');
+                }
+
+                $('#reconciliationResultArea').removeClass('d-none').hide().fadeIn();
+            })
+            .fail(function (err) {
+                Swal.fire('Lỗi Đối Chiếu', err, 'error');
+                btn.prop('disabled', false).html('<i class="bx bx-refresh"></i> Thử lại');
+            });
+    }
+
+    function executeReconciliation() {
+        if (!tempReconciliationList || tempReconciliationList.length === 0) {
+            Swal.fire('Cảnh báo', 'Không có dữ liệu sổ bị lệch để tất toán.', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: `Bạn chắc chắn muốn Tất Toán ${tempReconciliationList.length} Sổ này?`,
+            text: "Hành động này sẽ Tự động rút tiền, Tự động đóng sổ, và Lập tức trừ KPI của các nhân viên. Không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý, Tất Toán Hàng Loạt & Trừ Điểm!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                var btn = $('#btnExecuteReconciliation');
+                btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang ghi sổ liên hoàn...');
+
+                AppManager.callApi('executeReconciliation', { DanhSachSo: tempReconciliationList })
+                    .done(function (res) {
+                        $('#modalDoiChieu').modal('hide');
+                        Swal.fire('Thành công', res.message, 'success');
+                        reloadDataAll();
+                        setTimeout(function () { location.reload(); }, 2000); // Tải lại trang để update KPI
+                    })
+                    .fail(function (err) {
+                        Swal.fire('Lỗi Thực Thi', err, 'error');
+                        btn.prop('disabled', false).html('<i class="bx bxs-trash"></i> DUYỆT TẤT TOÁN HÀNG LOẠT');
+                    });
+            }
+        });
+    }
+</script>

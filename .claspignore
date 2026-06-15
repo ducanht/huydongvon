@@ -1,0 +1,8 @@
+# Ignore everything relative to rootDir (dist/)
+**/*
+
+# Whitelist files to push
+!index.html
+!appsscript.json
+!src/backend/**/*.js
+!src/backend/**/*.gs

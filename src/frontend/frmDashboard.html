@@ -1,0 +1,1320 @@
+<style>
+  /* Dashboard-specific tweaks if any, but relying on app.css for primary theme */
+  .icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(5px);
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+
+  .card-custom:hover .icon-box {
+    transform: scale(1.1) rotate(5deg);
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .rank-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    margin: 0 auto;
+  }
+
+  .rank-1 {
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    color: white;
+  }
+
+  .rank-2 {
+    background: linear-gradient(135deg, #94a3b8, #475569);
+    color: white;
+  }
+
+  .rank-3 {
+    background: linear-gradient(135deg, #b45309, #78350f);
+    color: white;
+  }
+
+  /* Custom Segmented Control for KPI Mode */
+  .kpi-mode-switch {
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+    display: flex;
+    gap: 4px;
+    border: 1px solid #e2e8f0;
+    width: 100%;
+  }
+  
+  [data-bs-theme="dark"] .kpi-mode-switch {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .kpi-mode-item {
+    flex: 1;
+    text-align: center;
+  }
+
+  .kpi-mode-item input {
+    display: none;
+  }
+
+  .kpi-mode-item label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    margin: 0;
+  }
+
+  [data-bs-theme="dark"] .kpi-mode-item label {
+    color: #94a3b8;
+  }
+
+  .kpi-mode-item input:checked + label {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2), 0 2px 4px -2px rgba(16, 185, 129, 0.1);
+  }
+  
+  .kpi-mode-item label i {
+    font-size: 1.1rem;
+  }
+
+  /* Live Update Badge Ping Animation */
+  .animate-ping {
+    animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+  }
+
+  /* Custom styles for Dashboard Filter Inputs */
+  .dashboard-wrapper .form-select,
+  .dashboard-wrapper .form-control {
+    border-radius: 10px;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    background-color: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
+  }
+  
+  [data-bs-theme="dark"] .dashboard-wrapper .form-select,
+  [data-bs-theme="dark"] .dashboard-wrapper .form-control {
+    background-color: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+  }
+
+  .dashboard-wrapper .form-select:focus,
+  .dashboard-wrapper .form-control:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    background-color: #ffffff;
+  }
+  
+  [data-bs-theme="dark"] .dashboard-wrapper .form-select:focus,
+  [data-bs-theme="dark"] .dashboard-wrapper .form-control:focus {
+    background-color: #1e293b;
+  }
+
+  .dashboard-wrapper .form-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  
+  [data-bs-theme="dark"] .dashboard-wrapper .form-label {
+    color: #94a3b8;
+  }
+
+  /* Datepicker icon adjustment */
+  .dashboard-wrapper .position-relative i {
+    font-size: 1.1rem;
+    color: #a0aec0;
+  }
+  
+  /* Filter Card glassmorphic look */
+  .dashboard-wrapper .card-custom {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(241, 245, 249, 0.5) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(16, 185, 129, 0.12);
+  }
+  
+  [data-bs-theme="dark"] .dashboard-wrapper .card-custom {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.5) 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Rotate sync icon on hover */
+  #btnDashFilter {
+    height: 38px;
+    transition: all 0.3s ease;
+  }
+  #btnDashFilter:hover i {
+    transform: rotate(180deg);
+  }
+  #btnDashFilter i {
+    transition: transform 0.4s ease;
+  }
+
+  /* ===================================================
+   LEADERBOARD MOBILE RESPONSIVE
+   Tại breakpoint ≤ 575px, chuyển Leaderboard sang layout 2 cột compact
+   =================================================== */
+  @media (max-width: 575.98px) {
+    /* Cột HẠNG: hiển thị rank badge đúng tâm không bị kéo */
+    #tbLeaderboard td[data-label="HẠNG"] {
+      justify-content: space-between !important;
+      align-items: center !important;
+    }
+    #tbLeaderboard td[data-label="HẠNG"] .rank-badge {
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      max-width: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+      border-radius: 50% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+      margin: 0 !important;
+    }
+    /* Cột CÁN BỘ: hiển thị avatar + tên + progress */
+    #tbLeaderboard td[data-label="CÁN BỘ"] {
+      align-items: flex-start !important;
+    }
+    #tbLeaderboard td[data-label="CÁN BỘ"] > .d-flex {
+      max-width: 65% !important;
+      min-width: 0 !important;
+      overflow: hidden !important;
+    }
+    /* Thu nhỏ avatar */
+    #tbLeaderboard td[data-label="CÁN BỘ"] .avatar {
+      width: 26px !important;
+      height: 26px !important;
+      min-width: 26px !important;
+      font-size: 9px !important;
+      flex-shrink: 0 !important;
+      margin-right: 6px !important;
+    }
+    /* Progress bar responsive */
+    #tbLeaderboard td[data-label="CÁN BỘ"] .progress {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    /* Tên cắt ngắn với ellipsis */
+    #tbLeaderboard td[data-label="CÁN BỘ"] .fw-bold {
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      max-width: 100% !important;
+    }
+    /* Các cột số tiền */
+    #tbLeaderboard td[data-label="CHỈ TIÊU"],
+    #tbLeaderboard td[data-label="RÚT"],
+    #tbLeaderboard td[data-label="NET"] {
+      font-size: 0.82rem !important;
+    }
+    #tbLeaderboard td[data-label="NET"] .fw-bold {
+      font-size: 0.9rem !important;
+    }
+  }
+</style>
+
+<div class="dashboard-wrapper">
+  <div class="row align-items-center mb-4 pb-3" style="border-bottom: 1px solid rgba(16, 185, 129, 0.08) !important;">
+    <div class="col-md-8 col-12 mb-3 mb-md-0">
+      <h1 class="page-title mb-1 d-flex align-items-center gap-2" style="font-family: 'Outfit', sans-serif; font-size: 1.75rem; background: linear-gradient(135deg, #065f46 0%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        <i class="bx bxs-dashboard text-emerald-500 fs-3"></i> Dashboard Tổng Quan
+      </h1>
+      <p class="text-muted small mb-0">
+        Hệ thống quản trị tài chính Quỹ Tín Dụng Nhân Dân Yên Thọ
+      </p>
+    </div>
+    <div class="col-md-4 col-12 text-md-end text-start">
+      <div class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-pill d-inline-flex align-items-center gap-2 shadow-sm">
+        <span class="position-relative d-flex h-2 w-2" style="width: 8px; height: 8px;">
+          <span class="animate-ping position-absolute inline-flex h-full w-full rounded-circle bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-circle h-2 w-2 bg-emerald-500" style="width: 8px; height: 8px; border-radius: 50%;"></span>
+        </span>
+        <span class="x-small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cập nhật: <span id="lblLastUpdate">Vừa xong</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bộ lọc (Filters) -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <div class="card-custom">
+        <div class="card-body p-4">
+          <form id="frmDashFilter" class="row g-3 align-items-end">
+            <div class="col-xl col-lg-4 col-md-6">
+              <label class="form-label">Chiến Dịch Mục Tiêu</label>
+              <select class="form-select" id="cboDashChienDich">
+                <option value="">Tất cả chiến dịch</option>
+              </select>
+            </div>
+            <div class="col-xl col-lg-4 col-md-6 admin-only d-none">
+              <label class="form-label">Cán Bộ Quản Lý</label>
+              <select class="form-select" id="cboDashNhanVien">
+                <option value="">Tất cả cán bộ</option>
+              </select>
+            </div>
+            <div class="col-xl col-lg-4 col-md-6">
+              <label class="form-label">Chế Độ Thống Kê</label>
+              <div class="kpi-mode-switch shadow-sm" style="height: 38px; align-items: center;">
+                <div class="kpi-mode-item">
+                  <input type="radio" name="radKpiMode" id="kpiModeThiDua" value="THI_DUA" checked>
+                  <label for="kpiModeThiDua"><i class='bx bx-award me-1'></i> Thi Đua</label>
+                </div>
+                <div class="kpi-mode-item">
+                  <input type="radio" name="radKpiMode" id="kpiModeHienTai" value="HIEN_TAI">
+                  <label for="kpiModeHienTai"><i class='bx bx-time me-1'></i> Thực Tế</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl col-lg-4 col-md-6">
+              <label class="form-label">Từ Ngày</label>
+              <div class="position-relative">
+                <input type="text" class="form-control date-picker ps-4" id="txtDashTuNgay" placeholder="Chọn ngày" />
+                <i class="bx bx-calendar position-absolute text-muted" style="top: 50%; left: 12px; transform: translateY(-50%); pointer-events: none;"></i>
+              </div>
+            </div>
+            <div class="col-xl col-lg-4 col-md-6">
+              <label class="form-label">Đến Ngày</label>
+              <div class="position-relative">
+                <input type="text" class="form-control date-picker ps-4" id="txtDashDenNgay" placeholder="Chọn ngày" />
+                <i class="bx bx-calendar position-absolute text-muted" style="top: 50%; left: 12px; transform: translateY(-50%); pointer-events: none;"></i>
+              </div>
+            </div>
+            <div class="col-xl col-lg-4 col-md-12">
+              <button type="button" class="btn btn-primary w-100 py-2 shadow-sm" id="btnDashFilter">
+                <i class="bx bx-sync"></i> Làm mới
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thống kê Tổng Quát (KPI Cards) -->
+  <div class="row mb-5">
+    <div class="col-md-6 col-xl-3 mb-4 mb-xl-0">
+      <div class="card-custom">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center mb-3">
+            <div class="icon-box mb-0 me-3" style="color: #3b82f6">
+              <i class="bx bxs-bank fs-4"></i>
+            </div>
+            <div class="stat-label text-primary">TỔNG VỐN HUY ĐỘNG</div>
+          </div>
+          <h2 id="lblTongGui" class="stat-number" style="padding-right: 5px">
+            0 đ
+          </h2>
+          <p class="text-muted x-small mb-0">
+            <i class="bx bx-trending-up me-1"></i>Dòng tiền thực nhập
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-4 mb-xl-0">
+      <div class="card-custom">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center mb-3">
+            <div class="icon-box mb-0 me-3" style="color: #ef4444">
+              <i class="bx bxs-wallet fs-4"></i>
+            </div>
+            <div class="stat-label text-danger">TỔNG RÚT / TẤT TOÁN</div>
+          </div>
+          <h2 id="lblTongRut" class="stat-number" style="
+              background: linear-gradient(135deg, #ef4444, #f43f5e);
+              -webkit-background-clip: text;
+              background-clip: text;
+              -webkit-text-fill-color: transparent;
+              padding-right: 5px;
+            ">
+            0 đ
+          </h2>
+          <p class="text-muted x-small mb-0">
+            <i class="bx bx-log-out-circle me-1"></i>Rút trước hạn
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-4 mb-md-0">
+      <div class="card-custom">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center mb-3">
+            <div class="icon-box mb-0 me-3" style="color: #10b981">
+              <i class="bx bxs-bolt fs-4"></i>
+            </div>
+            <div class="stat-label text-success">TĂNG TRƯỞNG RÒNG</div>
+          </div>
+          <h2 id="lblNet" class="stat-number" style="padding-right: 5px">
+            0 đ
+          </h2>
+          <p class="text-muted x-small mb-0">
+            <i class="bx bx-check-double me-1"></i>Net Growth thực tế
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card-custom">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center mb-3">
+            <div class="icon-box mb-0 me-3" style="color: #f59e0b">
+              <i class="bx bxs-bullseye fs-4"></i>
+            </div>
+            <div class="stat-label text-warning">MỨC ĐỘ HOÀN THÀNH</div>
+          </div>
+          <h2 id="lblHoanThanh" class="stat-number" style="
+              background: linear-gradient(135deg, #f59e0b, #d97706);
+              -webkit-background-clip: text;
+              background-clip: text;
+              -webkit-text-fill-color: transparent;
+            ">
+            0%
+          </h2>
+          <p class="fw-bold x-small mb-0" id="lblChiTieu">Chỉ tiêu: 0 ₫</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Biểu đồ & Phân tích -->
+  <div class="row mb-5">
+    <div class="col-lg-12 mb-4 mb-lg-0">
+      <div class="card card-dashboard chart-card h-100">
+        <div class="card-header bg-transparent border-0 pt-4 px-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-slate-800">Biến Động Huy Động</h5>
+            <div class="btn-group btn-group-sm rounded-pill p-1 bg-light">
+              <button class="btn btn-white rounded-pill border-0 shadow-sm px-3 small">
+                Ngày
+              </button>
+              <button class="btn border-0 px-3 small">Tháng</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="chart-container" style="height: 350px">
+            <canvas id="chartGiaoDich"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-5">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+      <div class="card card-dashboard chart-card h-100">
+        <div class="card-header bg-transparent border-0 pt-4 px-4">
+          <h5 class="fw-bold mb-0 text-slate-800">Cơ Cấu Kỳ Hạn</h5>
+        </div>
+        <div class="card-body p-4 d-flex flex-column justify-content-center">
+          <div class="chart-container" style="height: 220px">
+            <canvas id="chartTyTrongNet"></canvas>
+          </div>
+          <div id="kyHanLegend" class="mt-4 small"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card card-dashboard chart-card h-100">
+        <div class="card-header bg-transparent border-0 pt-4 px-4">
+          <h5 class="fw-bold mb-0 text-slate-800">
+            Tỷ Trọng Gửi: Thành Viên vs Khách Ngoài
+          </h5>
+        </div>
+        <div class="card-body p-4 d-flex flex-column justify-content-center">
+          <div class="chart-container" style="height: 220px">
+            <canvas id="chartThanhVien"></canvas>
+          </div>
+          <div id="thanhVienLegend" class="mt-4 small"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="row">
+    <div class="col-md-12 mb-5">
+      <div class="card-custom">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="card-header-title m-0">
+              <i class="bx bxs-medal me-2"></i> Bảng Vinh Danh Thành Tích
+            </h5>
+          </div>
+          <i class="bx bx-trophy text-warning fs-3"></i>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 table-mobile-cards" id="tbLeaderboard">
+              <thead>
+                <tr>
+                  <th class="text-center py-3" style="width: 80px">HẠNG</th>
+                  <th class="py-3">CÁN BỘ & TIẾN ĐỘ</th>
+                  <th class="text-end py-3" style="width: 150px">CHỈ TIÊU</th>
+                  <th class="text-end py-3" style="width: 150px">RÚT</th>
+                  <th class="text-center py-3" style="width: 120px">SỔ (KH)</th>
+                  <th class="text-end py-3 pe-4 fw-bold" style="width: 180px">
+                    THỰC ĐẠT NET
+                  </th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End dashboard-wrapper -->
+
+<!-- Modal Chi tiết Cán bộ -->
+<div class="modal fade" id="modalEmployeeDetails" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-light border-bottom-0 pb-2">
+        <h5 class="modal-title text-primary fw-bold">
+          <i class="bx bx-user-pin fs-4 align-middle me-1"></i> Phân tích Hiệu
+          suất Cán bộ
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 pt-1">
+        <h4 class="mb-4 text-dark" id="lblEmpName">---</h4>
+        <div id="divEmpDetailsBody">
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function frmDashboard_init() {
+    var fpDashStart = flatpickr("#txtDashTuNgay", {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "d/m/Y",
+      allowInput: true,
+    });
+    var fpDashEnd = flatpickr("#txtDashDenNgay", {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "d/m/Y",
+      allowInput: true,
+    });
+
+    // Hàm định dạng Format Tiền Tệ
+    var formatCurrency = function (val) {
+      if (val === undefined || val === null) return "0 đ";
+      return (
+        new Intl.NumberFormat("vi-VN", {
+          style: "decimal",
+          maximumFractionDigits: 0,
+        }).format(val) + " đ"
+      );
+    };
+    window.dashFormatCurrency = formatCurrency; // Export for global use in DataTables
+
+    // Load Filters Dropdowns
+    AppManager.callApi("getAllChienDich").done(function (res) {
+      var cboCD = $("#cboDashChienDich").empty();
+      cboCD.append('<option value="">Tất cả chiến dịch</option>');
+      if (res && res.length) {
+        var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+        res.forEach(function (cd) {
+          var isExpired = false;
+          if (cd.NgayKetThuc) {
+            var endStr = cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc;
+            if (endStr < todayStr) isExpired = true;
+          }
+          var isNotStarted = false;
+          if (cd.NgayBatDau) {
+            var startStr = cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau;
+            if (startStr > todayStr) isNotStarted = true;
+          }
+          var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
+          var statusMark = isRunning ? "" : " [Đã Đóng]";
+          
+          cboCD.append(
+            `<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`,
+          );
+        });
+      }
+    });
+
+    if (AppManager.user && AppManager.user.Role === "ADMIN") {
+      $(".admin-only").removeClass("d-none");
+      AppManager.callApi("getNhanSuActive").done(function (res) {
+        var cboNV = $("#cboDashNhanVien").empty();
+        cboNV.append('<option value="">Tất cả cán bộ</option>');
+        if (res && res.length) {
+          res.forEach(function (nv) {
+            cboNV.append(
+              `<option value="${nv.MaNV}">${nv.MaNV} - ${nv.HoTen}</option>`,
+            );
+          });
+        }
+      });
+    }
+
+    // Cập nhật nhãn thời gian thực
+    $("#lblLastUpdate").text(new Date().toLocaleTimeString("vi-VN"));
+
+    // Đẩy Logic render ra ngoài để gọi lại khi lọc
+    window.loadDashboardData = function () {
+      var filters = {
+        maCD: $("#cboDashChienDich").val() || null,
+        maNV: $("#cboDashNhanVien").val() || null,
+        tuNgay: $("#txtDashTuNgay").val() || null,
+        denNgay: $("#txtDashDenNgay").val() || null,
+        kpiMode: $("input[name='radKpiMode']:checked").val() || 'THI_DUA'
+      };
+
+      // Gọi API Load KPI có truyền Filters
+      AppManager.callApi("getDashboardKpi", filters).done(function (data) {
+        var tongGui = data.TongGui || 0;
+        var tongRut = data.TongRut || 0;
+
+        $("#lblTongGui").text(formatCurrency(tongGui));
+        $("#lblTongRut").text(formatCurrency(tongRut));
+        $("#lblNet").text(formatCurrency(data.Net || 0));
+
+        if (data.ChiTieu > 0) {
+          $("#lblHoanThanh").text((data.HoanThanh || 0).toFixed(2) + "%");
+          $("#lblChiTieu").text("Chỉ tiêu: " + formatCurrency(data.ChiTieu));
+        } else {
+          $("#lblHoanThanh").text("N/A");
+          $("#lblChiTieu").text("Không có chỉ tiêu");
+        }
+
+        $("#lblLastUpdate").text(new Date().toLocaleTimeString("vi-VN"));
+
+        // Render Charts
+        renderDashCharts(data);
+      });
+
+      // Lấy Bảng xếp hạng Leaderboard có truyền Filters
+      AppManager.callApi("getLeaderboard", filters).done(function (list) {
+        window.currentLeaderboardData = list;
+
+        if ($.fn.DataTable.isDataTable("#tbLeaderboard")) {
+          $("#tbLeaderboard").DataTable().clear().rows.add(list).draw();
+          return;
+        }
+
+        $("#tbLeaderboard").DataTable({
+          data: list,
+          dom: "t",
+          columnDefs: [
+            {
+              targets: 0,
+              createdCell: function (td) {
+                $(td).attr("data-label", "HẠNG");
+              },
+            },
+            {
+              targets: 1,
+              createdCell: function (td) {
+                $(td).attr("data-label", "CÁN BỘ");
+              },
+            },
+            {
+              targets: 2,
+              createdCell: function (td) {
+                $(td).attr("data-label", "CHỈ TIÊU");
+              },
+            },
+            {
+              targets: 3,
+              createdCell: function (td) {
+                $(td).attr("data-label", "RÚT");
+              },
+            },
+            {
+              targets: 4,
+              createdCell: function (td) {
+                $(td).attr("data-label", "SỔ (KH)");
+              },
+            },
+            {
+              targets: 5,
+              createdCell: function (td) {
+                $(td).attr("data-label", "NET");
+              },
+            },
+          ],
+          order: [[5, "desc"]] /* Sort by NET column descendant */,
+          pageLength: 50,
+          createdRow: function (row, data, dataIndex) {
+            $(row).css("cursor", "pointer");
+            $(row).on("click", function () {
+              showEmployeeDetails(data.MaNV, data.TenNV);
+            });
+          },
+          columns: [
+            {
+              data: "Rank",
+              className: "text-center",
+              render: function (d, t, r, meta) {
+                var rank = d || meta.row + 1;
+                if (t === "display") {
+                  if (rank === 1)
+                    return '<div class="rank-badge rank-1 shadow-sm">1</div>';
+                  if (rank === 2)
+                    return '<div class="rank-badge rank-2 shadow-sm">2</div>';
+                  if (rank === 3)
+                    return '<div class="rank-badge rank-3 shadow-sm">3</div>';
+                  return `<span class="fw-bold text-slate-400">#${rank}</span>`;
+                }
+                return rank;
+              },
+            },
+            {
+              data: "TenNV",
+              render: function (d, t, r) {
+                if (t !== "display") return d;
+                var percent = Math.min((r.HoanThanh || 0), 100).toFixed(1);
+                var barColor = parseFloat(percent) >= 100 ? "#10b981" : "#3b82f6";
+                var initials = r.MaNV ? r.MaNV.substring(0, 2).toUpperCase() : "??";
+                return (
+                  '<div class="d-flex align-items-center" style="gap:6px;min-width:0;">'
+                  + '<div class="avatar flex-shrink-0 bg-light text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;font-size:11px;">'
+                  + initials
+                  + '</div>'
+                  + '<div class="flex-grow-1" style="min-width:0;">'
+                  + '<div class="fw-bold small mb-1" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1e293b;">'
+                  + d
+                  + '</div>'
+                  + '<div class="progress" style="height:4px;background-color:#f1f5f9;">'
+                  + '<div class="progress-bar rounded-pill" role="progressbar" style="width:' + percent + '%;background-color:' + barColor + ';" aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100"></div>'
+                  + '</div>'
+                  + '</div>'
+                  + '</div>'
+                );
+              },
+            },
+            {
+              data: "ChiTieu",
+              className: "text-end text-slate-500 small",
+              render: function (d, t) {
+                if (t !== "display") return d;
+                return dashFormatCurrency(d);
+              },
+            },
+            {
+              data: "TongRut",
+              className: "text-end text-rose-500 small",
+              render: function (d, t) {
+                if (t !== "display") return d;
+                return dashFormatCurrency(d);
+              },
+            },
+            {
+              data: "SoMoi",
+              className: "text-center",
+              render: function (d, t, r) {
+                if (t !== "display") return d;
+                return `<div class="d-inline-block text-center"><span class="fw-bold text-slate-700">${d || 0}</span><br><small class="text-slate-400" style="font-size: 10px;">${r.SoKH || 0} KH</small></div>`;
+              },
+            },
+            {
+              data: "Net",
+              className: "text-end pe-4",
+              render: function (d, t) {
+                if (t !== "display") return d;
+                var color = d >= 0 ? "text-emerald-500" : "text-rose-500";
+                return `<span class="${color} fw-bold">${dashFormatCurrency(d)}</span>`;
+              },
+            },
+          ],
+        });
+      });
+
+      // Nếu là Admin đang lọc theo 1 cán bộ cụ thể, hoặc các logic hiển thị mở rộng sau này
+      if (AppManager.user && AppManager.user.Role === "ADMIN" && filters.maNV) {
+        // Có thể bổ sung render hiển thị chi tiết cán bộ tại đây nếu cần
+      }
+    };
+
+    // Gắn sự kiện nút Lọc
+    $("#btnDashFilter").click(function () {
+      loadDashboardData();
+    });
+
+    $("input[name='radKpiMode']").change(function () {
+      loadDashboardData();
+    });
+
+    // Hàm vẽ Biểu đồ Chart.js
+    window.renderDashCharts = function (data) {
+      var ctx1 = document.getElementById("chartGiaoDich");
+      var ctx2 = document.getElementById("chartTyTrongNet");
+      var ctxMem = document.getElementById("chartThanhVien");
+
+      // Nếu các canvas không tồn tại trong DOM (do chuyển trang SPA trước khi AJAX hoàn tất), thoát an toàn
+      if (!ctx1 || !ctx2 || !ctxMem) {
+        console.warn("[renderDashCharts] Dừng vẽ biểu đồ do giao diện đã thay đổi.");
+        return;
+      }
+
+      var chiTieu = data.ChiTieu || 0;
+      var timeline = data.Timeline || [];
+      var labels = timeline.map(function (item) {
+        return item.Date.split("-").reverse().join("/");
+      });
+
+      var dailyNetData = timeline.map((it) => it.Net);
+      var cumulativeNetData = [];
+      var acc = 0;
+      timeline.forEach((it) => {
+        acc += it.Net;
+        cumulativeNetData.push(acc);
+      });
+
+      if (window.chartGiaoDichInstance) window.chartGiaoDichInstance.destroy();
+
+      var gradientLine = ctx1
+        .getContext("2d")
+        .createLinearGradient(0, 0, 0, 400);
+      gradientLine.addColorStop(0, "rgba(16, 185, 129, 0.4)");
+      gradientLine.addColorStop(1, "rgba(16, 185, 129, 0)");
+
+      window.chartGiaoDichInstance = new Chart(ctx1, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Tích lũy (VND)",
+              data: cumulativeNetData,
+              type: "line",
+              borderColor: "#10b981",
+              backgroundColor: gradientLine,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              borderWidth: 3,
+              yAxisID: "y",
+            },
+            {
+              label: "Net Ngày",
+              data: dailyNetData,
+              backgroundColor: "#0ea5e9",
+              borderRadius: 4,
+              barThickness: 12,
+              yAxisID: "y",
+            },
+          ],
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#1e293b",
+              padding: 12,
+              callbacks: {
+                label: (ctx) =>
+                  ctx.dataset.label + ": " + dashFormatCurrency(ctx.parsed.y),
+              },
+            },
+          },
+          scales: {
+            y: {
+              border: { display: false },
+              grid: { color: "#f1f5f9" },
+              ticks: {
+                callback: (v) =>
+                  v >= 1e9
+                    ? (v / 1e9).toFixed(1) + "B"
+                    : (v / 1e6).toFixed(0) + "M",
+              },
+            },
+            x: { border: { display: false }, grid: { display: false } },
+          },
+        },
+      });
+
+      // Chart 2: Doughnut (Cơ cấu theo kỳ hạn)
+      var kyHanMap = data.KyHanMap || {};
+      var khLabels = Object.keys(kyHanMap);
+      var khValues = Object.values(kyHanMap);
+
+      var ctx2 = document.getElementById("chartTyTrongNet");
+      if (window.chartTyTrongInstance) window.chartTyTrongInstance.destroy();
+
+      var khColors = [
+        "#0ea5e9",
+        "#0d9488",
+        "#10b981",
+        "#f59e0b",
+        "#06b6d4",
+        "#64748b",
+      ];
+
+      window.chartTyTrongInstance = new Chart(ctx2, {
+        type: "doughnut",
+        plugins: [ChartDataLabels],
+        data: {
+          labels: khLabels,
+          datasets: [
+            {
+              data: khValues,
+              backgroundColor: khLabels.map(
+                (_, i) => khColors[i % khColors.length],
+              ),
+              borderWidth: 0,
+              hoverOffset: 10,
+            },
+          ],
+        },
+        options: {
+          maintainAspectRatio: false,
+          cutout: "55%",
+          plugins: {
+            legend: { display: false },
+            tooltip: { backgroundColor: "#1e293b", padding: 10 },
+            datalabels: {
+              color: '#fff',
+              formatter: function (value, context) {
+                if (value === 0) return '';
+                var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                var p = (value / total) * 100;
+                if (p < 5) return '';
+                var percentage = p.toFixed(1) + "%";
+                var label = context.chart.data.labels[context.dataIndex];
+                var formattedVal = "";
+                if (value >= 1e9) formattedVal = (value / 1e9).toFixed(2) + " Tỷ";
+                else if (value >= 1e6) formattedVal = (value / 1e6).toFixed(0) + " Tr";
+                else formattedVal = dashFormatCurrency(value);
+                return label + '\n' + formattedVal + '\n(' + percentage + ')';
+              },
+              font: { size: 10, weight: 'bold' },
+              textAlign: 'center'
+            }
+          },
+        },
+      });
+
+      // Custom Legend for Pie
+      var legendHtml = "";
+      khLabels.forEach((label, i) => {
+        var color = khColors[i % khColors.length];
+        var val = khValues[i];
+        legendHtml += `
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center">
+                            <span class="rounded-circle me-2" style="width: 8px; height: 8px; background-color: ${color}"></span>
+                            <span class="text-slate-600">${label}</span>
+                        </div>
+                        <span class="fw-bold text-slate-800">${dashFormatCurrency(val)}</span>
+                    </div>
+                `;
+      });
+      $("#kyHanLegend").html(legendHtml);
+
+      // Chart 2B: Doughnut (Thành viên vs Không thành viên)
+      var tongTV = data.TongGuiThanhVien || 0;
+      var tongKhac = data.TongGuiKhongThanhVien || 0;
+      var memData = [tongTV, tongKhac];
+      var memLabels = ["Thành viên", "Khác"];
+      var memColors = ["#10b981", "#f59e0b"]; // Thêm màu ngọc bích và cam
+
+      var isZero = tongTV + tongKhac === 0;
+      if (isZero) {
+        memData = [1];
+        memLabels = ["Chưa có dữ liệu"];
+        memColors = ["#e2e8f0"];
+      }
+
+      var ctxMem = document.getElementById("chartThanhVien");
+      if (window.chartThanhVienInstance)
+        window.chartThanhVienInstance.destroy();
+
+      window.chartThanhVienInstance = new Chart(ctxMem, {
+        type: "doughnut",
+        plugins: [ChartDataLabels],
+        data: {
+          labels: memLabels,
+          datasets: [
+            {
+              data: memData,
+              backgroundColor: memColors,
+              borderWidth: 0,
+              hoverOffset: isZero ? 0 : 10,
+            },
+          ],
+        },
+        options: {
+          maintainAspectRatio: false,
+          cutout: "55%",
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#1e293b",
+              padding: 10,
+              callbacks: {
+                label: (ctx) => {
+                  if (isZero) return " Chưa có giao dịch gửi tiền";
+                  return (
+                    ctx.dataset.label + ": " + dashFormatCurrency(ctx.parsed)
+                  );
+                },
+              },
+            },
+            datalabels: {
+              color: '#fff',
+              formatter: function (value, context) {
+                if (isZero || value === 0) return '';
+                var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                var p = (value / total) * 100;
+                if (p < 5) return '';
+                var percentage = p.toFixed(1) + "%";
+                var label = context.chart.data.labels[context.dataIndex];
+                var formattedVal = "";
+                if (value >= 1e9) formattedVal = (value / 1e9).toFixed(2) + " Tỷ";
+                else if (value >= 1e6) formattedVal = (value / 1e6).toFixed(0) + " Tr";
+                else formattedVal = dashFormatCurrency(value);
+                return label + '\n' + formattedVal + '\n(' + percentage + ')';
+              },
+              font: { size: 10, weight: 'bold' },
+              textAlign: 'center'
+            }
+          },
+        },
+      });
+
+      var memLegendHtml = "";
+      if (isZero) {
+        memLegendHtml =
+          '<div class="text-center text-muted small mt-3"><i class="bx bx-info-circle"></i> Chưa phát sinh giao dịch gửi tiền hợp lệ trong kỳ.</div>';
+      } else {
+        ["Thành viên", "Khác"].forEach((label, i) => {
+          var color = ["#10b981", "#f59e0b"][i];
+          var val = [tongTV, tongKhac][i];
+          memLegendHtml += `
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="rounded-circle me-2" style="width: 8px; height: 8px; background-color: ${color}"></span>
+                                <span class="text-slate-600">${label}</span>
+                            </div>
+                            <span class="fw-bold text-slate-800">${dashFormatCurrency(val)}</span>
+                        </div>
+                    `;
+        });
+      }
+      $("#thanhVienLegend").html(memLegendHtml);
+    };
+
+    // Chạy lần đầu
+    loadDashboardData();
+  }
+
+  // Modal Function
+  window.showEmployeeDetails = function (maNV, tenNV) {
+    $("#lblEmpName").text(tenNV);
+    var modal = new bootstrap.Modal(
+      document.getElementById("modalEmployeeDetails"),
+    );
+    modal.show();
+
+    $("#divEmpDetailsBody").html(
+      '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">Đang phân tích dữ liệu...</p></div>',
+    );
+
+    var filters = {
+      maCD: $("#cboDashChienDich").val() || null,
+      tuNgay: $("#txtDashTuNgay").val() || null,
+      denNgay: $("#txtDashDenNgay").val() || null,
+      kpiMode: $("input[name='radKpiMode']:checked").val() || 'THI_DUA'
+    };
+
+    AppManager.callApi("getEmployeeDetails", { MaNV: maNV, Filters: filters })
+      .done(function (res) {
+        var formatCurrency = function (val) {
+          if (val === undefined || val === null) return "0 đ";
+          return (
+            new Intl.NumberFormat("vi-VN", {
+              style: "decimal",
+              maximumFractionDigits: 0,
+            }).format(val) + " đ"
+          );
+        };
+
+        var html = `
+                <div class="row g-4 mb-5">
+                    <div class="col-sm-4">
+                        <div class="card bg-azure-50 border-azure-100 shadow-none text-center p-3 h-100">
+                             <div class="icon-box bg-white text-azure-600 rounded-circle mx-auto mb-2 shadow-sm d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class='bx bx-plus-circle fs-4'></i>
+                             </div>
+                            <div class="stat-label text-azure-800 small fw-bold mb-1">MỞ GỬI MỚI</div>
+                            <h3 class="fw-bold text-azure-900 mb-0">${res.SoMoi}</h3>
+                            <div class="text-azure-600 x-small">Giao dịch thành công</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card bg-rose-50 border-rose-100 shadow-none text-center p-3 h-100">
+                             <div class="icon-box bg-white text-rose-600 rounded-circle mx-auto mb-2 shadow-sm d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class='bx bx-minus-circle fs-4'></i>
+                             </div>
+                            <div class="stat-label text-rose-800 small fw-bold mb-1">TẤT TOÁN RÚT</div>
+                            <h3 class="fw-bold text-rose-900 mb-0">${res.SoTatToan}</h3>
+                            <div class="text-rose-600 x-small">Số sổ đã rút</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card bg-emerald-50 border-emerald-100 shadow-none text-center p-3 h-100">
+                             <div class="icon-box bg-white text-emerald-600 rounded-circle mx-auto mb-2 shadow-sm d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class='bx bx-user-circle fs-4'></i>
+                             </div>
+                            <div class="stat-label text-emerald-800 small fw-bold mb-1">KHÁCH HÀNG QL</div>
+                            <h3 class="fw-bold text-emerald-900 mb-0">${res.KhachHangQL}</h3>
+                            <div class="text-emerald-600 x-small">Số lượng khách hàng</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-md-7">
+                        <div class="card border-0 bg-slate-50 p-3 h-100">
+                            <h6 class="fw-bold text-slate-800 mb-4 small text-uppercase"><i class='bx bx-line-chart me-1'></i> Biến động Net & Sổ mới</h6>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="chartEmpTimelineModal"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="card border-0 bg-slate-50 p-3 h-100">
+                            <h6 class="fw-bold text-slate-800 mb-4 small text-uppercase"><i class='bx bx-pie-chart-alt-2 me-1'></i> Cơ cấu kỳ hạn</h6>
+                            <div style="height: 200px; position: relative;" class="mb-3">
+                                <canvas id="chartKyHanModal"></canvas>
+                            </div>
+                            <div id="modalKyHanLegend" class="small"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="card-header bg-slate-100 border-0 py-3">
+                        <h6 class="mb-0 fw-bold text-slate-800 small text-uppercase"><i class='bx bx-list-ul me-1'></i> Chi tiết phân bổ Huy động/h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 table-custom table-mobile-cards">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Kỳ Hạn</th>
+                                    <th class="text-center">Số Lệnh</th>
+                                    <th class="text-end pe-4">Thực Đạt Net</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+        if (!res.KyHanMap || Object.keys(res.KyHanMap).length === 0) {
+          html += `<tr><td colspan="3" class="text-muted text-center py-4 bg-white rounded mt-2 d-block">Không có số liệu kỳ hạn trong giai đoạn này</td></tr>`;
+        } else {
+          for (var kh in res.KyHanMap) {
+            var data = res.KyHanMap[kh];
+            html += `<tr>
+                        <td data-label="Kỳ Hạn" class="py-2"><span class="badge bg-secondary px-3 py-2 lh-base" style="font-size: 0.85rem;">${kh}</span></td>
+                        <td data-label="Số Lệnh" class="text-center fw-bold py-2 fs-5 text-dark">${data.count}</td>
+                        <td data-label="Thực Đạt Net" class="text-end text-primary fw-bold py-2 fs-5">${formatCurrency(data.amount)}</td>
+                    </tr>`;
+          }
+        }
+
+        html += `</tbody></table></div></div></div>`;
+        $("#divEmpDetailsBody").html(html);
+
+        // Render Charts after Modal injection
+        if (res.Timeline && res.Timeline.length > 0) {
+          var timelineLabels = res.Timeline.map(function (item) {
+            return item.Date.split("-").reverse().join("/");
+          });
+          var netData = res.Timeline.map(function (item) {
+            return item.Net;
+          });
+          var soMoiData = res.Timeline.map(function (item) {
+            return item.SoMoi;
+          });
+
+          var ctxTimeline = document.getElementById("chartEmpTimelineModal");
+          if (ctxTimeline) {
+            if (window.chartEmpTimelineInstance)
+              window.chartEmpTimelineInstance.destroy();
+            window.chartEmpTimelineInstance = new Chart(ctxTimeline, {
+              type: "bar",
+              data: {
+                labels: timelineLabels,
+                datasets: [
+                  {
+                    type: "line",
+                    label: "Tỉ lệ mở sổ",
+                    data: soMoiData,
+                    borderColor: "#3b82f6",
+                    backgroundColor: "#3b82f6",
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: "yCount",
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    fill: false,
+                  },
+                  {
+                    type: "bar",
+                    label: "Net thực đạt",
+                    data: netData,
+                    backgroundColor: "rgba(16, 185, 129, 0.7)",
+                    borderRadius: 4,
+                    yAxisID: "yNet",
+                    barThickness: 15,
+                  },
+                ],
+              },
+              options: {
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { backgroundColor: "#1e293b", padding: 10 },
+                },
+                scales: {
+                  yNet: {
+                    type: "linear",
+                    position: "left",
+                    border: { display: false },
+                    grid: { color: "#f1f5f9" },
+                    ticks: { callback: (v) => (v / 1e6).toFixed(0) + "M" },
+                  },
+                  yCount: {
+                    type: "linear",
+                    position: "right",
+                    border: { display: false },
+                    grid: { display: false },
+                    ticks: { stepSize: 1 },
+                  },
+                },
+              },
+            });
+          }
+        }
+
+        if (res.KyHanMap && Object.keys(res.KyHanMap).length > 0) {
+          var labels = [];
+          var counts = [];
+          for (var kh in res.KyHanMap) {
+            labels.push(kh + " Tháng");
+            counts.push(res.KyHanMap[kh].count);
+          }
+          var ctx = document.getElementById("chartKyHanModal");
+          if (ctx) {
+            if (window.chartKyHanInstance) window.chartKyHanInstance.destroy();
+            window.chartKyHanInstance = new Chart(ctx, {
+              type: "doughnut",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    data: counts,
+                    backgroundColor: [
+                      "#3b82f6",
+                      "#10b981",
+                      "#f59e0b",
+                      "#ef4444",
+                      "#0d9488",
+                      "#06b6d4",
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10,
+                  },
+                ],
+              },
+              options: {
+                maintainAspectRatio: false,
+                cutout: "80%",
+                plugins: { legend: { display: false } },
+              },
+            });
+          }
+
+          // Modal Legend
+          var legHtml = "";
+          labels.forEach((l, i) => {
+            var color = [
+              "#3b82f6",
+              "#10b981",
+              "#f59e0b",
+              "#ef4444",
+              "#0d9488",
+              "#06b6d4",
+            ][i % 6];
+            legHtml += `<div class="d-flex justify-content-between x-small mb-1"><span class="text-slate-500"><i class='bx bxs-circle me-1' style="color: ${color}"></i> ${l}</span> <span class="fw-bold text-slate-700">${counts[i]}</span></div>`;
+          });
+          $("#modalKyHanLegend").html(legHtml);
+        }
+      })
+      .fail(function (err) {
+        $("#divEmpDetailsBody").html(
+          `<div class="alert alert-danger m-3"><i class='bx bx-error-circle'></i> Có lỗi xảy ra: ${err}</div>`,
+        );
+      });
+  };
+
+  // Hủy các chart instance khi modal đóng để giải phóng bộ nhớ ngay lập tức
+  $('#modalEmployeeDetails').on('hidden.bs.modal', function () {
+    if (window.chartEmpTimelineInstance) {
+      try { window.chartEmpTimelineInstance.destroy(); } catch(e){}
+      window.chartEmpTimelineInstance = null;
+    }
+    if (window.chartKyHanInstance) {
+      try { window.chartKyHanInstance.destroy(); } catch(e){}
+      window.chartKyHanInstance = null;
+    }
+    $("#divEmpDetailsBody").empty();
+  });
+</script>

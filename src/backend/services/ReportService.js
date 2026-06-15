@@ -1,0 +1,972 @@
+// ==========================================
+// REPORTSERVICE.GS - Báo cáo và Bảng xếp hạng
+// ==========================================
+
+/**
+ * [Standalone] Tạo bản đồ ngày bắt đầu/kết thúc của từng Chiến dịch.
+ * Dùng trong chế độ KPI Thi Đua (THI_DUA) để chỉ tính GD trong thời gian chiến dịch.
+ * @returns {Object} { [normMaCD]: { start: Date|null, end: Date|null } }
+ */
+function _buildCdDateMap() {
+  var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+  var cdDateMap = {};
+  allCD.forEach(function(cd) {
+    if (!cd.MaCD) return;
+    var normId = ValidatorService.normalizeId(cd.MaCD);
+    var start = cd.NgayBatDau ? ValidatorService.parseDate(cd.NgayBatDau) : null;
+    var end   = cd.NgayKetThuc ? ValidatorService.parseDate(cd.NgayKetThuc) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+    cdDateMap[normId] = { start: start, end: end };
+  });
+  return cdDateMap;
+}
+
+var ReportService = {
+  
+  /**
+   * Lấy Top 3 Leaderboard theo Cán bộ có số Net cao nhất
+   * Tương thích với bộ Lọc (Filters)
+   */
+  getLeaderboard: function(user, filters) {
+    filters = filters || {};
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    var maNV = ValidatorService.normalizeId(filters.maNV);
+    var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
+    if (denNgay) denNgay.setHours(23, 59, 59, 999);
+
+    var kpiMode = filters.kpiMode || 'THI_DUA';
+    var cdDateMap = _buildCdDateMap();
+
+    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+    var targetChiTieu = allChiTieu;
+    if (maCD) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaCD) === maCD; });
+    if (maNV) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaNV) === maNV; });
+
+    // Gom nhóm Chỉ tiêu theo Nhân viên từ DB_CHITIEU
+    var userMap = {};
+    targetChiTieu.forEach(function(ct) {
+      if (!userMap[ct.MaNV]) {
+        userMap[ct.MaNV] = { MaNV: ct.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+      }
+      userMap[ct.MaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
+    });
+
+    // Tính Net thực tế theo bộ lọc bằng cách duyệt Giao Dịch
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+    var filteredGD = allGD.filter(function(gd) {
+      if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
+      if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+      if (maNV && ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (tuNgay && gdDate < tuNgay) return false;
+      if (denNgay && gdDate > denNgay) return false;
+      
+      // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
+      if (kpiMode === 'THI_DUA') {
+        var duyetBoi = String(gd.DuyetBoi || "");
+        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
+        
+        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+        if (cdDateMap[normMaCD]) {
+          var limits = cdDateMap[normMaCD];
+          if (limits.start && gdDate < limits.start) return false;
+          if (limits.end && gdDate > limits.end) return false;
+        }
+      }
+
+      return true;
+    });
+
+    filteredGD.forEach(function(gd) {
+      if (!userMap[gd.MaNV]) {
+         userMap[gd.MaNV] = { MaNV: gd.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+      }
+      var soTienGD = parseFloat(gd.SoTien || 0);
+      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+         userMap[gd.MaNV].Net += soTienGD;
+         userMap[gd.MaNV].TongGui += soTienGD;
+         userMap[gd.MaNV].SoMoi += 1; // Số Hợp đồng gửi
+      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+         userMap[gd.MaNV].Net -= soTienGD;
+         userMap[gd.MaNV].TongRut += soTienGD;
+      }
+      // Ghi nhận Mã Khách Hàng (Tập hợp khách hàng duy nhất)
+      if (gd.MaKH) {
+         userMap[gd.MaNV].KhachHangMap[gd.MaKH] = true;
+      }
+    });
+
+    var list = [];
+    Object.keys(userMap).forEach(function(key) {
+      var item = userMap[key];
+      
+      // Bỏ qua USER không được giao chỉ tiêu theo yêu cầu
+      if (item.ChiTieu <= 0) return;
+      
+      // Chỉ push vào mảng nếu có Giao dịch trong thời gian này, HOẶC nếu không lọc by date
+      if ((tuNgay || denNgay) && item.Net === 0 && item.ChiTieu === 0) return;
+      
+      item.HoanThanh = item.ChiTieu > 0 ? (item.Net / item.ChiTieu) * 100 : 0;
+      item.SoKH = Object.keys(item.KhachHangMap).length; // Số lượng khách hàng
+      delete item.KhachHangMap; // Bỏ field trung gian trước khi trả về
+      list.push(item);
+    });
+    
+    // Sắp xếp theo Net (Giảm dần) và lưu Rank thực
+    list.sort(function(a, b) {
+      return b.Net - a.Net;
+    });
+    
+    // Gán hạng cụ thể (vì sau filter array index không còn đúng nữa)
+    list.forEach(function(item, index) { item.Rank = index + 1; });
+    
+    // Map Tên Nhân viên
+    var allNhanSu = NhanSuService.getAll();
+    var nsMap = {};
+    allNhanSu.forEach(function(ns) { 
+      if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; 
+    });
+    
+    var fullLeaderboard = list.map(function(item) {
+      var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
+      item.TenNV = ns ? ns.HoTen : item.MaNV;
+      item.Email = ns ? ns.Email : "";
+      return item;
+    });
+    
+    // NẾU LÀ USER, CHỈ TRẢ VỀ ROW CỦA HỌ CÙNG VỚI RANK
+    if (user.Role !== CONFIG.ROLES.ADMIN) {
+        var targetMaNV = ValidatorService.normalizeId(user.MaNV);
+        return fullLeaderboard.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === targetMaNV; });
+    }
+    
+    return fullLeaderboard;
+  },
+  
+  /**
+   * Báo cáo tổng hợp Giao dịch động (Có hỗ trợ Filter)
+   */
+  getBaoCaoTongHop: function(user, filters) {
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+    
+    // Parse filters
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    var maNV = ValidatorService.normalizeId(filters.maNV);
+    var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
+    
+    // Chỉnh denNgay đến cuối ngày để so sánh
+    if (denNgay) {
+       denNgay.setHours(23, 59, 59, 999);
+    }
+    
+    // Map Tên Nhân viên và Tên Khách hàng
+    var khachHangs = KhachHangService.getAll();
+    var khMap = {};
+    khachHangs.forEach(function(kh) { if(kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh; });
+    
+    var nhanSus = NhanSuService.getAll();
+    var nsMap = {};
+    nhanSus.forEach(function(ns) { if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; });
+    
+    // Lọc dữ liệu
+    var result = allGD.filter(function(gd) {
+      if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "REVERTED") return false;
+      
+      // Khớp quyền
+      if (user.Role !== CONFIG.ROLES.ADMIN && ValidatorService.normalizeId(gd.MaNV) !== ValidatorService.normalizeId(user.MaNV)) return false;
+      
+      // Khớp Filter form
+      if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+      // Dù form gửi lên MaNV nhưng chỉ có tác dụng nếu user là Admin
+      if (maNV && ValidatorService.normalizeId(gd.MaNV) !== maNV && user.Role === CONFIG.ROLES.ADMIN) return false; 
+      
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (tuNgay && gdDate < tuNgay) return false;
+      if (denNgay && gdDate > denNgay) return false;
+      
+      return true;
+    });
+    
+    // Enrich Data
+    return result.map(function(gd) {
+       gd.TenKH = khMap[ValidatorService.normalizeId(gd.MaKH)] ? khMap[ValidatorService.normalizeId(gd.MaKH)].HoTen : "";
+       gd.TenNV = nsMap[ValidatorService.normalizeId(gd.MaNV)] ? nsMap[ValidatorService.normalizeId(gd.MaNV)].HoTen : "";
+       return gd;
+    });
+  },
+
+  /**
+   * Báo cáo Tổng hợp Cán Bộ (Dành cho ADMIN)
+   * Hiển thị: Cán bộ, Chỉ tiêu, Gửi, KH Gửi, Rút, KH Rút, NET, Đánh giá
+   */
+  getBaoCaoTongHop_ChienDich: function(user, filters) {
+    if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Không có quyền truy cập Báo cáo Tổng hợp.");
+    
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    var maNV = ValidatorService.normalizeId(filters.maNV);
+    var kpiMode = filters.kpiMode || 'THI_DUA';
+    var cdDateMap = _buildCdDateMap();
+    
+    // Tự động đồng bộ và tất toán sổ ảo của chiến dịch trước khi xuất báo cáo
+    if (maCD) {
+      SoTietKiemService.syncCampaignReconciliation(user, maCD);
+    }
+
+    var reconciled = this._getReconciledAccounts(maCD, maNV);
+
+    var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
+    if (denNgay) denNgay.setHours(23, 59, 59, 999);
+
+    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+    if (maCD) allChiTieu = allChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaCD) === maCD; });
+
+    var userMap = {};
+    allChiTieu.forEach(function(ct) {
+      if (!userMap[ct.MaNV]) {
+        userMap[ct.MaNV] = { MaNV: ct.MaNV, ChiTieu: 0, Gui: 0, Rut: 0, Net: 0, KHMap: {}, SoSoMap: {} };
+      }
+      userMap[ct.MaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
+    });
+
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+    var filteredGD = allGD.filter(function(gd) {
+      if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
+      if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+      if (maNV && ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (tuNgay && gdDate < tuNgay) return false;
+      if (denNgay && gdDate > denNgay) return false;
+      
+      // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
+      if (kpiMode === 'THI_DUA') {
+        var duyetBoi = String(gd.DuyetBoi || "");
+        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
+        
+        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+        if (cdDateMap[normMaCD]) {
+          var limits = cdDateMap[normMaCD];
+          if (limits.start && gdDate < limits.start) return false;
+          if (limits.end && gdDate > limits.end) return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Tối ưu hóa KH Mới: Một KH được coi là mới nếu giao dịch hiện tại cách giao dịch trước đó > 180 ngày 
+    // hoặc chưa từng giao dịch trước đó. Sử dụng Map để tăng tốc độ lookup.
+    var khGDMoiMap = {}; // MaNV -> { MaKH: true }
+    
+    // 1. Phân nhóm GD theo MaKH để tính toán Date nhanh hơn
+    var gdByKH = {};
+    allGD.forEach(function(gd) {
+      if (gd.TrangThai !== "ACTIVE") return;
+      if (!gdByKH[gd.MaKH]) gdByKH[gd.MaKH] = [];
+      gdByKH[gd.MaKH].push(ValidatorService.parseDate(gd.NgayGD));
+    });
+    
+    // 2. Sắp xếp ngày cho từng KH (mảng con nhỏ nên nhanh hơn sắp xếp mảng tổng 10k+ dòng)
+    for (var mkh in gdByKH) {
+      gdByKH[mkh].sort(function(a, b) { return a - b; });
+    }
+
+    // 3. Kiểm tra từng giao dịch trong filteredGD xem có phải là "Mới" không
+    filteredGD.forEach(function(gd) {
+      if (!userMap[gd.MaNV]) {
+         userMap[gd.MaNV] = { MaNV: gd.MaNV, ChiTieu: 0, Gui: 0, Rut: 0, Net: 0, KHMap: {}, SoSoMap: {}, KHMoiMap: {} };
+      }
+      var soTienGD = parseFloat(gd.SoTien || 0);
+      var maKH = gd.MaKH;
+      if (maKH) userMap[gd.MaNV].KHMap[maKH] = true;
+      if (gd.SoSo && gd.LoaiGD === CONFIG.GIAO_DICH.GUI) userMap[gd.MaNV].SoSoMap[gd.SoSo] = true;
+
+      // Logic xác định KH Mới tại thời điểm gd.NgayGD
+      var curDate = ValidatorService.parseDate(gd.NgayGD);
+      var khDates = gdByKH[maKH] || [];
+      var isNew = false;
+      
+      // Tìm vị trí của curDate trong chuỗi dates của khách này
+      var idx = khDates.findIndex(function(d) { return d.getTime() === curDate.getTime(); });
+      if (idx === 0) {
+        isNew = true; // Giao dịch đầu tiên trọn đời
+      } else if (idx > 0) {
+        var prevDate = khDates[idx - 1];
+        var diffDays = (curDate - prevDate) / (1000 * 60 * 60 * 24);
+        if (diffDays > 180) isNew = true; // Quay lại sau 6 tháng
+      }
+
+      if (isNew) {
+        if (!khGDMoiMap[gd.MaNV]) khGDMoiMap[gd.MaNV] = {};
+        khGDMoiMap[gd.MaNV][maKH] = true;
+      }
+
+      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+         userMap[gd.MaNV].Gui += soTienGD;
+         userMap[gd.MaNV].Net += soTienGD;
+      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+         userMap[gd.MaNV].Rut += soTienGD;
+         userMap[gd.MaNV].Net -= soTienGD;
+      }
+    });
+
+    var nsMap = {};
+    NhanSuService.getAll().forEach(function(ns) { 
+      if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; 
+    });
+
+    var result = [];
+    Object.keys(userMap).forEach(function(key) {
+      var item = userMap[key];
+      
+      // Bỏ qua USER không được giao chỉ tiêu theo yêu cầu
+      if (item.ChiTieu <= 0) return;
+      
+      var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
+      var khMoiSet = khGDMoiMap[item.MaNV] || {};
+      
+      var resItem = {
+        TenNV: ns ? ns.HoTen : item.MaNV,
+        ChiTieu: item.ChiTieu,
+        Gui: item.Gui,
+        Rut: item.Rut,
+        Net: item.Net,
+        TongSoSo: Object.keys(item.SoSoMap).length,
+        SoKH: Object.keys(item.KHMap).length,
+        SoKHMoi: Object.keys(khMoiSet).length
+      };
+      
+      resItem.TyLe = resItem.ChiTieu > 0 ? (resItem.Net / resItem.ChiTieu) * 100 : 0;
+      resItem.DanhGia = resItem.Net >= resItem.ChiTieu ? "ĐẠT" : "KHÔNG ĐẠT";
+      
+      result.push(resItem);
+    });
+
+    // Sort by Net descending
+    result.sort(function(a, b) { return b.Net - a.Net; });
+    return {
+      report: result,
+      reconciled: reconciled
+    };
+  },
+
+  /**
+   * Báo cáo Chi tiết cho USER
+   * Hiển thị: Danh sách các sổ | Khách hàng đã gửi | Khách hàng đã rút | Theo chiến dịch | Tổng số tiền
+   */
+  getBaoCaoChiTietUser: function(user, filters) {
+    if (user.Role !== CONFIG.ROLES.USER && user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Tính năng dành riêng cho USER và ADMIN.");
+    
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    var maNV = ValidatorService.normalizeId(filters.maNV || user.MaNV);
+    var kpiMode = filters.kpiMode || 'THI_DUA';
+    var cdDateMap = _buildCdDateMap();
+    
+    if (user.Role !== CONFIG.ROLES.ADMIN) {
+      maNV = ValidatorService.normalizeId(user.MaNV);
+    }
+
+    // Tự động đồng bộ và tất toán sổ ảo của chiến dịch trước khi xuất báo cáo
+    if (maCD) {
+      SoTietKiemService.syncCampaignReconciliation(user, maCD);
+    }
+
+    var reconciled = this._getReconciledAccounts(maCD, maNV);
+
+    var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
+    if (denNgay) denNgay.setHours(23, 59, 59, 999);
+
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+    var filteredGD = allGD.filter(function(gd) {
+      if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
+      if (ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
+      if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (tuNgay && gdDate < tuNgay) return false;
+      if (denNgay && gdDate > denNgay) return false;
+      
+      // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
+      if (kpiMode === 'THI_DUA') {
+        var duyetBoi = String(gd.DuyetBoi || "");
+        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
+        
+        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+        if (cdDateMap[normMaCD]) {
+          var limits = cdDateMap[normMaCD];
+          if (limits.start && gdDate < limits.start) return false;
+          if (limits.end && gdDate > limits.end) return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Sắp xếp theo Ngày GD mới nhất
+    filteredGD.sort(function(a, b) {
+      var getTimeSafe = function(d) {
+        if (!d) return 0;
+        var dt = d instanceof Date ? d : new Date(d);
+        return (!isNaN(dt.getTime())) ? dt.getTime() : 0;
+      };
+      return getTimeSafe(b.NgayGD) - getTimeSafe(a.NgayGD);
+    });
+
+    var recordsTotal = filteredGD.length;
+
+    // Phân trang (hỗ trợ DataTables serverSide format)
+    var start = parseInt(filters.start) || 0;
+    // Nếu không truyền length (như khi load báo cáo client-side), mặc định trả về toàn bộ dữ liệu (-1)
+    var length = (filters.length !== undefined && filters.length !== null) ? parseInt(filters.length) : -1;
+    var dataSlice = (length === -1) ? filteredGD : filteredGD.slice(start, start + length);
+
+    var khMap = {};
+    KhachHangService.getAll().forEach(function(kh) { if(kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh; });
+    
+    var nvMap = {};
+    NhanSuService.getAll().forEach(function(nv) { if(nv.MaNV) nvMap[ValidatorService.normalizeId(nv.MaNV)] = nv; });
+
+    var cdMap = {};
+    ChienDichService.getAll().forEach(function(cd) { if(cd.MaCD) cdMap[ValidatorService.normalizeId(cd.MaCD)] = cd; });
+
+    var data = dataSlice.map(function(gd) {
+       var normMaKH = ValidatorService.normalizeId(gd.MaKH);
+       var normMaNV = ValidatorService.normalizeId(gd.MaNV);
+       var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+       return {
+           MaGD: gd.MaGD,
+           TenKH: khMap[normMaKH] ? khMap[normMaKH].HoTen : gd.MaKH || "",
+           TenNV: nvMap[normMaNV] ? nvMap[normMaNV].HoTen : gd.MaNV || "",
+           TenCD: cdMap[normMaCD] ? cdMap[normMaCD].TenCD : gd.MaCD || "",
+           SoSo: gd.SoSo,
+           LoaiGD: gd.LoaiGD,
+           SoTien: parseFloat(gd.SoTien || 0),
+           NgayGD: gd.NgayGD,
+           TrangThai: gd.TrangThai
+       };
+    });
+
+    return {
+      draw: parseInt(filters.draw || 1),
+      recordsTotal: recordsTotal,
+      recordsFiltered: recordsTotal,
+      data: data,
+      reconciled: reconciled
+    };
+  },
+
+  /**
+   * Phân tích dữ liệu chi tiết của 1 Cán Bộ (Cho modal Click từ Leaderboard)
+   */
+  getEmployeeDetails: function(payload) {
+    var maNV = ValidatorService.normalizeId(payload.MaNV);
+    var filters = payload.Filters || {};
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    var tuNgay = filters.tuNgay ? ValidatorService.parseDate(filters.tuNgay) : null;
+    var denNgay = filters.denNgay ? ValidatorService.parseDate(filters.denNgay) : null;
+    if (denNgay) denNgay.setHours(23, 59, 59, 999);
+
+    var kpiMode = filters.kpiMode || 'THI_DUA';
+    var cdDateMap = _buildCdDateMap();
+
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+    
+    var res = {
+        SoMoi: 0,
+        SoTatToan: 0,
+        KhachHangQL: 0,
+        KyHanMap: {},
+        Timeline: []
+    };
+
+    var khachHangSet = {};
+    var timelineMap = {};
+
+    var filteredGD = allGD.filter(function(gd) {
+      if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
+      if (ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
+      if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (tuNgay && gdDate < tuNgay) return false;
+      if (denNgay && gdDate > denNgay) return false;
+      
+      // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
+      if (kpiMode === 'THI_DUA') {
+        var duyetBoi = String(gd.DuyetBoi || "");
+        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
+        
+        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+        if (cdDateMap[normMaCD]) {
+          var limits = cdDateMap[normMaCD];
+          if (limits.start && gdDate < limits.start) return false;
+          if (limits.end && gdDate > limits.end) return false;
+        }
+      }
+
+      return true;
+    });
+
+    var stkMap = {};
+    if (filteredGD.length > 0) {
+       var allSTK = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM);
+       allSTK.forEach(function(s) { if(s.SoSo) stkMap[s.SoSo.toString().trim()] = s.KyHan; });
+    }
+
+    filteredGD.forEach(function(gd) {
+        khachHangSet[gd.MaKH] = true;
+        var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (!gdDate) return;
+        
+        var yyyy = gdDate.getFullYear();
+        var mm = ("0" + (gdDate.getMonth() + 1)).slice(-2);
+        var dd = ("0" + gdDate.getDate()).slice(-2);
+        var dateStr = yyyy + "-" + mm + "-" + dd;
+
+        if (!timelineMap[dateStr]) timelineMap[dateStr] = { Net: 0, SoMoi: 0 };
+        var soTienGD = parseFloat(gd.SoTien || 0);
+
+        if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+            res.SoMoi++;
+            timelineMap[dateStr].Net += soTienGD;
+            timelineMap[dateStr].SoMoi += 1;
+            
+            // Robust KyHan detection logic (Synced with KPIService)
+            var kyHan = "KKH"; 
+            var normSoSo = String(gd.SoSo || "").trim().toUpperCase();
+
+            if (stkMap[normSoSo]) {
+              kyHan = stkMap[normSoSo];
+            } else if (gd.GhiChu) {
+              try {
+                var logMatch = gd.GhiChu.match(/SYS_LOG:\s*(\{.*?\})/);
+                if (logMatch) {
+                  var logObj = JSON.parse(logMatch[1]);
+                  if (logObj.kyHan) kyHan = logObj.kyHan;
+                }
+                if (kyHan === "KKH") {
+                  var dataMatch = gd.GhiChu.match(/SYS_DATA:\s*(\{.*?\})/);
+                  if (dataMatch) {
+                    var dataObj = JSON.parse(dataMatch[1]);
+                    if (dataObj.KyHan) kyHan = dataObj.KyHan;
+                  }
+                }
+              } catch(e) { }
+              if (kyHan === "KKH") {
+                var m = gd.GhiChu.match(/(?:Kỳ hạn|Ky han) ([^,)|]+)/i);
+                if (m) kyHan = m[1].trim();
+              }
+            }
+            
+            // Normalize display label
+            var displayKyHan = kyHan === "KKH" ? "Không Kỳ Hạn" : kyHan;
+            
+            if (!res.KyHanMap[displayKyHan]) res.KyHanMap[displayKyHan] = { count: 0, amount: 0 };
+            res.KyHanMap[displayKyHan].count++;
+            res.KyHanMap[displayKyHan].amount += soTienGD;
+
+        } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+            res.SoTatToan++;
+            timelineMap[dateStr].Net -= soTienGD;
+        }
+    });
+
+    var timeline = Object.keys(timelineMap).sort().map(function(k) {
+        return { Date: k, Net: timelineMap[k].Net, SoMoi: timelineMap[k].SoMoi };
+    });
+    res.Timeline = timeline;
+
+    res.KhachHangQL = Object.keys(khachHangSet).length;
+    return res;
+  },
+
+  /**
+   * Danh sách Sổ tiết kiệm đang quản lý bởi USER
+   */
+  getSotietkiemManagedByUser: function(user, filters) {
+    if (user.Role !== CONFIG.ROLES.USER && user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Tính năng dành riêng cho USER và ADMIN.");
+    
+    var listNV = NhanSuService.getAll();
+    var listCD = ChienDichService.getAll();
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+
+    var nvMap = {};
+    listNV.forEach(function(nv) {
+      if(nv.MaNV) nvMap[ValidatorService.normalizeId(nv.MaNV)] = nv;
+    });
+    
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM);
+    
+    var filteredSo = allSo.filter(function(so) {
+      if (so.TrangThai !== "ACTIVE") return false;
+      
+      var targetMaNV = ValidatorService.normalizeId(user.MaNV);
+      if (user.Role === CONFIG.ROLES.ADMIN && filters.maNV) {
+          targetMaNV = ValidatorService.normalizeId(filters.maNV);
+      }
+      
+      if (ValidatorService.normalizeId(so.MaNV) !== targetMaNV) return false;
+      if (maCD && ValidatorService.normalizeId(so.MaCD) !== maCD) return false;
+      return true;
+    });
+
+    var khMap = {};
+    KhachHangService.getAll().forEach(function(kh) { if(kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh; });
+    
+    var cdMap = {};
+    ChienDichService.getAll().forEach(function(cd) { if(cd.MaCD) cdMap[ValidatorService.normalizeId(cd.MaCD)] = cd; });
+
+    return filteredSo.map(function(so) {
+       var kh = khMap[ValidatorService.normalizeId(so.MaKH)];
+       var cd = cdMap[ValidatorService.normalizeId(so.MaCD)];
+       return {
+           SoSo: so.SoSo,
+           TenKH: kh ? kh.HoTen : so.MaKH,
+           TenCD: cd ? cd.TenCD : so.MaCD,
+           SoDuHienTai: parseFloat(so.SoDuHienTai || 0),
+           KyHan: so.KyHan,
+           LaiSuat: so.LaiSuat,
+           LoaiLai: so.LoaiLai,
+           NgayDaoHan: so.NgayDaoHan
+       };
+     });
+   },
+
+
+
+
+
+/**
+    * Lấy danh sách sổ ảo bị đóng tự động của Chiến dịch (và Nhân viên nếu có)
+    */
+  /**
+   * [HELPER] Phân loại KH Mới / KH Cũ dựa trên lịch sử giao dịch TOÀN BỘ hệ thống.
+   * KH Mới = KH có giao dịch ACTIVE đầu tiên trong toàn DB >= ngày bắt đầu chiến dịch.
+   * @param {Array} allGD - Toàn bộ mảng giao dịch
+   * @param {Date} cdStartDate - Ngày bắt đầu chiến dịch
+   * @param {Object} targetMaKHSet - { MaKH: true } tập hợp KH cần phân loại
+   * @returns {{ newSet: Object, oldSet: Object }}
+   */
+  _classifyCustomers: function(allGD, cdStartDate, targetMaKHSet) {
+    // Bước 1: Tìm ngày GD ACTIVE sớm nhất của mỗi KH trong toàn DB
+    var firstGdDateByKH = {}; // { MaKH: Date }
+    allGD.forEach(function(gd) {
+      // Chỉ tính giao dịch ACTIVE (đã được duyệt)
+      if (gd.TrangThai !== 'ACTIVE') return;
+      var maKH = ValidatorService.normalizeId(gd.MaKH);
+      if (!maKH) return;
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (!gdDate) return;
+      if (!firstGdDateByKH[maKH] || gdDate < firstGdDateByKH[maKH]) {
+        firstGdDateByKH[maKH] = gdDate;
+      }
+    });
+
+    // Bước 2: Phân loại từng KH trong targetMaKHSet
+    var newSet = {};
+    var oldSet = {};
+    Object.keys(targetMaKHSet).forEach(function(maKH) {
+      var firstDate = firstGdDateByKH[maKH];
+      // Nếu không có lịch sử ACTIVE nào (ví dụ chỉ có PENDING) => coi là KH Mới
+      if (!firstDate || firstDate >= cdStartDate) {
+        newSet[maKH] = true;
+      } else {
+        oldSet[maKH] = true;
+      }
+    });
+
+    return { newSet: newSet, oldSet: oldSet };
+  },
+
+  /**
+   * [HELPER] Tính số dư thuần (Net Balance) của KH Cũ TRƯỚC ngày bắt đầu chiến dịch.
+   * Đây là "Số Dư Đầu Kỳ" để tính phần tăng trưởng của KH Cũ.
+   * @param {Array} allGD - Toàn bộ mảng giao dịch
+   * @param {Date} cdStartDate - Ngày bắt đầu chiến dịch
+   * @param {Object} oldSet - { MaKH: true } chỉ tập KH Cũ
+   * @returns {Object} { MaKH: soDuDauKy (number) }
+   */
+  _buildPreCampaignBalanceMap: function(allGD, cdStartDate, oldSet) {
+    var balanceMap = {}; // { MaKH: { gui: 0, rut: 0 } }
+
+    allGD.forEach(function(gd) {
+      if (gd.TrangThai !== 'ACTIVE') return;
+      var maKH = ValidatorService.normalizeId(gd.MaKH);
+      if (!maKH || !oldSet[maKH]) return; // Chỉ xét KH Cũ
+
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (!gdDate || gdDate >= cdStartDate) return; // Chỉ GD TRƯỚC chiến dịch
+
+      if (!balanceMap[maKH]) balanceMap[maKH] = { gui: 0, rut: 0 };
+      var soTien = parseFloat(gd.SoTien || 0);
+      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+        balanceMap[maKH].gui += soTien;
+      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+        balanceMap[maKH].rut += soTien;
+      }
+    });
+
+    // Tính Net = Gui - Rut cho từng KH
+    var result = {};
+    Object.keys(balanceMap).forEach(function(maKH) {
+      result[maKH] = balanceMap[maKH].gui - balanceMap[maKH].rut;
+    });
+    // KH Cũ chưa có GD nào trước CD (edge case) => số dư đầu kỳ = 0
+    Object.keys(oldSet).forEach(function(maKH) {
+      if (result[maKH] === undefined) result[maKH] = 0;
+    });
+    return result;
+  },
+
+  /**
+   * [PUBLIC API] Báo cáo Tăng Trưởng Tiền Gửi theo Chiến Dịch & Cán Bộ.
+   * Tính Net Growth theo nghiệp vụ:
+   *   - KH Mới: Tính toàn bộ (dương).
+   *   - KH Cũ: Chỉ tính phần tăng thêm nếu dương (bỏ qua nếu giảm).
+   * @param {Object} user - User object (phải là ADMIN)
+   * @param {Object} filters - { maCD, maNV, kpiMode }
+   * @returns {Object} { summary, chiTietKHMoi, chiTietKHCuTang }
+   */
+  getBaoCaoTangTruong: function(user, filters) {
+    if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error('Chỉ có ADMIN mới được xem báo cáo Tăng Trưởng.');
+
+    filters = filters || {};
+    var maCD = ValidatorService.normalizeId(filters.maCD);
+    if (!maCD) throw new Error('Vui lòng chọn Chiến Dịch để phân tích tăng trưởng.');
+
+    var maNVFilter = ValidatorService.normalizeId(filters.maNV);
+    var kpiMode = filters.kpiMode || 'THI_DUA';
+
+    // ── 1. Lấy metadata chiến dịch (ngày bắt đầu, kết thúc) ──────────────────
+    var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+    var cdInfo = null;
+    allCD.forEach(function(cd) {
+      if (ValidatorService.normalizeId(cd.MaCD) === maCD) cdInfo = cd;
+    });
+    if (!cdInfo) throw new Error('Không tìm thấy thông tin Chiến Dịch: ' + maCD);
+
+    var cdStartDate = cdInfo.NgayBatDau ? ValidatorService.parseDate(cdInfo.NgayBatDau) : null;
+    var cdEndDate   = cdInfo.NgayKetThuc ? ValidatorService.parseDate(cdInfo.NgayKetThuc) : null;
+    if (!cdStartDate) throw new Error('Chiến Dịch chưa có Ngày Bắt Đầu. Vui lòng cập nhật thông tin chiến dịch.');
+    if (cdEndDate) cdEndDate.setHours(23, 59, 59, 999);
+
+    // ── 2. Lấy toàn bộ GD và ChiTiêu (1 lần vào RAM) ────────────────────────
+    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+
+    // Lọc GD trong phạm vi chiến dịch (đã duyệt + đúng CD + theo kpiMode)
+    var filteredGD = allGD.filter(function(gd) {
+      if (gd.TrangThai !== 'ACTIVE') return false;
+      if (ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+      if (maNVFilter && ValidatorService.normalizeId(gd.MaNV) !== maNVFilter) return false;
+
+      // Lọc theo ngày bắt đầu / kết thúc chiến dịch nếu kpiMode = THI_DUA
+      if (kpiMode === 'THI_DUA') {
+        if (gd.DuyetBoi && String(gd.DuyetBoi).indexOf('SYS_RECONCILE') === 0) return false;
+        var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (cdStartDate && gdDate < cdStartDate) return false;
+        if (cdEndDate && gdDate > cdEndDate) return false;
+      }
+      return true;
+    });
+
+    // ── 3. Xây dựng tập KH tham gia chiến dịch ───────────────────────────────
+    var targetMaKHSet = {}; // Tập KH xuất hiện trong filteredGD
+    filteredGD.forEach(function(gd) {
+      if (gd.MaKH) targetMaKHSet[ValidatorService.normalizeId(gd.MaKH)] = true;
+    });
+
+    // ── 4. Phân loại KH Mới / KH Cũ ──────────────────────────────────────────
+    var classified = this._classifyCustomers(allGD, cdStartDate, targetMaKHSet);
+    var newKHSet = classified.newSet;   // { MaKH: true }
+    var oldKHSet = classified.oldSet;   // { MaKH: true }
+
+    // ── 5. Tính Số Dư Đầu Kỳ của KH Cũ ──────────────────────────────────────
+    var preCampaignBalance = this._buildPreCampaignBalanceMap(allGD, cdStartDate, oldKHSet);
+
+    // ── 6. Tính Net trong chiến dịch theo từng (MaNV, MaKH) ──────────────────
+    // Structure: { MaNV: { MaKH: { gui: 0, rut: 0 } } }
+    var nvKHNetMap = {};
+    filteredGD.forEach(function(gd) {
+      var maNV = ValidatorService.normalizeId(gd.MaNV);
+      var maKH = ValidatorService.normalizeId(gd.MaKH);
+      if (!maNV || !maKH) return;
+
+      if (!nvKHNetMap[maNV]) nvKHNetMap[maNV] = {};
+      if (!nvKHNetMap[maNV][maKH]) nvKHNetMap[maNV][maKH] = { gui: 0, rut: 0 };
+
+      var soTien = parseFloat(gd.SoTien || 0);
+      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+        nvKHNetMap[maNV][maKH].gui += soTien;
+      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+        nvKHNetMap[maNV][maKH].rut += soTien;
+      }
+    });
+
+    // ── 7. Lấy dữ liệu hỗ trợ: Chỉ Tiêu, Nhân Sự, Khách Hàng ───────────────
+    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+    var chiTieuMap = {}; // { MaNV: soChiTieu }
+    allChiTieu.forEach(function(ct) {
+      if (ValidatorService.normalizeId(ct.MaCD) !== maCD) return;
+      var nvKey = ValidatorService.normalizeId(ct.MaNV);
+      if (!nvKey) return;
+      chiTieuMap[nvKey] = (chiTieuMap[nvKey] || 0) + parseFloat(ct.ChiTieu || 0);
+    });
+
+    var nsMap = {};
+    NhanSuService.getAll().forEach(function(ns) {
+      if (ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns;
+    });
+
+    var khMap = {};
+    KhachHangService.getAll().forEach(function(kh) {
+      if (kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh;
+    });
+
+    // ── 8. Tổng hợp kết quả theo từng Cán Bộ ─────────────────────────────────
+    var summary = [];
+    var chiTietKHMoi = [];
+    var chiTietKHCuTang = [];
+
+    Object.keys(nvKHNetMap).forEach(function(maNV) {
+      // Bỏ qua NV không có chỉ tiêu (không tham gia chiến dịch này)
+      if ((chiTieuMap[maNV] || 0) <= 0) return;
+
+      var khNetThisNV = nvKHNetMap[maNV];
+      var tongTangTruongKHMoi = 0;
+      var tongTangTruongKHCu  = 0;
+      var soKHMoi = 0;
+      var soKHCuTang = 0;
+
+      Object.keys(khNetThisNV).forEach(function(maKH) {
+        var khData = khNetThisNV[maKH];
+        var netTrongKy = khData.gui - khData.rut;
+        var kh = khMap[maKH] || {};
+        var tenKH = kh.HoTen || maKH;
+
+        if (newKHSet[maKH]) {
+          // === KH Mới: Tính toàn bộ phần dương ===
+          var tinhDuoc = Math.max(0, netTrongKy);
+          tongTangTruongKHMoi += tinhDuoc;
+          soKHMoi++;
+          chiTietKHMoi.push({
+            MaNV: maNV,
+            MaKH: maKH,
+            TenKH: tenKH,
+            SoTienGui: khData.gui,
+            SoTienRut: khData.rut,
+            NetTrongKy: netTrongKy,
+            TinhVaoTangTruong: tinhDuoc
+          });
+        } else if (oldKHSet[maKH]) {
+          // === KH Cũ: Chỉ tính phần tăng thêm (nếu dương) ===
+          var soDuDauKy   = preCampaignBalance[maKH] || 0;
+          var soDuCuoiKy  = soDuDauKy + netTrongKy;
+          var tangThem     = netTrongKy; // = SoDuCuoiKy - SoDuDauKy
+
+          if (tangThem > 0) {
+            tongTangTruongKHCu += tangThem;
+            soKHCuTang++;
+            chiTietKHCuTang.push({
+              MaNV: maNV,
+              MaKH: maKH,
+              TenKH: tenKH,
+              SoDuDauKy: soDuDauKy,
+              NetTrongKy: netTrongKy,
+              SoDuCuoiKy: soDuCuoiKy,
+              TangThem: tangThem
+            });
+          }
+        }
+      });
+
+      var tongTangTruong = tongTangTruongKHMoi + tongTangTruongKHCu;
+      var chiTieu = chiTieuMap[maNV] || 0;
+      var ns = nsMap[maNV] || {};
+
+      summary.push({
+        MaNV: maNV,
+        TenNV: ns.HoTen || maNV,
+        ChiTieu: chiTieu,
+        SoKHMoi: soKHMoi,
+        SoKHCuTang: soKHCuTang,
+        TangTruongKHMoi: tongTangTruongKHMoi,
+        TangTruongKHCu:  tongTangTruongKHCu,
+        TongTangTruong:  tongTangTruong,
+        TyLeHoanThanh:   chiTieu > 0 ? (tongTangTruong / chiTieu) * 100 : 0
+      });
+    });
+
+    // Sắp xếp theo TongTangTruong giảm dần
+    summary.sort(function(a, b) { return b.TongTangTruong - a.TongTangTruong; });
+
+    return {
+      cdInfo: {
+        TenCD: cdInfo.TenCD,
+        NgayBatDau: cdInfo.NgayBatDau,
+        NgayKetThuc: cdInfo.NgayKetThuc
+      },
+      summary: summary,
+      chiTietKHMoi: chiTietKHMoi,
+      chiTietKHCuTang: chiTietKHCuTang
+    };
+  },
+
+  _getReconciledAccounts: function(maCD, maNV) {
+     var reconciled = [];
+     if (!maCD) return reconciled;
+
+     var allKH = Repository.getAll(CONFIG.SHEETS.KHACHHANG);
+     var khMap = {};
+     allKH.forEach(function(kh) {
+       if (kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh.HoTen || kh.MaKH;
+     });
+
+     var allNS = Repository.getAll(CONFIG.SHEETS.NHANSU);
+     var nsMap = {};
+     allNS.forEach(function(ns) {
+       if (ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns.HoTen || ns.MaNV;
+     });
+
+     var allSTK = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM);
+     var stkOpenDateMap = {};
+     allSTK.forEach(function(stk) {
+       if (stk.SoSo) {
+         stkOpenDateMap[ValidatorService.normalizeId(stk.SoSo)] = stk.NgayPhatHanh;
+       }
+     });
+
+     var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+     var normMaCD = ValidatorService.normalizeId(maCD);
+     var normMaNV = maNV ? ValidatorService.normalizeId(maNV) : null;
+
+     var filteredReconcileGD = allGD.filter(function(gd) {
+       if (gd.TrangThai !== "ACTIVE") return false;
+       if (gd.LoaiGD !== "RUT") return false;
+       if (ValidatorService.normalizeId(gd.MaCD) !== normMaCD) return false;
+       if (normMaNV && ValidatorService.normalizeId(gd.MaNV) !== normMaNV) return false;
+       
+       var duyetBoi = String(gd.DuyetBoi || "");
+       return duyetBoi.indexOf("SYS_RECONCILE") === 0;
+     });
+
+     filteredReconcileGD.forEach(function(gd) {
+       var normSoSo = ValidatorService.normalizeId(gd.SoSo);
+       var openDate = stkOpenDateMap[normSoSo] || gd.NgayGD;
+       
+       reconciled.push({
+         SoSo: gd.SoSo || "---",
+         TenKH: khMap[ValidatorService.normalizeId(gd.MaKH)] || gd.MaKH || "---",
+         NgayMo: openDate,
+         TenNV: nsMap[ValidatorService.normalizeId(gd.MaNV)] || gd.MaNV || "---"
+       });
+     });
+
+     reconciled.sort(function(a, b) {
+       return String(a.SoSo).localeCompare(String(b.SoSo));
+     });
+
+     return reconciled;
+   }
+};
