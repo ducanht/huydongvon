@@ -52,15 +52,19 @@ Cơ chế đối chiếu hoạt động bằng cách so sánh danh sách sổ đ
 
 ## 3. Hệ Thống Tối Tối Hiệu Năng & Memory Caching
 
-### Backend: Tối ưu CacheService qua Batch Operations
-Google Apps Script giới hạn dung lượng cache 100KB mỗi khóa và có độ trễ lớn khi gọi dịch vụ bên ngoài. Lớp đệm `CacheServiceWrapper` (trong `src/backend/core/CacheService.js`) xử lý dữ liệu lớn bằng cách phân nhỏ (Chunking).
+### Backend: Tối ưu CacheService qua Batch Operations & Phân Mảnh (Chunking)
+Google Apps Script giới hạn dung lượng cache **100KB** mỗi khóa và có độ trễ lớn khi gọi dịch vụ bên ngoài. Lớp đệm `CacheServiceWrapper` (trong [CacheService.js](file:///e:/Google%20Antigravity/HuyDongVon/src/backend/core/CacheService.js)) giải quyết giới hạn này bằng cơ chế phân mảnh thông minh:
 
-**Lưu ý lập trình**:
-- **Không dùng vòng lặp gọi đơn lẻ**: Tuyệt đối tránh gọi `cache.get()` / `cache.put()` trong vòng lặp vì sẽ tạo độ trễ kết nối mạng lớn.
-- **Sử dụng APIs hàng loạt**:
-  - Đọc: `cache.getAll(chunkKeys)` để lấy toàn bộ dữ liệu chỉ trong 1 kết nối.
-  - Ghi: `cache.putAll(batchMap, expiration)` để đẩy đồng thời metadata và các chunks dữ liệu lên server.
-  - Xóa: `cache.removeAll(keysToRemove)`.
+- **Giới hạn an toàn**: Sử dụng `CHUNK_SIZE_LIMIT = 90KB` để chia nhỏ dữ liệu JSON.
+- **Quy trình ghi (put)**:
+  - Nếu dữ liệu nhỏ hơn 90KB, lưu bình thường qua 1 key duy nhất.
+  - Nếu dữ liệu lớn hơn 90KB, tự động phân rã thành các khóa con `{key}_chunk_0`, `{key}_chunk_1`,... và lưu thông tin mảnh vào khóa chính (`__isChunked: true` kèm `count` trong Metadata).
+  - Sử dụng API hàng loạt `cache.putAll(batchMap, expiration)` để lưu Metadata và các chunks đồng thời trong một I/O roundtrip duy nhất.
+- **Quy trình đọc (get)**:
+  - Đọc khóa chính lấy Metadata. Nếu đã phân mảnh, lập danh sách khóa con và gọi hàng loạt `cache.getAll(chunkKeys)` để lấy toàn bộ mảnh cùng lúc, ráp nối và parse JSON ngược lại.
+- **Lưu ý lập trình**:
+  - **Không dùng vòng lặp gọi đơn lẻ**: Tuyệt đối tránh gọi `cache.get()` / `cache.put()` trong vòng lặp vì sẽ tạo độ trễ kết nối mạng lớn.
+  - **Sử dụng APIs hàng loạt** (`cache.getAll`, `cache.putAll`, `cache.removeAll`) để tối ưu hóa hiệu năng.
 
 ### Client-side: In-Memory Static Cache
 Để tăng độ mượt khi chuyển tab, `AppManager` (trong `src/frontend/assets/js/app.js`) duy trì một bộ nhớ tạm RAM `_clientCache` cho các dữ liệu tĩnh.
@@ -72,7 +76,31 @@ Google Apps Script giới hạn dung lượng cache 100KB mỗi khóa và có đ
 
 ---
 
-## 4. Các "Bẫy" Lập Trình (Common Gotchas & Bugs)
+## 4. Thiết Kế Responsive & Tối Ưu Mobile (`table-mobile-cards`)
+
+Dự án áp dụng tư duy thiết kế Mobile-First để tối ưu giao diện hiển thị cho cả Desktop và Mobile. Thành phần quan trọng nhất là cơ chế biến đổi bảng dữ liệu thành dạng thẻ trên màn hình nhỏ:
+
+- **Nguyên lý hoạt động**:
+  - Trên màn hình di động ($\le 575.98px$), lớp CSS `.table-mobile-cards` sẽ ẩn đi tiêu đề cột `thead` và chuyển các thẻ `table`, `tbody`, `tr` sang dạng khối (`display: block` hoặc `display: flex`).
+  - Mỗi hàng (`tr`) biến thành một card độc lập, các ô cột (`td`) chuyển thành hàng ngang flex với `justify-content: space-between`.
+  - Phía bên trái hiển thị nhãn của cột bằng cách lấy thuộc tính `data-label` của thẻ `td` thông qua CSS: `content: attr(data-label)`. Dữ liệu gốc nằm ở bên phải.
+- **Lưu ý lập trình**:
+  - Khi cấu hình DataTables trên frontend (ví dụ: `frmKhachHang.html`, `frmSoTietKiem.html`), luôn định nghĩa `createdCell` hoặc `render` để chèn thuộc tính `data-label` tương ứng vào từng thẻ `td`:
+    ```javascript
+    columnDefs: [
+      {
+        targets: "_all",
+        createdCell: function (td, cellData, rowData, row, col) {
+          var headers = ["Mã KH", "Họ và Tên", "CCCD", ...];
+          $(td).attr('data-label', headers[col]);
+        }
+      }
+    ]
+    ```
+
+---
+
+## 5. Các "Bẫy" Lập Trình (Common Gotchas & Bugs)
 
 1. **Lỗi Scope Hoisting biến trong GAS**:
    Trong môi trường Apps Script, do cách biên dịch và hoist biến, hãy luôn đảm bảo khai báo và khởi tạo biến trước khi gọi kiểm tra hoặc so sánh điều kiện của biến đó (ví dụ lỗi logic `khNetThisNV` trước đó).
