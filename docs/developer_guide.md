@@ -114,3 +114,7 @@ Dự án áp dụng tư duy thiết kế Mobile-First để tối ưu giao diệ
 3. **Single Runner Singleton ở Local Dev**:
    - Khi chạy ở môi trường phát triển local, đối tượng mock `window.google.script.run` phải sử dụng mô hình **Factory** (sinh runner instance mới độc lập cho mỗi API call). 
    - Tránh sử dụng mô hình **Singleton** vì các cuộc gọi API đồng thời (concurrent calls) sẽ ghi đè callback handler của nhau, gây treo ứng dụng hoặc lặp vô hạn.
+4. **Tránh Bỏ Sót Deploy Lên Apps Script khi Thay Đổi Mã Nguồn**:
+   - Khi sửa đổi logic nghiệp vụ backend, nếu chỉ lưu file local mà không chạy `npm run build`, `npm run clasp-push` và `npm run clasp-redeploy`, live server Web App sẽ chạy phiên bản cũ. Điều này dễ dẫn đến việc hiểu lầm rằng bản vá lỗi không có tác dụng.
+5. **Giới Hạn Tần Suất Gọi API Apps Script (Rate Limit)**:
+   - Các script tự động chạy từ môi trường Node.js gọi liên tiếp nhiều request API lên Google Apps Script sẽ dễ bị Google trả về trang lỗi HTML chặn rate-limit. Cần đặt một hàm `sleep(1000)` (trễ ít nhất 1 giây) giữa các request để đảm bảo an toàn.

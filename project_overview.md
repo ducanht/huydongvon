@@ -160,13 +160,14 @@ Hệ thống sử dụng một Spreadsheet chính thức với ID `1FHyyIr_S1u30
 
 ## IV. BẢN ĐỒ KHẮC PHỤC CÁC LỖI HIỆN TẠI
 
-Dựa trên kết quả kiểm tra toàn diện mã nguồn hiện tại, hệ thống đang gặp 3 nhóm lỗi chính cần xử lý:
+Dựa trên kết quả kiểm tra toàn diện mã nguồn hiện tại, hệ thống đã ghi nhận và khắc phục các nhóm lỗi sau:
 
 | Phân hệ ảnh hưởng | Tệp tin mã nguồn | Hiện tượng lỗi | Nguyên nhân kỹ thuật | Giải pháp khắc phục |
 | :--- | :--- | :--- | :--- | :--- |
 | **Khách Hàng** | `KhachHangService.js` | Tìm kiếm toàn cầu (Global Search) của DataTable bị bỏ qua (bypass). | `payload.extraFilter` luôn được gửi lên dưới dạng object đầy đủ trường trống `{ MaKH: "", HoTen: "", DiaChi: "" }`. Điều kiện `if (payload.extraFilter)` luôn đánh giá là `true`, chặn nhánh lọc toàn cầu. | Đổi điều kiện kiểm tra: chỉ kích hoạt bộ lọc nâng cao khi có ít nhất một trường trong `extraFilter` có giá trị thực sự. |
 | **Giao Dịch & Hệ Thống** | `GiaoDichService.js`<br>`SystemAdminService.js` | Lọc khoảng ngày (Date Range) không hoạt động nếu chỉ chọn từ ngày hoặc chỉ chọn đến ngày. | Sử dụng điều kiện logic `and` bắt buộc cả hai biến ngày đều phải có giá trị (`payload.tuNgay && payload.denNgay`). | Chuyển sang logic lọc đơn biên (độc lập `tuNgay` hoặc `denNgay` bằng phép logic `or`). |
 | **Sổ Tiết Kiệm** | `SoTietKiemService.js` | Lỗi sập hệ thống `TypeError: Cannot read property 'toLowerCase'` khi nhấn sắp xếp cột trong danh sách sổ. | Gọi hàm `.toLowerCase()` trên một trường dữ liệu của bản ghi đối chiếu mà trường đó đang mang giá trị `null` hoặc `undefined` (do khách hàng không có thông tin hoặc dữ liệu trống). | Ép kiểu dữ liệu an toàn về dạng chuỗi trước khi chuyển chữ thường: `String(val \|\| "").toLowerCase()`. |
+| **KPI & Báo Cáo** | `ReportService.js` | Lệch số liệu Thi Đua (`THI_DUA`) so với Thực Tế (`HIEN_TAI`) của các nhân sự ngày đầu chiến dịch. | Khi tạo chiến dịch, `NgayBatDau` lưu thời gian giờ của máy chủ (ví dụ `17:02:09`). Bộ lọc ngày chiến dịch dùng so sánh `gdDate < start` đã lọc bỏ tất cả giao dịch trước 17:02 ngày đầu tiên. | Chuẩn hóa thời gian bắt đầu chiến dịch về `00:00:00.000` của ngày bắt đầu bằng `start.setHours(0, 0, 0, 0)`. |
 
 ---
 *Tài liệu này được thiết lập làm kim chỉ nam để triển khai kiểm thử và sửa đổi mã nguồn một cách an toàn nhất.*
