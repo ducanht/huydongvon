@@ -417,6 +417,13 @@
                         <option value="HIEN_TAI">Thực Tế Hiện Tại</option>
                     </select>
                 </div>
+                <div class="col-12 col-md-3" id="colOnlyAssignedKpi_Report" style="display:none;">
+                    <label class="form-label" style="visibility: hidden;">Lọc KPI</label>
+                    <div class="form-check form-switch d-flex align-items-center" style="height: 38px;">
+                        <input class="form-check-input" type="checkbox" id="chkReportOnlyAssignedKpi" checked>
+                        <label class="form-check-label fw-bold text-slate-700 ms-2" for="chkReportOnlyAssignedKpi">Chỉ hiện cán bộ có chỉ tiêu</label>
+                    </div>
+                </div>
                 <div class="col-12 d-flex flex-column flex-sm-row justify-content-end gap-2 mt-3">
                     <button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" id="btnXoaLocBaoCao"
                         onclick="resetBaoCaoFilter()">
@@ -512,6 +519,7 @@
         var role = window.APP_CONTEXT && window.APP_CONTEXT.User ? window.APP_CONTEXT.User.Role : '';
         if (role === 'ADMIN') {
             $('#colNhanVien').show();
+            $('#colOnlyAssignedKpi_Report').show();
             AppManager.callApi('getNhanSuActive').done(function (res) {
                 var cbo = $('#cboNhanVien_Filter');
                 cbo.find('option:not(:first)').remove(); // Giữ lại option mặc định
@@ -563,7 +571,8 @@
                 denNgay: $('#dtpDenNgay').val(),
                 maCD: $('#cboChienDich_Filter').val(),
                 maNV: $('#cboNhanVien_Filter').val(),
-                kpiMode: $('#cboKpiMode_Filter').val() || 'THI_DUA'
+                kpiMode: $('#cboKpiMode_Filter').val() || 'THI_DUA',
+                onlyAssignedKpi: $('#chkReportOnlyAssignedKpi').is(':checked')
             };
 
             window.CURRENT_RECONCILED_LIST = [];
@@ -2374,6 +2383,13 @@
               </div>
             </div>
             <div class="col-xl col-lg-4 col-md-6">
+              <label class="form-label" style="visibility: hidden;">Lọc KPI</label>
+              <div class="form-check form-switch d-flex align-items-center" style="height: 38px;">
+                <input class="form-check-input" type="checkbox" id="chkOnlyAssignedKpi" checked>
+                <label class="form-check-label fw-bold text-slate-700 ms-2" for="chkOnlyAssignedKpi">Chỉ hiện cán bộ có chỉ tiêu</label>
+              </div>
+            </div>
+            <div class="col-xl col-lg-4 col-md-6">
               <label class="form-label">Từ Ngày</label>
               <div class="position-relative">
                 <input type="text" class="form-control date-picker ps-4" id="txtDashTuNgay" placeholder="Chọn ngày" />
@@ -2677,7 +2693,8 @@
         maNV: $("#cboDashNhanVien").val() || null,
         tuNgay: $("#txtDashTuNgay").val() || null,
         denNgay: $("#txtDashDenNgay").val() || null,
-        kpiMode: $("input[name='radKpiMode']:checked").val() || 'THI_DUA'
+        kpiMode: $("input[name='radKpiMode']:checked").val() || 'THI_DUA',
+        onlyAssignedKpi: $("#chkOnlyAssignedKpi").is(":checked")
       };
 
       // Gọi API Load KPI có truyền Filters
@@ -2852,6 +2869,10 @@
     });
 
     $("input[name='radKpiMode']").change(function () {
+      loadDashboardData();
+    });
+
+    $("#chkOnlyAssignedKpi").change(function () {
       loadDashboardData();
     });
 
@@ -7360,7 +7381,7 @@
 
         <!-- Top: Logo & name -->
         <div class="brand-top">
-          <div class="brand-logo-icon">🏦</div>
+          <div class="brand-logo-icon"><i class="bx bxs-bank"></i></div>
           <div class="brand-name">QTDND<br>Yên Thọ</div>
           <div class="brand-tagline">
             Hệ thống quản trị huy động vốn nội bộ dành cho cán bộ Quỹ Tín dụng Nhân dân Yên Thọ.
@@ -7369,21 +7390,21 @@
           <!-- Features -->
           <div class="brand-features">
             <div class="brand-feature-item">
-              <div class="brand-feature-icon">📊</div>
+              <div class="brand-feature-icon"><i class="bx bx-bar-chart-alt-2"></i></div>
               <div class="brand-feature-text">
                 <strong>Dashboard KPI Thời Gian Thực</strong>
                 <span>Theo dõi chỉ tiêu huy động tức thì</span>
               </div>
             </div>
             <div class="brand-feature-item">
-              <div class="brand-feature-icon">💳</div>
+              <div class="brand-feature-icon"><i class="bx bx-credit-card"></i></div>
               <div class="brand-feature-text">
                 <strong>Quản lý Giao Dịch</strong>
                 <span>Gửi, rút, duyệt lệnh mọi lúc mọi nơi</span>
               </div>
             </div>
             <div class="brand-feature-item">
-              <div class="brand-feature-icon">📈</div>
+              <div class="brand-feature-icon"><i class="bx bx-line-chart"></i></div>
               <div class="brand-feature-text">
                 <strong>Báo Cáo & Tăng Trưởng</strong>
                 <span>Phân tích số liệu chuyên sâu</span>
@@ -7404,7 +7425,7 @@
 
           <!-- Mobile: compact brand header -->
           <div class="login-mobile-brand">
-            <div class="login-mobile-icon">🏦</div>
+            <div class="login-mobile-icon"><i class="bx bxs-bank"></i></div>
             <h2>QTDND Yên Thọ</h2>
             <p>Hệ thống quản trị huy động vốn nội bộ</p>
           </div>

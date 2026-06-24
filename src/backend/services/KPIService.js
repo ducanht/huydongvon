@@ -14,13 +14,31 @@ var KPIService = {
     try {
       lock.waitLock(15000);
       
+      // Load thông tin chiến dịch để lấy ngày bắt đầu/kết thúc
+      var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH, false);
+      var cdInfo = allCD.filter(function(cd) {
+        return ValidatorService.normalizeId(cd.MaCD) === ValidatorService.normalizeId(maCD);
+      })[0];
+      
+      var cdStart = cdInfo && cdInfo.NgayBatDau ? ValidatorService.parseDate(cdInfo.NgayBatDau) : null;
+      var cdEnd = cdInfo && cdInfo.NgayKetThuc ? ValidatorService.parseDate(cdInfo.NgayKetThuc) : null;
+      if (cdStart) cdStart.setHours(0, 0, 0, 0);
+      if (cdEnd) cdEnd.setHours(23, 59, 59, 999);
+
       // 1. Lấy toàn bộ giao dịch của NV trong CD này (đọc mới nhất không qua cache)
       var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH, false);
       var filterGD = allGD.filter(function(gd) {
         // CHỈ tính giao dịch đã ACTIVE vào KPI, bỏ PENDING/REJECTED/CANCELLED
         var gMaNV = ValidatorService.normalizeId(gd.MaNV);
         var gMaCD = ValidatorService.normalizeId(gd.MaCD);
-        return gMaNV === ValidatorService.normalizeId(maNV) && gMaCD === ValidatorService.normalizeId(maCD) && gd.TrangThai === "ACTIVE";
+        if (gMaNV !== ValidatorService.normalizeId(maNV) || gMaCD !== ValidatorService.normalizeId(maCD) || gd.TrangThai !== "ACTIVE") return false;
+
+        // Lọc theo ngày của chiến dịch
+        var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (cdStart && gdDate < cdStart) return false;
+        if (cdEnd && gdDate > cdEnd) return false;
+
+        return true;
       });
       
       // 2. Tính TONG_GUI, TONG_RUT, NET
@@ -144,10 +162,6 @@ var KPIService = {
       
       // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
       if (kpiMode === 'THI_DUA') {
-        // Loại bỏ giao dịch do hệ thống đối soát tạo ra
-        var duyetBoi = String(gd.DuyetBoi || "");
-        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
-        
         // Loại bỏ giao dịch ngoài khung thời gian chạy của Chiến dịch
         var normMaCD = ValidatorService.normalizeId(gd.MaCD);
         if (cdDateMap[normMaCD]) {
@@ -442,6 +456,19 @@ var KPIService = {
       var summaryMap = {};
       var now = new Date();
       
+      // Load thông tin chiến dịch để lấy ngày bắt đầu/kết thúc
+      var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH, false);
+      var cdDateMap = {};
+      allCD.forEach(function(cd) {
+        if (cd.MaCD) {
+          var start = cd.NgayBatDau ? ValidatorService.parseDate(cd.NgayBatDau) : null;
+          var end = cd.NgayKetThuc ? ValidatorService.parseDate(cd.NgayKetThuc) : null;
+          if (start) start.setHours(0, 0, 0, 0);
+          if (end) end.setHours(23, 59, 59, 999);
+          cdDateMap[ValidatorService.normalizeId(cd.MaCD)] = { start: start, end: end };
+        }
+      });
+      
       // 3.1. Tính từ Giao dịch ACTIVE
       allGD.forEach(function(gd) {
         if (gd.TrangThai !== "ACTIVE") return; // Bỏ qua PENDING, REVERTED, CANCELLED, REJECTED
@@ -449,6 +476,15 @@ var KPIService = {
         var maNV = gd.MaNV;
         var maCD = gd.MaCD;
         if (!maNV || !maCD) return;
+        
+        // Lọc theo ngày của chiến dịch
+        var normMaCD = ValidatorService.normalizeId(maCD);
+        var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (cdDateMap[normMaCD]) {
+          var limits = cdDateMap[normMaCD];
+          if (limits.start && gdDate < limits.start) return;
+          if (limits.end && gdDate > limits.end) return;
+        }
         
         var key = maNV.trim().toUpperCase() + "_" + maCD.trim().toUpperCase();
         

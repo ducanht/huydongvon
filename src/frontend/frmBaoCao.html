@@ -36,6 +36,13 @@
                         <option value="HIEN_TAI">Thực Tế Hiện Tại</option>
                     </select>
                 </div>
+                <div class="col-12 col-md-3" id="colOnlyAssignedKpi_Report" style="display:none;">
+                    <label class="form-label" style="visibility: hidden;">Lọc KPI</label>
+                    <div class="form-check form-switch d-flex align-items-center" style="height: 38px;">
+                        <input class="form-check-input" type="checkbox" id="chkReportOnlyAssignedKpi" checked>
+                        <label class="form-check-label fw-bold text-slate-700 ms-2" for="chkReportOnlyAssignedKpi">Chỉ hiện cán bộ có chỉ tiêu</label>
+                    </div>
+                </div>
                 <div class="col-12 d-flex flex-column flex-sm-row justify-content-end gap-2 mt-3">
                     <button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" id="btnXoaLocBaoCao"
                         onclick="resetBaoCaoFilter()">
@@ -131,6 +138,7 @@
         var role = window.APP_CONTEXT && window.APP_CONTEXT.User ? window.APP_CONTEXT.User.Role : '';
         if (role === 'ADMIN') {
             $('#colNhanVien').show();
+            $('#colOnlyAssignedKpi_Report').show();
             AppManager.callApi('getNhanSuActive').done(function (res) {
                 var cbo = $('#cboNhanVien_Filter');
                 cbo.find('option:not(:first)').remove(); // Giữ lại option mặc định
@@ -182,7 +190,8 @@
                 denNgay: $('#dtpDenNgay').val(),
                 maCD: $('#cboChienDich_Filter').val(),
                 maNV: $('#cboNhanVien_Filter').val(),
-                kpiMode: $('#cboKpiMode_Filter').val() || 'THI_DUA'
+                kpiMode: $('#cboKpiMode_Filter').val() || 'THI_DUA',
+                onlyAssignedKpi: $('#chkReportOnlyAssignedKpi').is(':checked')
             };
 
             window.CURRENT_RECONCILED_LIST = [];

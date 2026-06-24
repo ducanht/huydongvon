@@ -65,9 +65,6 @@ var ReportService = {
       
       // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
       if (kpiMode === 'THI_DUA') {
-        var duyetBoi = String(gd.DuyetBoi || "");
-        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
-        
         var normMaCD = ValidatorService.normalizeId(gd.MaCD);
         if (cdDateMap[normMaCD]) {
           var limits = cdDateMap[normMaCD];
@@ -98,12 +95,17 @@ var ReportService = {
       }
     });
 
+    var onlyAssignedKpi = (filters.onlyAssignedKpi === true || String(filters.onlyAssignedKpi).toLowerCase() === 'true');
+
     var list = [];
     Object.keys(userMap).forEach(function(key) {
       var item = userMap[key];
       
+      // Nếu lọc chỉ hiện cán bộ có chỉ tiêu
+      if (onlyAssignedKpi && item.ChiTieu <= 0) return;
+      
       // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
-      if (item.ChiTieu <= 0 && item.Net === 0 && item.TongGui === 0 && item.TongRut === 0) return;
+      if (!onlyAssignedKpi && item.ChiTieu <= 0 && item.Net === 0 && item.TongGui === 0 && item.TongRut === 0) return;
       
       // Chỉ push vào mảng nếu có Giao dịch trong thời gian này, HOẶC nếu không lọc by date
       if ((tuNgay || denNgay) && item.Net === 0 && item.ChiTieu === 0) return;
@@ -245,9 +247,6 @@ var ReportService = {
       
       // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
       if (kpiMode === 'THI_DUA') {
-        var duyetBoi = String(gd.DuyetBoi || "");
-        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
-        
         var normMaCD = ValidatorService.normalizeId(gd.MaCD);
         if (cdDateMap[normMaCD]) {
           var limits = cdDateMap[normMaCD];
@@ -320,12 +319,17 @@ var ReportService = {
       if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; 
     });
 
+    var onlyAssignedKpi = (filters.onlyAssignedKpi === true || String(filters.onlyAssignedKpi).toLowerCase() === 'true');
+
     var result = [];
     Object.keys(userMap).forEach(function(key) {
       var item = userMap[key];
       
+      // Nếu lọc chỉ hiện cán bộ có chỉ tiêu
+      if (onlyAssignedKpi && item.ChiTieu <= 0) return;
+      
       // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
-      if (item.ChiTieu <= 0 && item.Net === 0 && item.Gui === 0 && item.Rut === 0) return;
+      if (!onlyAssignedKpi && item.ChiTieu <= 0 && item.Net === 0 && item.Gui === 0 && item.Rut === 0) return;
       
       var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
       var khMoiSet = khGDMoiMap[item.MaNV] || {};
@@ -394,9 +398,6 @@ var ReportService = {
       
       // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
       if (kpiMode === 'THI_DUA') {
-        var duyetBoi = String(gd.DuyetBoi || "");
-        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
-        
         var normMaCD = ValidatorService.normalizeId(gd.MaCD);
         if (cdDateMap[normMaCD]) {
           var limits = cdDateMap[normMaCD];
@@ -499,9 +500,6 @@ var ReportService = {
       
       // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
       if (kpiMode === 'THI_DUA') {
-        var duyetBoi = String(gd.DuyetBoi || "");
-        if (duyetBoi.indexOf("SYS_RECONCILE") === 0) return false;
-        
         var normMaCD = ValidatorService.normalizeId(gd.MaCD);
         if (cdDateMap[normMaCD]) {
           var limits = cdDateMap[normMaCD];
@@ -768,7 +766,6 @@ var ReportService = {
 
       // Lọc theo ngày bắt đầu / kết thúc chiến dịch nếu kpiMode = THI_DUA
       if (kpiMode === 'THI_DUA') {
-        if (gd.DuyetBoi && String(gd.DuyetBoi).indexOf('SYS_RECONCILE') === 0) return false;
         var gdDate = ValidatorService.parseDate(gd.NgayGD);
         if (cdStartDate && gdDate < cdStartDate) return false;
         if (cdEndDate && gdDate > cdEndDate) return false;
@@ -790,22 +787,31 @@ var ReportService = {
     // ── 5. Tính Số Dư Đầu Kỳ của KH Cũ ──────────────────────────────────────
     var preCampaignBalance = this._buildPreCampaignBalanceMap(allGD, cdStartDate, oldKHSet);
 
-    // ── 6. Tính Net trong chiến dịch theo từng (MaNV, MaKH) ──────────────────
-    // Structure: { MaNV: { MaKH: { gui: 0, rut: 0 } } }
-    var nvKHNetMap = {};
+    // ── 6. Tính Net trong chiến dịch theo từng Khách hàng và từng (MaNV, MaKH) ──────────────────
+    var customerNetMap = {}; // { MaKH: { gui: 0, rut: 0 } }
+    var tellerKHNetMap = {}; // { MaNV: { MaKH: { gui: 0, rut: 0 } } }
+    var tellersSet = {}; // Tập cán bộ có hoạt động giao dịch
+
     filteredGD.forEach(function(gd) {
       var maNV = ValidatorService.normalizeId(gd.MaNV);
       var maKH = ValidatorService.normalizeId(gd.MaKH);
       if (!maNV || !maKH) return;
 
-      if (!nvKHNetMap[maNV]) nvKHNetMap[maNV] = {};
-      if (!nvKHNetMap[maNV][maKH]) nvKHNetMap[maNV][maKH] = { gui: 0, rut: 0 };
+      tellersSet[maNV] = true;
+
+      // Cấp khách hàng
+      if (!customerNetMap[maKH]) customerNetMap[maKH] = { gui: 0, rut: 0 };
+      // Cấp nhân viên
+      if (!tellerKHNetMap[maNV]) tellerKHNetMap[maNV] = {};
+      if (!tellerKHNetMap[maNV][maKH]) tellerKHNetMap[maNV][maKH] = { gui: 0, rut: 0 };
 
       var soTien = parseFloat(gd.SoTien || 0);
       if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-        nvKHNetMap[maNV][maKH].gui += soTien;
+        customerNetMap[maKH].gui += soTien;
+        tellerKHNetMap[maNV][maKH].gui += soTien;
       } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-        nvKHNetMap[maNV][maKH].rut += soTien;
+        customerNetMap[maKH].rut += soTien;
+        tellerKHNetMap[maNV][maKH].rut += soTien;
       }
     });
 
@@ -817,6 +823,7 @@ var ReportService = {
       var nvKey = ValidatorService.normalizeId(ct.MaNV);
       if (!nvKey) return;
       chiTieuMap[nvKey] = (chiTieuMap[nvKey] || 0) + parseFloat(ct.ChiTieu || 0);
+      tellersSet[nvKey] = true; // Đảm bảo cán bộ được giao chỉ tiêu cũng có mặt
     });
 
     var nsMap = {};
@@ -829,81 +836,112 @@ var ReportService = {
       if (kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh;
     });
 
-    // ── 8. Tổng hợp kết quả theo từng Cán Bộ ─────────────────────────────────
-    var summary = [];
+    // ── 8. Tính toán tăng trưởng cấp Khách hàng và phân bổ cho Nhân viên ─────────────────
+    var employeeGrowthMap = {}; // { MaNV: { TangTruongKHMoi: 0, TangTruongKHCu: 0, SoKHMoi: 0, SoKHCuTang: 0 } }
+    Object.keys(tellersSet).forEach(function(maNV) {
+      employeeGrowthMap[maNV] = { TangTruongKHMoi: 0, TangTruongKHCu: 0, SoKHMoi: 0, SoKHCuTang: 0 };
+    });
+
     var chiTietKHMoi = [];
     var chiTietKHCuTang = [];
 
-    Object.keys(nvKHNetMap).forEach(function(maNV) {
-      var khNetThisNV = nvKHNetMap[maNV];
+    Object.keys(customerNetMap).forEach(function(maKH) {
+      var custData = customerNetMap[maKH];
+      var customerNet = custData.gui - custData.rut;
       
-      // Bỏ qua NV không có chỉ tiêu và không có giao dịch phát sinh trong chiến dịch
-      var hasTransactions = false;
-      if (khNetThisNV) {
-        Object.keys(khNetThisNV).forEach(function(maKH) {
-          if (khNetThisNV[maKH].gui > 0 || khNetThisNV[maKH].rut > 0) hasTransactions = true;
-        });
+      // Xác định tăng trưởng của khách hàng này
+      var growth = 0;
+      var isNew = !!newKHSet[maKH];
+      var isOld = !!oldKHSet[maKH];
+      
+      var soDuDauKy = 0;
+      if (isOld) {
+        soDuDauKy = preCampaignBalance[maKH] || 0;
       }
-      if ((chiTieuMap[maNV] || 0) <= 0 && !hasTransactions) return;
-      var tongTangTruongKHMoi = 0;
-      var tongTangTruongKHCu  = 0;
-      var soKHMoi = 0;
-      var soKHCuTang = 0;
+      
+      growth = Math.max(0, customerNet); // Đối với cả cũ và mới, phần tăng thêm chính là Net trong kỳ (nếu dương)
 
-      Object.keys(khNetThisNV).forEach(function(maKH) {
-        var khData = khNetThisNV[maKH];
-        var netTrongKy = khData.gui - khData.rut;
-        var kh = khMap[maKH] || {};
-        var tenKH = kh.HoTen || maKH;
+      if (growth <= 0) return; // Khách hàng không tăng trưởng dương -> Bỏ qua
 
-        if (newKHSet[maKH]) {
-          // === KH Mới: Tính toàn bộ phần dương ===
-          var tinhDuoc = Math.max(0, netTrongKy);
-          tongTangTruongKHMoi += tinhDuoc;
-          soKHMoi++;
-          chiTietKHMoi.push({
-            MaNV: maNV,
-            MaKH: maKH,
-            TenKH: tenKH,
-            SoTienGui: khData.gui,
-            SoTienRut: khData.rut,
-            NetTrongKy: netTrongKy,
-            TinhVaoTangTruong: tinhDuoc
-          });
-        } else if (oldKHSet[maKH]) {
-          // === KH Cũ: Chỉ tính phần tăng thêm (nếu dương) ===
-          var soDuDauKy   = preCampaignBalance[maKH] || 0;
-          var soDuCuoiKy  = soDuDauKy + netTrongKy;
-          var tangThem     = netTrongKy; // = SoDuCuoiKy - SoDuDauKy
-
-          if (tangThem > 0) {
-            tongTangTruongKHCu += tangThem;
-            soKHCuTang++;
-            chiTietKHCuTang.push({
-              MaNV: maNV,
-              MaKH: maKH,
-              TenKH: tenKH,
-              SoDuDauKy: soDuDauKy,
-              NetTrongKy: netTrongKy,
-              SoDuCuoiKy: soDuCuoiKy,
-              TangThem: tangThem
-            });
+      // Phân bổ growth cho các nhân viên giao dịch với khách hàng này tỷ lệ thuận theo Net dương của họ
+      var tellerNets = [];
+      var positiveNetsSum = 0;
+      
+      Object.keys(tellersSet).forEach(function(maNV) {
+        if (tellerKHNetMap[maNV] && tellerKHNetMap[maNV][maKH]) {
+          var tData = tellerKHNetMap[maNV][maKH];
+          var tNet = tData.gui - tData.rut;
+          if (tNet > 0) {
+            tellerNets.push({ maNV: maNV, tNet: tNet, gui: tData.gui, rut: tData.rut });
+            positiveNetsSum += tNet;
           }
         }
       });
 
-      var tongTangTruong = tongTangTruongKHMoi + tongTangTruongKHCu;
+      if (positiveNetsSum <= 0) return; // Không có teller nào đóng góp net dương (edge case)
+
+      var kh = khMap[maKH] || {};
+      var tenKH = kh.HoTen || maKH;
+
+      tellerNets.forEach(function(item) {
+        var ratio = item.tNet / positiveNetsSum;
+        var attributedGrowth = ratio * growth;
+        
+        var emp = employeeGrowthMap[item.maNV];
+        if (isNew) {
+          emp.TangTruongKHMoi += attributedGrowth;
+          emp.SoKHMoi += ratio; // Ghi nhận tỷ lệ đóng góp số lượng KH mới
+          
+          chiTietKHMoi.push({
+            MaNV: item.maNV,
+            MaKH: maKH,
+            TenKH: tenKH,
+            SoTienGui: item.gui,
+            SoTienRut: item.rut,
+            NetTrongKy: item.tNet,
+            TinhVaoTangTruong: attributedGrowth
+          });
+        } else if (isOld) {
+          emp.TangTruongKHCu += attributedGrowth;
+          emp.SoKHCuTang += ratio; // Ghi nhận tỷ lệ đóng góp số lượng KH cũ tăng
+          
+          var tSoDuDauKy = ratio * soDuDauKy;
+          var tSoDuCuoiKy = tSoDuDauKy + item.tNet;
+
+          chiTietKHCuTang.push({
+            MaNV: item.maNV,
+            MaKH: maKH,
+            TenKH: tenKH,
+            SoDuDauKy: tSoDuDauKy,
+            NetTrongKy: item.tNet,
+            SoDuCuoiKy: tSoDuCuoiKy,
+            TangThem: attributedGrowth
+          });
+        }
+      });
+    });
+
+    // Gom nhóm kết quả cuối cùng theo từng Cán Bộ để làm Summary
+    var summary = [];
+    Object.keys(tellersSet).forEach(function(maNV) {
+      var empStats = employeeGrowthMap[maNV];
       var chiTieu = chiTieuMap[maNV] || 0;
       var ns = nsMap[maNV] || {};
+
+      // Chỉ hiển thị cán bộ có chỉ tiêu hoặc có hoạt động giao dịch
+      var hasActivity = empStats.TangTruongKHMoi > 0 || empStats.TangTruongKHCu > 0 || empStats.SoKHMoi > 0 || empStats.SoKHCuTang > 0;
+      if (chiTieu <= 0 && !hasActivity) return;
+
+      var tongTangTruong = empStats.TangTruongKHMoi + empStats.TangTruongKHCu;
 
       summary.push({
         MaNV: maNV,
         TenNV: ns.HoTen || maNV,
         ChiTieu: chiTieu,
-        SoKHMoi: soKHMoi,
-        SoKHCuTang: soKHCuTang,
-        TangTruongKHMoi: tongTangTruongKHMoi,
-        TangTruongKHCu:  tongTangTruongKHCu,
+        SoKHMoi: Math.round(empStats.SoKHMoi * 10) / 10, // Làm tròn 1 chữ số thập phân
+        SoKHCuTang: Math.round(empStats.SoKHCuTang * 10) / 10,
+        TangTruongKHMoi: empStats.TangTruongKHMoi,
+        TangTruongKHCu:  empStats.TangTruongKHCu,
         TongTangTruong:  tongTangTruong,
         TyLeHoanThanh:   chiTieu > 0 ? (tongTangTruong / chiTieu) * 100 : 0
       });
