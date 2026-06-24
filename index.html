@@ -4752,7 +4752,7 @@
           var cboNV = $("#cboNhanVien");
           if (res && res.length > 0) {
             res.forEach(function (nv) {
-              if (nv.TrangThai === "ACTIVE" && nv.Role === "USER") {
+              if (nv.TrangThai === "ACTIVE") {
                 cboNV.append(
                   $("<option>")
                     .val(nv.MaNV)
