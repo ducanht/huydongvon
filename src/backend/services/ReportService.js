@@ -15,6 +15,7 @@ function _buildCdDateMap() {
     var normId = ValidatorService.normalizeId(cd.MaCD);
     var start = cd.NgayBatDau ? ValidatorService.parseDate(cd.NgayBatDau) : null;
     var end   = cd.NgayKetThuc ? ValidatorService.parseDate(cd.NgayKetThuc) : null;
+    if (start) start.setHours(0, 0, 0, 0);
     if (end) end.setHours(23, 59, 59, 999);
     cdDateMap[normId] = { start: start, end: end };
   });
@@ -753,6 +754,7 @@ var ReportService = {
     var cdStartDate = cdInfo.NgayBatDau ? ValidatorService.parseDate(cdInfo.NgayBatDau) : null;
     var cdEndDate   = cdInfo.NgayKetThuc ? ValidatorService.parseDate(cdInfo.NgayKetThuc) : null;
     if (!cdStartDate) throw new Error('Chiến Dịch chưa có Ngày Bắt Đầu. Vui lòng cập nhật thông tin chiến dịch.');
+    if (cdStartDate) cdStartDate.setHours(0, 0, 0, 0);
     if (cdEndDate) cdEndDate.setHours(23, 59, 59, 999);
 
     // ── 2. Lấy toàn bộ GD và ChiTiêu (1 lần vào RAM) ────────────────────────

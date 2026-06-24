@@ -321,6 +321,31 @@ function doApiRequest(action, payload) {
           if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được phép xóa dữ liệu kiểm thử.");
           result = SystemAdminService.deleteTestData(user, payload);
           break;
+      case 'debugLeaderboardDates':
+          result = (function() {
+             var cdDateMap = _buildCdDateMap();
+             var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+             var targetCD = cdDateMap[ValidatorService.normalizeId(payload.maCD)];
+             var reports = [];
+             allGD.forEach(function(gd) {
+               if (gd.MaCD === payload.maCD) {
+                 var gdDate = ValidatorService.parseDate(gd.NgayGD);
+                 reports.push({
+                   MaGD: gd.MaGD,
+                   NgayGD: gd.NgayGD,
+                   gdDateStr: gdDate ? gdDate.toISOString() : 'null',
+                   gdDateTime: gdDate ? gdDate.getTime() : 0,
+                   cdStartStr: targetCD && targetCD.start ? targetCD.start.toISOString() : 'null',
+                   cdStartTime: targetCD && targetCD.start ? targetCD.start.getTime() : 0,
+                   beforeStart: targetCD && targetCD.start && gdDate ? (gdDate.getTime() < targetCD.start.getTime()) : false,
+                   afterEnd: targetCD && targetCD.end && gdDate ? (gdDate.getTime() > targetCD.end.getTime()) : false,
+                   DuyetBoi: gd.DuyetBoi
+                 });
+               }
+             });
+             return { targetCD: targetCD, reports: reports };
+          })();
+          break;
       
       default:
           throw new Error("Hành động không hợp lệ: " + action);

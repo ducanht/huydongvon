@@ -8,7 +8,20 @@
     "dev": "npm run bundle && vite",
     "build": "npm run bundle && vite build && node build.js",
     "vercel-build": "npm run bundle && vite build",
-    "verify": "node scratch/test_bugs_verification.js"
+    "verify": "node scratch/test_bugs_verification.js",
+    "fetch-data": "node scratch/fetch_real_data.js",
+    "debug-filter": "node scratch/debug_leaderboard_filter.js",
+    "clasp-pull": "clasp pull",
+    "clasp-push": "clasp push",
+    "clear-cache-fetch": "node scratch/test_clear_cache_and_fetch.js",
+    "debug-remote": "node scratch/debug_remote_date_filter.js",
+    "clasp-deployments": "clasp deployments",
+    "clasp-deploy": "clasp deploy",
+    "clasp-deploy-help": "clasp deploy --help",
+    "clasp-redeploy": "clasp deploy -i AKfycbz20Oi5KUwMgTq0BlLn5IIYP2t03oYcO9xDcXusp3QGzVIj2N0I5JXNlCj2aYRC7L5n -d \"Redeploy for debugging\"",
+    "test-get-campaigns": "node scratch/test_get_campaigns.js",
+    "test-leaderboard": "node scratch/test_leaderboard.js",
+    "test-growth-report": "node scratch/test_growth_report.js"
   },
   "devDependencies": {
     "@google/clasp": "^3.3.0",
