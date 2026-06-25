@@ -8630,6 +8630,7 @@
                   <tr>
                     <th>#</th>
                     <th>Khách Hàng</th>
+                    <th class="text-center">Số Sổ</th>
                     <th class="text-end">Số Tiền Gửi</th>
                     <th class="text-end">Số Tiền Rút</th>
                     <th class="text-end fw-bold">Net Trong Kỳ</th>
@@ -8637,11 +8638,11 @@
                   </tr>
                 </thead>
                 <tbody id="tbodyModalKHMoi">
-                  <tr><td colspan="6" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
+                  <tr><td colspan="7" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
                 </tbody>
                 <tfoot id="tfootModalKHMoi" class="table-success fw-bold" style="display:none">
                   <tr>
-                    <td colspan="2" class="text-end">Tổng cộng:</td>
+                    <td colspan="3" class="text-end">Tổng cộng:</td>
                     <td class="text-end" id="tfKHMoiGui">—</td>
                     <td class="text-end" id="tfKHMoiRut">—</td>
                     <td class="text-end" id="tfKHMoiNet">—</td>
@@ -8664,6 +8665,7 @@
                   <tr>
                     <th>#</th>
                     <th>Khách Hàng</th>
+                    <th class="text-center">Số Sổ</th>
                     <th class="text-end">Số Dư Đầu Kỳ</th>
                     <th class="text-end">Net Trong Kỳ</th>
                     <th class="text-end">Số Dư Cuối Kỳ</th>
@@ -8671,11 +8673,11 @@
                   </tr>
                 </thead>
                 <tbody id="tbodyModalKHCu">
-                  <tr><td colspan="6" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
+                  <tr><td colspan="7" class="text-center text-muted py-3">Không có dữ liệu</td></tr>
                 </tbody>
                 <tfoot id="tfootModalKHCu" class="table-success fw-bold" style="display:none">
                   <tr>
-                    <td colspan="2" class="text-end">Tổng cộng:</td>
+                    <td colspan="3" class="text-end">Tổng cộng:</td>
                     <td class="text-end">—</td>
                     <td class="text-end" id="tfKHCuNet">—</td>
                     <td class="text-end">—</td>
@@ -8876,7 +8878,7 @@ function frmTangTruong_showDetail(maNV) {
   var khMoiRows = _ttKHMoi.filter(function(k){ return k.MaNV === maNV; });
   $('#badgeTabKHMoi').text(khMoiRows.length);
   if (khMoiRows.length === 0) {
-    $('#tbodyModalKHMoi').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="bx bx-user-x me-1"></i>Không có KH Mới</td></tr>');
+    $('#tbodyModalKHMoi').html('<tr><td colspan="7" class="text-center text-muted py-3"><i class="bx bx-user-x me-1"></i>Không có KH Mới</td></tr>');
     $('#tfootModalKHMoi').hide();
   } else {
     var sumGui=0, sumRut=0, sumNet=0, sumTT=0;
@@ -8887,6 +8889,7 @@ function frmTangTruong_showDetail(maNV) {
       return '<tr>' +
         '<td class="text-muted ps-2">' + (i+1) + '</td>' +
         '<td><span class="fw-semibold">' + _escHtml(k.TenKH) + '</span><br><small class="text-muted">' + k.MaKH + '</small></td>' +
+        '<td class="text-center font-mono fw-bold">' + _escHtml(k.SoSo || '—') + '</td>' +
         '<td class="text-end text-success">' + AppManager.formatCurrency(k.SoTienGui) + '</td>' +
         '<td class="text-end text-danger">' + (k.SoTienRut > 0 ? AppManager.formatCurrency(k.SoTienRut) : '—') + '</td>' +
         '<td class="text-end fw-semibold" style="color:' + netColor + '">' + AppManager.formatCurrency(k.NetTrongKy) + '</td>' +
@@ -8905,7 +8908,7 @@ function frmTangTruong_showDetail(maNV) {
   var khCuRows = _ttKHCuTang.filter(function(k){ return k.MaNV === maNV; });
   $('#badgeTabKHCu').text(khCuRows.length);
   if (khCuRows.length === 0) {
-    $('#tbodyModalKHCu').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="bx bx-info-circle me-1"></i>Không có KH Cũ nào tăng trong kỳ này</td></tr>');
+    $('#tbodyModalKHCu').html('<tr><td colspan="7" class="text-center text-muted py-3"><i class="bx bx-info-circle me-1"></i>Không có KH Cũ nào tăng trong kỳ này</td></tr>');
     $('#tfootModalKHCu').hide();
   } else {
     var sumNet2=0, sumTang2=0;
@@ -8914,6 +8917,7 @@ function frmTangTruong_showDetail(maNV) {
       return '<tr>' +
         '<td class="text-muted ps-2">' + (i+1) + '</td>' +
         '<td><span class="fw-semibold">' + _escHtml(k.TenKH) + '</span><br><small class="text-muted">' + k.MaKH + '</small></td>' +
+        '<td class="text-center font-mono fw-bold">' + _escHtml(k.SoSo || '—') + '</td>' +
         '<td class="text-end">' + AppManager.formatCurrency(k.SoDuDauKy) + '</td>' +
         '<td class="text-end text-success fw-semibold">+' + AppManager.formatCurrency(k.NetTrongKy) + '</td>' +
         '<td class="text-end">' + AppManager.formatCurrency(k.SoDuCuoiKy) + '</td>' +
@@ -8946,18 +8950,18 @@ function _initExportBtn() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws1Data), 'Tổng Hợp');
 
     // Sheet 2: KH Mới
-    var ws2Data = [['Cán Bộ','Khách Hàng','Mã KH','Gửi','Rút','Net','Tính Vào TT']];
+    var ws2Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Sổ','Gửi','Rút','Net','Tính Vào TT']];
     _ttKHMoi.forEach(function(k) {
       var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
-      ws2Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoTienGui, k.SoTienRut, k.NetTrongKy, k.TinhVaoTangTruong]);
+      ws2Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoSo || '', k.SoTienGui, k.SoTienRut, k.NetTrongKy, k.TinhVaoTangTruong]);
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws2Data), 'KH Mới');
 
     // Sheet 3: KH Cũ Tăng
-    var ws3Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Dư ĐK','Net Kỳ','Số Dư CK','Phần Tăng']];
+    var ws3Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Sổ','Số Dư ĐK','Net Kỳ','Số Dư CK','Phần Tăng']];
     _ttKHCuTang.forEach(function(k) {
       var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
-      ws3Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoDuDauKy, k.NetTrongKy, k.SoDuCuoiKy, k.TangThem]);
+      ws3Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoSo || '', k.SoDuDauKy, k.NetTrongKy, k.SoDuCuoiKy, k.TangThem]);
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws3Data), 'KH Cũ Tăng');
 
