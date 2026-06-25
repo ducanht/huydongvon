@@ -654,30 +654,68 @@ var ReportService = {
    * @returns {{ newSet: Object, oldSet: Object }}
    */
   _classifyCustomers: function(allGD, cdStartDate, targetMaKHSet) {
-    // Bước 1: Tìm ngày GD ACTIVE sớm nhất của mỗi KH trong toàn DB
-    var firstGdDateByKH = {}; // { MaKH: Date }
+    var newSet = {};
+    var oldSet = {};
+
+    // Nhóm giao dịch active theo MaKH để tìm cho nhanh
+    var activeGdsByKH = {};
     allGD.forEach(function(gd) {
-      // Chỉ tính giao dịch ACTIVE (đã được duyệt)
       if (gd.TrangThai !== 'ACTIVE') return;
       var maKH = ValidatorService.normalizeId(gd.MaKH);
       if (!maKH) return;
       var gdDate = ValidatorService.parseDate(gd.NgayGD);
       if (!gdDate) return;
-      if (!firstGdDateByKH[maKH] || gdDate < firstGdDateByKH[maKH]) {
-        firstGdDateByKH[maKH] = gdDate;
+      
+      if (!activeGdsByKH[maKH]) {
+        activeGdsByKH[maKH] = [];
       }
+      activeGdsByKH[maKH].push(gdDate);
     });
 
-    // Bước 2: Phân loại từng KH trong targetMaKHSet
-    var newSet = {};
-    var oldSet = {};
+    // Sắp xếp ngày tăng dần cho từng khách hàng
+    Object.keys(activeGdsByKH).forEach(function(maKH) {
+      activeGdsByKH[maKH].sort(function(a, b) { return a - b; });
+    });
+
     Object.keys(targetMaKHSet).forEach(function(maKH) {
-      var firstDate = firstGdDateByKH[maKH];
-      // Nếu không có lịch sử ACTIVE nào (ví dụ chỉ có PENDING) => coi là KH Mới
-      if (!firstDate || firstDate >= cdStartDate) {
+      var dates = activeGdsByKH[maKH] || [];
+      if (dates.length === 0) {
+        newSet[maKH] = true;
+        return;
+      }
+
+      // Tìm giao dịch đầu tiên trong chiến dịch (date >= cdStartDate)
+      var firstCampDate = null;
+      var firstCampIndex = -1;
+      for (var i = 0; i < dates.length; i++) {
+        if (dates[i] >= cdStartDate) {
+          firstCampDate = dates[i];
+          firstCampIndex = i;
+          break;
+        }
+      }
+
+      if (!firstCampDate) {
+        firstCampDate = cdStartDate;
+      }
+
+      // Tìm giao dịch gần nhất trước đó
+      var lastPriorDate = null;
+      if (firstCampIndex > 0) {
+        lastPriorDate = dates[firstCampIndex - 1];
+      } else if (firstCampIndex === -1 && dates.length > 0) {
+        lastPriorDate = dates[dates.length - 1];
+      }
+
+      if (!lastPriorDate) {
         newSet[maKH] = true;
       } else {
-        oldSet[maKH] = true;
+        var gapDays = (firstCampDate.getTime() - lastPriorDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (gapDays >= 180) {
+          newSet[maKH] = true;
+        } else {
+          oldSet[maKH] = true;
+        }
       }
     });
 
@@ -763,6 +801,9 @@ var ReportService = {
     if (cdStartDate) cdStartDate.setHours(0, 0, 0, 0);
     if (cdEndDate) cdEndDate.setHours(23, 59, 59, 999);
 
+    var year = cdStartDate.getFullYear();
+    var yearStart = new Date(year, 0, 1, 0, 0, 0, 0); // Ngày 1/1 của năm diễn ra chiến dịch
+
     // ── 2. Lấy toàn bộ GD và ChiTiêu (1 lần vào RAM) ────────────────────────
     var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
 
@@ -842,7 +883,45 @@ var ReportService = {
     // ── 7. Tính Số Dư Đầu Kỳ của các sổ cũ trước chiến dịch ─────────────────────────
     var preCampaignBookBalance = this._buildPreCampaignBookBalanceMap(allGD, cdStartDate, positiveBookKeysSet);
 
-    // ── 8. Lấy dữ liệu hỗ trợ: Chỉ Tiêu, Nhân Sự, Khách Hàng ─────────────────────────
+    // ── 8. Tính Số Dư của Khách Hàng Cũ tại đầu năm và cuối chiến dịch ─────────────
+    var customerBalanceStart = {}; // { MaKH: balance }
+    var customerBalanceEnd = {};   // { MaKH: balance }
+
+    allGD.forEach(function(gd) {
+      if (gd.TrangThai !== 'ACTIVE') return;
+      var maKH = ValidatorService.normalizeId(gd.MaKH);
+      if (!maKH || !oldKHSet[maKH]) return;
+
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (!gdDate) return;
+
+      var soTien = parseFloat(gd.SoTien || 0);
+      var change = 0;
+      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+        change = soTien;
+      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+        change = -soTien;
+      }
+
+      // Giao dịch diễn ra trước đầu năm (01/01 của năm diễn ra chiến dịch)
+      if (gdDate < yearStart) {
+        customerBalanceStart[maKH] = (customerBalanceStart[maKH] || 0) + change;
+      }
+
+      // Giao dịch diễn ra trước hoặc trong chiến dịch (<= cdEndDate)
+      if (gdDate <= cdEndDate) {
+        customerBalanceEnd[maKH] = (customerBalanceEnd[maKH] || 0) + change;
+      }
+    });
+
+    var customerYearlyGrowth = {};
+    Object.keys(oldKHSet).forEach(function(maKH) {
+      var startBal = customerBalanceStart[maKH] || 0;
+      var endBal = customerBalanceEnd[maKH] || 0;
+      customerYearlyGrowth[maKH] = Math.max(0, endBal - startBal);
+    });
+
+    // ── 9. Lấy dữ liệu hỗ trợ: Chỉ Tiêu, Nhân Sự, Khách Hàng ─────────────────────────
     var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
     var chiTieuMap = {}; // { MaNV: soChiTieu }
     allChiTieu.forEach(function(ct) {
@@ -863,7 +942,7 @@ var ReportService = {
       if (kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh;
     });
 
-    // ── 9. Tính toán tăng trưởng cấp Sổ và gom nhóm theo Nhân viên (Unique Khách hàng) ─
+    // ── 10. Tính toán tăng trưởng cấp Sổ và gom nhóm theo Nhân viên (Unique Khách hàng) ─
     var employeeGrowthMap = {}; // { MaNV: { TangTruongKHMoi: 0, TangTruongKHCu: 0, KHMoiSet: {}, KHCuSet: {} } }
     Object.keys(tellersSet).forEach(function(maNV) {
       employeeGrowthMap[maNV] = { TangTruongKHMoi: 0, TangTruongKHCu: 0, KHMoiSet: {}, KHCuSet: {} };
@@ -872,22 +951,24 @@ var ReportService = {
     var chiTietKHMoi = [];
     var chiTietKHCuTang = [];
 
+    // Tách và xử lý riêng biệt cho KH Mới và KH Cũ
+    var oldBooksByKH = {}; // { MaKH: [book1, book2, ...] }
+
     positiveBooks.forEach(function(book) {
-      var maNV = book.MaNV;
       var maKH = book.MaKH;
-      var soSo = book.SoSo;
-      var net = book.net;
-
-      if (!employeeGrowthMap[maNV]) {
-        employeeGrowthMap[maNV] = { TangTruongKHMoi: 0, TangTruongKHCu: 0, KHMoiSet: {}, KHCuSet: {} };
-      }
-
       var isNew = !!newKHSet[maKH];
-      var isOld = !!oldKHSet[maKH];
-      var kh = khMap[maKH] || {};
-      var tenKH = kh.HoTen || maKH;
 
       if (isNew) {
+        // Xử lý trực tiếp cho KH Mới (không áp dụng giới hạn năm theo Phương án A)
+        var maNV = book.MaNV;
+        var net = book.net;
+        var kh = khMap[maKH] || {};
+        var tenKH = kh.HoTen || maKH;
+
+        if (!employeeGrowthMap[maNV]) {
+          employeeGrowthMap[maNV] = { TangTruongKHMoi: 0, TangTruongKHCu: 0, KHMoiSet: {}, KHCuSet: {} };
+        }
+
         employeeGrowthMap[maNV].TangTruongKHMoi += net;
         employeeGrowthMap[maNV].KHMoiSet[maKH] = true; // Ghi nhận khách hàng mới unique per cán bộ
 
@@ -895,15 +976,54 @@ var ReportService = {
           MaNV: maNV,
           MaKH: maKH,
           TenKH: tenKH,
-          SoSo: soSo,
+          SoSo: book.SoSo,
           SoTienGui: book.gui,
           SoTienRut: book.rut,
           NetTrongKy: net,
           TinhVaoTangTruong: net
         });
-      } else if (isOld) {
-        employeeGrowthMap[maNV].TangTruongKHCu += net;
-        employeeGrowthMap[maNV].KHCuSet[maKH] = true; // Ghi nhận khách hàng cũ tăng unique per cán bộ
+      } else {
+        // Gom nhóm KH Cũ để tính giới hạn và phân bổ sau
+        if (!oldBooksByKH[maKH]) {
+          oldBooksByKH[maKH] = [];
+        }
+        oldBooksByKH[maKH].push(book);
+      }
+    });
+
+    // Xử lý giới hạn tăng trưởng năm và phân bổ cho KH Cũ
+    Object.keys(oldBooksByKH).forEach(function(maKH) {
+      var books = oldBooksByKH[maKH];
+      var maxGrowth = customerYearlyGrowth[maKH] !== undefined ? customerYearlyGrowth[maKH] : 0;
+
+      // Tính tổng net dương của các sổ của KH này trong kỳ chiến dịch
+      var sumPositiveNets = books.reduce(function(acc, b) { return acc + b.net; }, 0);
+
+      var kh = khMap[maKH] || {};
+      var tenKH = kh.HoTen || maKH;
+
+      books.forEach(function(book) {
+        var maNV = book.MaNV;
+        var soSo = book.SoSo;
+        var net = book.net;
+
+        // Tính phần tăng được ghi nhận (có thể bị scale down nếu tổng vượt quá maxGrowth)
+        var creditedGrowth = net;
+        if (sumPositiveNets > maxGrowth) {
+          creditedGrowth = net * (maxGrowth / sumPositiveNets);
+        }
+
+        // Làm tròn số tiền cho đẹp
+        creditedGrowth = Math.round(creditedGrowth * 100) / 100;
+
+        if (!employeeGrowthMap[maNV]) {
+          employeeGrowthMap[maNV] = { TangTruongKHMoi: 0, TangTruongKHCu: 0, KHMoiSet: {}, KHCuSet: {} };
+        }
+
+        if (creditedGrowth > 0) {
+          employeeGrowthMap[maNV].TangTruongKHCu += creditedGrowth;
+          employeeGrowthMap[maNV].KHCuSet[maKH] = true; // Ghi nhận khách hàng cũ tăng unique per cán bộ
+        }
 
         var soDuDauKy = preCampaignBookBalance[soSo] || 0;
         var soDuCuoiKy = soDuDauKy + net;
@@ -916,9 +1036,9 @@ var ReportService = {
           SoDuDauKy: soDuDauKy,
           NetTrongKy: net,
           SoDuCuoiKy: soDuCuoiKy,
-          TangThem: net
+          TangThem: creditedGrowth
         });
-      }
+      });
     });
 
     // Gom nhóm kết quả cuối cùng theo từng Cán Bộ để làm Summary
