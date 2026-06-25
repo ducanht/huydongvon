@@ -8804,8 +8804,16 @@ function _renderKpiCards() {
   if (!_ttSummary.length) { _renderEmpty(); return; }
 
   var tongTT    = _ttSummary.reduce(function(s,r){ return s + r.TongTangTruong; }, 0);
-  var tongKHMoi = _ttSummary.reduce(function(s,r){ return s + r.SoKHMoi; }, 0);
-  var tongKHCu  = _ttSummary.reduce(function(s,r){ return s + r.SoKHCuTang; }, 0);
+  
+  // Tính tổng số lượng khách hàng thực tế (Unique Khách hàng bank-wide)
+  var uniqueKHMoiSet = {};
+  _ttKHMoi.forEach(function(k) { if (k.MaKH) uniqueKHMoiSet[k.MaKH] = true; });
+  var tongKHMoi = Object.keys(uniqueKHMoiSet).length;
+
+  var uniqueKHCuSet = {};
+  _ttKHCuTang.forEach(function(k) { if (k.MaKH) uniqueKHCuSet[k.MaKH] = true; });
+  var tongKHCu = Object.keys(uniqueKHCuSet).length;
+
   var avgTyLe   = _ttSummary.length ? (_ttSummary.reduce(function(s,r){ return s+r.TyLeHoanThanh; },0) / _ttSummary.length) : 0;
 
   $('#kpiTongTangTruong').text(AppManager.formatCurrency(tongTT));

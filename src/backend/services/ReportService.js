@@ -892,7 +892,7 @@ var ReportService = {
         var emp = employeeGrowthMap[item.maNV];
         if (isNew) {
           emp.TangTruongKHMoi += attributedGrowth;
-          emp.SoKHMoi += ratio; // Ghi nhận tỷ lệ đóng góp số lượng KH mới
+          emp.SoKHMoi += 1; // Ghi nhận số lượng KH mới nguyên người
           
           chiTietKHMoi.push({
             MaNV: item.maNV,
@@ -905,7 +905,7 @@ var ReportService = {
           });
         } else if (isOld) {
           emp.TangTruongKHCu += attributedGrowth;
-          emp.SoKHCuTang += ratio; // Ghi nhận tỷ lệ đóng góp số lượng KH cũ tăng
+          emp.SoKHCuTang += 1; // Ghi nhận số lượng KH cũ tăng nguyên người
           
           var tSoDuDauKy = ratio * soDuDauKy;
           var tSoDuCuoiKy = tSoDuDauKy + item.tNet;
@@ -940,8 +940,8 @@ var ReportService = {
         MaNV: maNV,
         TenNV: ns.HoTen || maNV,
         ChiTieu: chiTieu,
-        SoKHMoi: Math.round(empStats.SoKHMoi * 10) / 10, // Làm tròn 1 chữ số thập phân
-        SoKHCuTang: Math.round(empStats.SoKHCuTang * 10) / 10,
+        SoKHMoi: empStats.SoKHMoi, // Số lượng KH mới nguyên người
+        SoKHCuTang: empStats.SoKHCuTang, // Số lượng KH cũ tăng nguyên người
         TangTruongKHMoi: empStats.TangTruongKHMoi,
         TangTruongKHCu:  empStats.TangTruongKHCu,
         TongTangTruong:  tongTangTruong,
