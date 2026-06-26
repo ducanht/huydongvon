@@ -40,6 +40,98 @@ var ReportService = {
     var kpiMode = filters.kpiMode || 'THI_DUA';
     var cdDateMap = _buildCdDateMap();
 
+    // ── NẾU LÀ CHẾ ĐỘ THI ĐUA VÀ CÓ CHỌN CHIẾN DỊCH ──────────────────────────
+    if (kpiMode === 'THI_DUA' && maCD) {
+      // 1. Chạy báo cáo tăng trưởng chi tiết
+      var tangTruongData = this.getBaoCaoTangTruong(user, { maCD: maCD, maNV: maNV, kpiMode: 'THI_DUA' });
+      var summaryList = tangTruongData.summary || [];
+      
+      // 2. Lấy toàn bộ GD để tính raw Gui/Rut cho từng cán bộ
+      var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+      var filteredGD = allGD.filter(function(gd) {
+        if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
+        if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+        if (maNV && ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
+        var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (tuNgay && gdDate < tuNgay) return false;
+        if (denNgay && gdDate > denNgay) return false;
+        
+        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+        if (cdDateMap[normMaCD]) {
+          var limits = cdDateMap[normMaCD];
+          if (limits.start && gdDate < limits.start) return false;
+          if (limits.end && gdDate > limits.end) return false;
+        }
+        return true;
+      });
+
+      var rawTellersMap = {};
+      filteredGD.forEach(function(gd) {
+        var mnv = ValidatorService.normalizeId(gd.MaNV);
+        if (!mnv) return;
+        if (!rawTellersMap[mnv]) {
+          rawTellersMap[mnv] = { gui: 0, rut: 0, booksCount: {} };
+        }
+        var val = parseFloat(gd.SoTien || 0);
+        if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+          rawTellersMap[mnv].gui += val;
+          if (gd.SoSo) rawTellersMap[mnv].booksCount[gd.SoSo] = true;
+        } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+          rawTellersMap[mnv].rut += val;
+        }
+      });
+
+      var onlyAssignedKpi = (filters.onlyAssignedKpi === true || String(filters.onlyAssignedKpi).toLowerCase() === 'true');
+      var list = [];
+
+      var allNhanSu = NhanSuService.getAll();
+      var nsMap = {};
+      allNhanSu.forEach(function(ns) { 
+        if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; 
+      });
+
+      summaryList.forEach(function(r) {
+        var mnv = ValidatorService.normalizeId(r.MaNV);
+        var rawStats = rawTellersMap[mnv] || { gui: 0, rut: 0, booksCount: {} };
+        var ns = nsMap[mnv] || {};
+
+        var item = {
+          MaNV: r.MaNV,
+          TenNV: r.TenNV,
+          ChiTieu: r.ChiTieu,
+          Net: r.TongTangTruong,             // Thực đạt Net theo KPI Tăng Trưởng
+          HoanThanh: r.TyLeHoanThanh,        // % Hoàn thành theo KPI Tăng Trưởng
+          TongGui: rawStats.gui,             // Số tiền gửi thực tế phát sinh trong CD
+          TongRut: rawStats.rut,             // Số tiền rút thực tế phát sinh trong CD
+          SoMoi: Object.keys(rawStats.booksCount).length, // Số lượng sổ mở trong CD
+          SoKH: r.SoKHMoi + r.SoKHCuTang,     // Số lượng KH tăng trưởng (nguyên người)
+          Email: ns.Email || ""
+        };
+
+        // Lọc theo onlyAssignedKpi
+        if (onlyAssignedKpi && item.ChiTieu <= 0) return;
+        
+        list.push(item);
+      });
+
+      // Sắp xếp theo Net (Giảm dần)
+      list.sort(function(a, b) {
+        return b.Net - a.Net;
+      });
+
+      // Gán hạng cụ thể
+      list.forEach(function(item, index) { item.Rank = index + 1; });
+
+      // NẾU LÀ USER, CHỈ TRẢ VỀ ROW CỦA HỌ CÙNG VỚI RANK
+      if (user.Role !== CONFIG.ROLES.ADMIN) {
+          var targetMaNV = ValidatorService.normalizeId(user.MaNV);
+          return list.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === targetMaNV; });
+      }
+
+      return list;
+    }
+
+    // ── CHẾ ĐỘ THỰC TẾ HOẶC KHÔNG CHỌN CHIẾN DỊCH (GIỮ NGUYÊN BẢN GỐC) ────────
     var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
     var targetChiTieu = allChiTieu;
     if (maCD) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaCD) === maCD; });

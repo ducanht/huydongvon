@@ -273,6 +273,21 @@ var KPIService = {
 
     result.Net = result.TongGui - result.TongRut;
     
+    // Override Net và HoanThanh trong chế độ THI_DUA có chọn chiến dịch
+    if (kpiMode === 'THI_DUA' && maCD) {
+      try {
+        var tangTruongData = ReportService.getBaoCaoTangTruong(user, { maCD: maCD, maNV: maNV, kpiMode: 'THI_DUA' });
+        var summaryList = tangTruongData.summary || [];
+        var totalTangTruong = 0;
+        summaryList.forEach(function(r) {
+          totalTangTruong += r.TongTangTruong;
+        });
+        result.Net = totalTangTruong;
+      } catch (e) {
+        // Fallback về raw net nếu có lỗi
+      }
+    }
+    
     if (result.ChiTieu > 0) {
       result.HoanThanh = (result.Net / result.ChiTieu) * 100;
     }
