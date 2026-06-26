@@ -276,7 +276,7 @@ var KPIService = {
     // Override Net và HoanThanh trong chế độ THI_DUA có chọn chiến dịch
     if (kpiMode === 'THI_DUA' && maCD) {
       try {
-        var tangTruongData = ReportService.getBaoCaoTangTruong(user, { maCD: maCD, maNV: maNV, kpiMode: 'THI_DUA' });
+        var tangTruongData = ReportService.getBaoCaoTangTruong(user, { maCD: maCD, maNV: maNV, kpiMode: 'THI_DUA' }, true);
         var summaryList = tangTruongData.summary || [];
         var totalTangTruong = 0;
         summaryList.forEach(function(r) {

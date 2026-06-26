@@ -43,7 +43,7 @@ var ReportService = {
     // ── NẾU LÀ CHẾ ĐỘ THI ĐUA VÀ CÓ CHỌN CHIẾN DỊCH ──────────────────────────
     if (kpiMode === 'THI_DUA' && maCD) {
       // 1. Chạy báo cáo tăng trưởng chi tiết
-      var tangTruongData = this.getBaoCaoTangTruong(user, { maCD: maCD, maNV: maNV, kpiMode: 'THI_DUA' });
+      var tangTruongData = this.getBaoCaoTangTruong(user, { maCD: maCD, maNV: maNV, kpiMode: 'THI_DUA' }, true);
       var summaryList = tangTruongData.summary || [];
       
       // 2. Lấy toàn bộ GD để tính raw Gui/Rut cho từng cán bộ
@@ -869,14 +869,19 @@ var ReportService = {
    * @param {Object} filters - { maCD, maNV, kpiMode }
    * @returns {Object} { summary, chiTietKHMoi, chiTietKHCuTang }
    */
-  getBaoCaoTangTruong: function(user, filters) {
-    if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error('Chỉ có ADMIN mới được xem báo cáo Tăng Trưởng.');
+  getBaoCaoTangTruong: function(user, filters, isInternalCall) {
+    if (!isInternalCall && user.Role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('Chỉ có ADMIN mới được xem báo cáo Tăng Trưởng.');
+    }
 
     filters = filters || {};
     var maCD = ValidatorService.normalizeId(filters.maCD);
     if (!maCD) throw new Error('Vui lòng chọn Chiến Dịch để phân tích tăng trưởng.');
 
     var maNVFilter = ValidatorService.normalizeId(filters.maNV);
+    if (user.Role !== CONFIG.ROLES.ADMIN) {
+      maNVFilter = ValidatorService.normalizeId(user.MaNV);
+    }
     var kpiMode = filters.kpiMode || 'THI_DUA';
 
     // ── 1. Lấy metadata chiến dịch (ngày bắt đầu, kết thúc) ──────────────────
@@ -900,10 +905,10 @@ var ReportService = {
     var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
 
     // Lọc GD trong phạm vi chiến dịch (đã duyệt + đúng CD + theo kpiMode)
+    // Lưu ý: Không lọc maNVFilter sớm ở đây để đảm bảo tính tổng net của khách hàng trên toàn hệ thống (Anti-churn).
     var filteredGD = allGD.filter(function(gd) {
       if (gd.TrangThai !== 'ACTIVE') return false;
       if (ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
-      if (maNVFilter && ValidatorService.normalizeId(gd.MaNV) !== maNVFilter) return false;
 
       // Lọc theo ngày bắt đầu / kết thúc chiến dịch nếu kpiMode = THI_DUA
       if (kpiMode === 'THI_DUA') {
@@ -1161,6 +1166,13 @@ var ReportService = {
         TyLeHoanThanh:   chiTieu > 0 ? (tongTangTruong / chiTieu) * 100 : 0
       });
     });
+
+    // Hậu lọc theo Cán Bộ (Post-filtering) để số liệu khớp đúng toàn cục
+    if (maNVFilter) {
+      summary = summary.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === maNVFilter; });
+      chiTietKHMoi = chiTietKHMoi.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === maNVFilter; });
+      chiTietKHCuTang = chiTietKHCuTang.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === maNVFilter; });
+    }
 
     // Sắp xếp theo TongTangTruong giảm dần
     summary.sort(function(a, b) { return b.TongTangTruong - a.TongTangTruong; });
