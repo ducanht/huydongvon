@@ -622,18 +622,22 @@
         onlyAssignedKpi: $("#chkOnlyAssignedKpi").is(":checked")
       };
 
-      // Gọi API Load KPI có truyền Filters
-      AppManager.callApi("getDashboardKpi", filters).done(function (data) {
-        var tongGui = data.TongGui || 0;
-        var tongRut = data.TongRut || 0;
+      // Gọi API Load Gộp KPI + Leaderboard để tối ưu hiệu năng & tránh timeout
+      AppManager.callApi("getDashboardData", filters).done(function (res) {
+        var kpiData = res.kpi || {};
+        var list = res.leaderboard || [];
+
+        // 1. Render KPI Cards
+        var tongGui = kpiData.TongGui || 0;
+        var tongRut = kpiData.TongRut || 0;
 
         $("#lblTongGui").text(formatCurrency(tongGui));
         $("#lblTongRut").text(formatCurrency(tongRut));
-        $("#lblNet").text(formatCurrency(data.Net || 0));
+        $("#lblNet").text(formatCurrency(kpiData.Net || 0));
 
-        if (data.ChiTieu > 0) {
-          $("#lblHoanThanh").text((data.HoanThanh || 0).toFixed(2) + "%");
-          $("#lblChiTieu").text("Chỉ tiêu: " + formatCurrency(data.ChiTieu));
+        if (kpiData.ChiTieu > 0) {
+          $("#lblHoanThanh").text((kpiData.HoanThanh || 0).toFixed(2) + "%");
+          $("#lblChiTieu").text("Chỉ tiêu: " + formatCurrency(kpiData.ChiTieu));
         } else {
           $("#lblHoanThanh").text("N/A");
           $("#lblChiTieu").text("Không có chỉ tiêu");
@@ -642,11 +646,9 @@
         $("#lblLastUpdate").text(new Date().toLocaleTimeString("vi-VN"));
 
         // Render Charts
-        renderDashCharts(data);
-      });
+        renderDashCharts(kpiData);
 
-      // Lấy Bảng xếp hạng Leaderboard có truyền Filters
-      AppManager.callApi("getLeaderboard", filters).done(function (list) {
+        // 2. Render Leaderboard Table
         window.currentLeaderboardData = list;
 
         if ($.fn.DataTable.isDataTable("#tbLeaderboard")) {

@@ -122,12 +122,6 @@ var ReportService = {
       // Gán hạng cụ thể
       list.forEach(function(item, index) { item.Rank = index + 1; });
 
-      // NẾU LÀ USER, CHỈ TRẢ VỀ ROW CỦA HỌ CÙNG VỚI RANK
-      if (user.Role !== CONFIG.ROLES.ADMIN) {
-          var targetMaNV = ValidatorService.normalizeId(user.MaNV);
-          return list.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === targetMaNV; });
-      }
-
       return list;
     }
 
@@ -230,12 +224,6 @@ var ReportService = {
       item.Email = ns ? ns.Email : "";
       return item;
     });
-    
-    // NẾU LÀ USER, CHỈ TRẢ VỀ ROW CỦA HỌ CÙNG VỚI RANK
-    if (user.Role !== CONFIG.ROLES.ADMIN) {
-        var targetMaNV = ValidatorService.normalizeId(user.MaNV);
-        return fullLeaderboard.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === targetMaNV; });
-    }
     
     return fullLeaderboard;
   },
@@ -879,7 +867,7 @@ var ReportService = {
     if (!maCD) throw new Error('Vui lòng chọn Chiến Dịch để phân tích tăng trưởng.');
 
     var maNVFilter = ValidatorService.normalizeId(filters.maNV);
-    if (user.Role !== CONFIG.ROLES.ADMIN) {
+    if (!isInternalCall && user.Role !== CONFIG.ROLES.ADMIN) {
       maNVFilter = ValidatorService.normalizeId(user.MaNV);
     }
     var kpiMode = filters.kpiMode || 'THI_DUA';
