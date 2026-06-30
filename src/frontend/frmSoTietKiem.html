@@ -44,7 +44,14 @@
 </div>
 
 <div class="col-12">
-    <div class="card-custom">
+    <div class="card-custom position-relative">
+        <!-- Loading Overlay -->
+        <div id="sotietkiemLoadingOverlay" class="glass-loading">
+            <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <div class="mt-3 fw-bold text-emerald-800" style="font-family: 'Outfit', sans-serif;">Đang tải dữ liệu sổ và khách hàng...</div>
+        </div>
         <div class="card-header p-0 pt-1">
             <ul class="nav nav-tabs nav-tabs-bordered" id="tabMonitoring" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -189,6 +196,19 @@
 <script>
     var dtSoTietKiem = null;
     var dtManagedKH = null;
+    var activeAjaxCount = 0;
+
+    function showSTKLoading() {
+        activeAjaxCount++;
+        $('#sotietkiemLoadingOverlay').css('display', 'flex');
+    }
+    function hideSTKLoading() {
+        activeAjaxCount--;
+        if (activeAjaxCount <= 0) {
+            activeAjaxCount = 0;
+            $('#sotietkiemLoadingOverlay').hide();
+        }
+    }
 
     function frmSoTietKiem_init() {
         initFilters();
@@ -260,6 +280,7 @@
             processing: true,
             deferRender: true,
             ajax: function (data, callback, settings) {
+                showSTKLoading();
                 var payload = {
                     draw: data.draw,
                     start: data.start,
@@ -277,6 +298,9 @@
                     .fail(function (err) {
                         Swal.fire('Lỗi', err, 'error');
                         callback({ data: [], recordsTotal: 0, recordsFiltered: 0 });
+                    })
+                    .always(function () {
+                        hideSTKLoading();
                     });
             },
             dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +
@@ -351,6 +375,7 @@
             processing: true,
             deferRender: true,
             ajax: function (data, callback, settings) {
+                showSTKLoading();
                 var payload = {
                     draw: data.draw,
                     start: data.start,
@@ -365,6 +390,9 @@
                     })
                     .fail(function (err) {
                         callback({ data: [], recordsTotal: 0, recordsFiltered: 0 });
+                    })
+                    .always(function () {
+                        hideSTKLoading();
                     });
             },
             dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 text-end'B>>" +

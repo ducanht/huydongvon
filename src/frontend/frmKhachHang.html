@@ -53,7 +53,14 @@
 </div>
 
 <div class="col-12">
-    <div class="card-custom">
+    <div class="card-custom position-relative">
+        <!-- Loading Overlay -->
+        <div id="khachhangLoadingOverlay" class="glass-loading">
+            <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <div class="mt-3 fw-bold text-emerald-800" style="font-family: 'Outfit', sans-serif;">Đang tải danh sách khách hàng...</div>
+        </div>
         <div class="card-body p-4">
             <div class="table-responsive">
                 <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbKhachHang">
@@ -252,6 +259,7 @@
                 processing: true,
                 deferRender: true,
                 ajax: function (data, callback, settings) {
+                    $('#khachhangLoadingOverlay').css('display', 'flex');
                     var cleanPayload = {
                         draw: data.draw || 1,
                         start: data.start || 0,
@@ -282,6 +290,8 @@
                         console.error('[KhachHang] Lỗi API:', err);
                         Swal.fire('Lỗi Tải Dữ Liệu', 'Không tải được danh sách Khách Hàng.', 'error');
                         callback({ draw: cleanPayload.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
+                    }).always(function () {
+                        $('#khachhangLoadingOverlay').hide();
                     });
                 },
                 columnDefs: [

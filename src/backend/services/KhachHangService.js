@@ -15,10 +15,11 @@ var KhachHangService = {
     try {
       lock.waitLock(15000);
       
-      // Đọc dữ liệu mới nhất không cache từ Sheet để tránh trùng lặp
-      var allKH = Repository.getAll(CONFIG.SHEETS.KHACHHANG, false);
+      // Đọc dữ liệu mới nhất không cache từ Sheet để tránh trùng lặp, dùng filterFn để tối ưu bộ nhớ
       var targetCCCD = String(khachHangData.CCCD).trim();
-      var exists = allKH.filter(function(kh) { return String(kh.CCCD).trim() === targetCCCD; })[0];
+      var exists = Repository.getAll(CONFIG.SHEETS.KHACHHANG, false, function(kh) {
+        return String(kh.CCCD).trim() === targetCCCD;
+      })[0];
       
       if (exists) {
         return exists.MaKH; // Trả về Mã KH cũ

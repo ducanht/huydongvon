@@ -5,14 +5,14 @@
 var SoTietKiemService = {
   
   /**
-   * Kiểm tra Số Sổ đã tồn tại chưa
-   */
   isSoTietKiemExists: function(soSo, useCache) {
     if (soSo === undefined || soSo === null) return false;
     useCache = useCache !== false;
-    var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM, useCache);
     var target = String(soSo).trim();
-    return allSo.some(function(so) { return String(so.SoSo).trim() === target; });
+    var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM, useCache, function(so) {
+      return String(so.SoSo).trim() === target;
+    });
+    return allSo.length > 0;
   },
   
   /**

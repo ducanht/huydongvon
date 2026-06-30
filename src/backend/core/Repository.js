@@ -6,11 +6,14 @@ var Repository = {
   // Bổ sung In-Memory Cache để tránh đọc Sheet nhiều lần trong cùng 1 lần thực hiện (Single Execution)
   _executionCache: {},
   
-  getAll: function(sheetName, useCache) {
+  getAll: function(sheetName, useCache, filterFn) {
     useCache = useCache !== false; 
     
     // 1. Kiểm tra In-Memory Cache (Tồn tại trong duy nhất 1 lần chạy script - Cực nhanh)
-    if (useCache && this._executionCache[sheetName]) return this._executionCache[sheetName];
+    if (useCache && this._executionCache[sheetName]) {
+      var cached = this._executionCache[sheetName];
+      return filterFn ? cached.filter(filterFn) : cached;
+    }
 
     var cacheStr = "CACHE_SHEET_" + sheetName;
     
@@ -19,7 +22,7 @@ var Repository = {
         var cachedData = CacheServiceWrapper.get(cacheStr);
         if (cachedData !== null) {
             this._executionCache[sheetName] = cachedData; // Lưu vào In-Memory để lần sau nhanh hơn
-            return cachedData; 
+            return filterFn ? cachedData.filter(filterFn) : cachedData; 
         }
     }
     
@@ -31,7 +34,8 @@ var Repository = {
     if (data.length <= 1) return []; 
     
     var headers = data[0].map(function(h) { return String(h).trim(); });
-    var result = [];
+    var resultForCache = [];
+    var resultFiltered = [];
     
     for (var i = 1; i < data.length; i++) {
         var rowStr = data[i].join('');
@@ -47,17 +51,25 @@ var Repository = {
             }
         }
         obj['_rowIndex'] = i + 1; 
-        result.push(obj);
+        
+        if (useCache) {
+          resultForCache.push(obj);
+        }
+        
+        if (!filterFn || filterFn(obj)) {
+          resultFiltered.push(obj);
+        }
     }
     
     // 3. Lưu vào cả 2 lớp Cache (Deep clone trước khi lưu để đảm bảo tính bất biến)
-    var clones = this.deepClone(result);
     if (useCache) {
+        var clones = this.deepClone(resultForCache);
         this._executionCache[sheetName] = clones;
         CacheServiceWrapper.put(cacheStr, clones, CONFIG.CACHE_TTL);
+        return filterFn ? clones.filter(filterFn) : clones;
     }
     
-    return clones;
+    return resultFiltered;
   },
 
   /**

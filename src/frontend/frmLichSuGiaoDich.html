@@ -55,7 +55,14 @@
 </div>
 
 <div class="col-12">
-    <div class="card-custom">
+    <div class="card-custom position-relative">
+        <!-- Loading Overlay -->
+        <div id="lichsuLoadingOverlay" class="glass-loading">
+            <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <div class="mt-3 fw-bold text-emerald-800" style="font-family: 'Outfit', sans-serif;">Đang tải lịch sử giao dịch...</div>
+        </div>
         <div class="card-body p-4">
             <div class="table-responsive">
                 <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards" id="tbLichSu">
@@ -198,6 +205,7 @@
             var btnFilter = $('button[onclick="frmLichSuGiaoDich_loadGrid()"]');
             var oldText = btnFilter.html();
             btnFilter.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>...');
+            $('#lichsuLoadingOverlay').css('display', 'flex');
 
             self.dt = $('#tbLichSu').DataTable({
                 serverSide: true,
@@ -243,6 +251,7 @@
                         callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
                     }).always(function () {
                         btnFilter.prop('disabled', false).html(oldText);
+                        $('#lichsuLoadingOverlay').hide();
                     });
                 },
                 columnDefs: [

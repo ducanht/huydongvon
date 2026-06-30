@@ -80,10 +80,10 @@ var GiaoDichService = {
     if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được duyệt lệnh.");
     ValidatorService.requireFields(payload, ["MaGD", "Action"]); // Action = APPROVE / REJECT
     
-    // Prevent Race Condition: Khóa 3 giây để chống Multi-click hoặc 2 Teller thao tác cùng lúc
+    // Prevent Race Condition: Khóa 15 giây để chống Multi-click hoặc 2 Teller thao tác cùng lúc
     var lock = LockService.getScriptLock();
     try {
-      lock.waitLock(3000); 
+      lock.waitLock(15000); 
     } catch (e) {
       throw new Error("Hệ thống đang xử lý duyệt một lệnh khác. Quý khách vui lòng thử lại sau vài giây.");
     }
@@ -233,7 +233,7 @@ var GiaoDichService = {
     // Prevent Race Condition on Rut Tien (Just simple validation reading)
     var lock = LockService.getScriptLock();
     try {
-      lock.waitLock(3000); 
+      lock.waitLock(15000); 
     } catch (e) {
       throw new Error("Hệ thống đang xử lý một giao dịch Rút tiền khác. Vui lòng thử lại sau vài giây.");
     }
@@ -548,7 +548,7 @@ var GiaoDichService = {
     
     var lock = LockService.getScriptLock();
     try {
-      lock.waitLock(5000);
+      lock.waitLock(15000);
       
       var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
       var gdData = allGD.filter(function(g) { return g.MaGD === maGD; })[0];
