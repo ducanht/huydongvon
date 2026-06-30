@@ -221,12 +221,6 @@
     top: -200px;
     right: -200px;
 
-    /* Emerald gradient orb */
-    background: radial-gradient(circle, #10b981 0%, transparent 70%);
-
-    /* Performance */
-    will-change: opacity;
-    transform: translateZ(0);
   }
 
   body::after {
@@ -246,12 +240,6 @@
     bottom: -200px;
     left: -200px;
 
-    /* Blue gradient orb */
-    background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
-
-    /* Performance */
-    will-change: opacity;
-    transform: translateZ(0);
   }
 
   /* ─────────────────────────────────────────────
@@ -393,11 +381,6 @@
     white-space: nowrap;
     text-decoration: none;
     min-height: 42px;
-    position: relative;
-
-    /* Performance */
-    will-change: transform;
-    transform: translateZ(0);
   }
 
   .sidebar-nav .nav-link::before {
@@ -520,11 +503,6 @@
     align-items: center;
     padding: 0 16px;
     gap: 12px;
-    transition: background 0.3s ease;
-
-    /* Performance */
-    will-change: transform;
-    transform: translateZ(0);
   }
 
   @media (min-width: 768px) {
@@ -554,11 +532,6 @@
     transition: var(--transition-fast);
     font-size: 1.5rem;
     line-height: 1;
-    margin-left: -8px;
-
-    /* Performance */
-    will-change: transform;
-    transform: translateZ(0);
   }
 
   #btnToggleSideBar:hover {
@@ -584,25 +557,21 @@
    11. GLASS CARDS - CORE COMPONENT
    ───────────────────────────────────────────── */
 
-  /* Glassmorphism for default Bootstrap Cards */
+  /* Glassmorphism for default Bootstrap Cards - Optimized to prevent scroll lag */
   .card {
     background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.95),
-        rgba(220, 252, 231, 0.6)) !important;
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
+        rgba(255, 255, 255, 0.97),
+        rgba(220, 252, 231, 0.90)) !important;
     border: 1px solid rgba(16, 185, 129, 0.2) !important;
     border-radius: var(--radius-lg) !important;
     box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12) !important;
   }
 
   .card-custom {
-    /* Background */
+    /* Background - Optimized opacity for performance */
     background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.95),
-        rgba(220, 252, 231, 0.6));
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
+        rgba(255, 255, 255, 0.97),
+        rgba(220, 252, 231, 0.90));
 
     /* Border & Radius */
     border: 1px solid rgba(16, 185, 129, 0.2);
@@ -621,10 +590,6 @@
     position: relative;
     overflow: hidden;
     min-width: 0;
-
-    /* Performance */
-    will-change: transform, box-shadow;
-    transform: translateZ(0);
   }
 
   /* Inner gradient overlay */
@@ -750,20 +715,14 @@
 
   .card-filter {
     background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.95),
-        rgba(207, 250, 254, 0.5));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+        rgba(255, 255, 255, 0.97),
+        rgba(207, 250, 254, 0.85));
     border: 1px solid rgba(16, 185, 129, 0.2);
     border-radius: var(--radius-lg);
     padding: 24px;
     box-shadow: var(--shadow-md);
     margin-bottom: 1.5rem;
     transition: var(--transition);
-
-    /* Performance */
-    will-change: transform, box-shadow;
-    transform: translateZ(0);
   }
 
   .card-filter:hover {
@@ -778,15 +737,12 @@
    15. KPI CARDS - COLORED VARIANTS
    ───────────────────────────────────────────── */
 
-  /* PRIMARY CARD - Emerald Gradient */
+  /* PRIMARY CARD - Emerald Gradient - Optimized */
   .card-custom.card-primary {
     background: linear-gradient(135deg,
-        rgba(6, 182, 132, 0.68) 0%,
-        rgba(16, 185, 129, 0.54) 50%,
-        rgba(52, 211, 153, 0.4) 100%);
-
-    backdrop-filter: blur(15px) saturate(180%);
-    -webkit-backdrop-filter: blur(15px) saturate(180%);
+        rgba(6, 182, 132, 0.90) 0%,
+        rgba(16, 185, 129, 0.80) 50%,
+        rgba(52, 211, 153, 0.70) 100%);
 
     color: #ffffff;
     border: 1.5px solid rgba(209, 250, 229, 0.55);
@@ -795,8 +751,6 @@
       0 2px 8px rgba(16, 185, 129, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
 
-    will-change: transform, box-shadow, border-color;
-    transform: translateZ(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -807,18 +761,15 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.4);
 
     border-color: rgba(209, 250, 229, 0.78);
-    transform: translateY(-8px) translateZ(0);
+    transform: translateY(-8px);
   }
 
-  /* SUCCESS CARD - Green Gradient */
+  /* SUCCESS CARD - Green Gradient - Optimized */
   .card-custom.card-success {
     background: linear-gradient(135deg,
-        rgba(4, 120, 87, 0.68) 0%,
-        rgba(5, 150, 105, 0.54) 50%,
-        rgba(16, 185, 129, 0.4) 100%);
-
-    backdrop-filter: blur(15px) saturate(180%);
-    -webkit-backdrop-filter: blur(15px) saturate(180%);
+        rgba(4, 120, 87, 0.90) 0%,
+        rgba(5, 150, 105, 0.80) 50%,
+        rgba(16, 185, 129, 0.70) 100%);
 
     color: #ffffff;
     border: 1.5px solid rgba(167, 243, 208, 0.55);
@@ -827,8 +778,6 @@
       0 2px 8px rgba(5, 150, 105, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
 
-    will-change: transform, box-shadow, border-color;
-    transform: translateZ(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -839,18 +788,15 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.4);
 
     border-color: rgba(167, 243, 208, 0.78);
-    transform: translateY(-8px) translateZ(0);
+    transform: translateY(-8px);
   }
 
-  /* DANGER CARD - Red Gradient */
+  /* DANGER CARD - Red Gradient - Optimized */
   .card-custom.card-danger {
     background: linear-gradient(135deg,
-        rgba(190, 18, 60, 0.68) 0%,
-        rgba(225, 29, 72, 0.54) 50%,
-        rgba(251, 113, 133, 0.4) 100%);
-
-    backdrop-filter: blur(15px) saturate(180%);
-    -webkit-backdrop-filter: blur(15px) saturate(180%);
+        rgba(190, 18, 60, 0.90) 0%,
+        rgba(225, 29, 72, 0.80) 50%,
+        rgba(251, 113, 133, 0.70) 100%);
 
     color: #ffffff;
     border: 1.5px solid rgba(255, 205, 215, 0.55);
@@ -859,8 +805,6 @@
       0 2px 8px rgba(225, 29, 72, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
 
-    will-change: transform, box-shadow, border-color;
-    transform: translateZ(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -871,18 +815,15 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.4);
 
     border-color: rgba(255, 205, 215, 0.78);
-    transform: translateY(-8px) translateZ(0);
+    transform: translateY(-8px);
   }
 
-  /* WARNING CARD - Orange Gradient */
+  /* WARNING CARD - Orange Gradient - Optimized */
   .card-custom.card-warning {
     background: linear-gradient(135deg,
-        rgba(180, 83, 9, 0.68) 0%,
-        rgba(217, 119, 6, 0.54) 50%,
-        rgba(251, 191, 36, 0.4) 100%);
-
-    backdrop-filter: blur(15px) saturate(180%);
-    -webkit-backdrop-filter: blur(15px) saturate(180%);
+        rgba(180, 83, 9, 0.90) 0%,
+        rgba(217, 119, 6, 0.80) 50%,
+        rgba(251, 191, 36, 0.70) 100%);
 
     color: #ffffff;
     border: 1.5px solid rgba(254, 240, 138, 0.55);
@@ -891,8 +832,6 @@
       0 2px 8px rgba(217, 119, 6, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
 
-    will-change: transform, box-shadow, border-color;
-    transform: translateZ(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -903,7 +842,7 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.4);
 
     border-color: rgba(254, 240, 138, 0.78);
-    transform: translateY(-8px) translateZ(0);
+    transform: translateY(-8px);
   }
 
   /* ─────────────────────────────────────────────
@@ -937,13 +876,7 @@
     padding: 10px 14px;
     font-size: 0.9rem;
     transition: var(--transition-fast);
-    background-color: rgba(255, 255, 255, 0.85);
-    color: var(--text-dark);
-    backdrop-filter: blur(10px);
-
-    /* Performance */
-    will-change: border-color, box-shadow;
-    transform: translateZ(0);
+    background-color: rgba(255, 255, 255, 0.95);
   }
 
   .form-control:focus,
@@ -983,10 +916,6 @@
     overflow: hidden;
     z-index: 1;
     cursor: pointer;
-
-    /* Performance */
-    will-change: transform, box-shadow;
-    transform: translateZ(0);
   }
 
   /* Shine Effect (gradient sliding left to right) */
@@ -1131,10 +1060,6 @@
   .table tbody tr {
     transition: var(--transition-fast);
     animation: slideUp 0.4s ease-out;
-
-    /* Performance */
-    will-change: transform;
-    transform: translateZ(0);
   }
 
   @keyframes slideUp {
