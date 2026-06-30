@@ -227,7 +227,7 @@ var ReportService = {
     }
 
     // Kiểm tra và áp dụng giới hạn hiển thị theo vai trò (chỉ ADMIN mới xem toàn bộ)
-    var userRole = (user && user.Quyen) ? String(user.Quyen).toUpperCase() : "";
+    var userRole = (user && user.Role) ? String(user.Role).toUpperCase() : "";
     if (userRole !== "ADMIN") {
       var normalizedUserMaNV = ValidatorService.normalizeId(user ? user.MaNV : "");
       var filteredList = finalLeaderboard.filter(function(r) {
