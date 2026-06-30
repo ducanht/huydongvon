@@ -39,6 +39,7 @@ var ReportService = {
 
     var kpiMode = filters.kpiMode || 'THI_DUA';
     var cdDateMap = _buildCdDateMap();
+    var finalLeaderboard = [];
 
     // ── NẾU LÀ CHẾ ĐỘ THI ĐUA VÀ CÓ CHỌN CHIẾN DỊCH ──────────────────────────
     if (kpiMode === 'THI_DUA' && maCD) {
@@ -122,110 +123,138 @@ var ReportService = {
       // Gán hạng cụ thể
       list.forEach(function(item, index) { item.Rank = index + 1; });
 
-      return list;
+      finalLeaderboard = list;
+    } else {
+      // ── CHẾ ĐỘ THỰC TẾ HOẶC KHÔNG CHỌN CHIẾN DỊCH (GIỮ NGUYÊN BẢN GỐC) ────────
+      var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+      var targetChiTieu = allChiTieu;
+      if (maCD) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaCD) === maCD; });
+      if (maNV) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaNV) === maNV; });
+
+      // Gom nhóm Chỉ tiêu theo Nhân viên từ DB_CHITIEU
+      var userMap = {};
+      targetChiTieu.forEach(function(ct) {
+        if (!userMap[ct.MaNV]) {
+          userMap[ct.MaNV] = { MaNV: ct.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+        }
+        userMap[ct.MaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
+      });
+
+      // Tính Net thực tế theo bộ lọc bằng cách duyệt Giao Dịch
+      var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+      var filteredGD = allGD.filter(function(gd) {
+        if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
+        if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+        if (maNV && ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
+        var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (tuNgay && gdDate < tuNgay) return false;
+        if (denNgay && gdDate > denNgay) return false;
+        
+        // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
+        if (kpiMode === 'THI_DUA') {
+          var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+          if (cdDateMap[normMaCD]) {
+            var limits = cdDateMap[normMaCD];
+            if (limits.start && gdDate < limits.start) return false;
+            if (limits.end && gdDate > limits.end) return false;
+          }
+        }
+
+        return true;
+      });
+
+      filteredGD.forEach(function(gd) {
+        if (!userMap[gd.MaNV]) {
+           userMap[gd.MaNV] = { MaNV: gd.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+        }
+        var soTienGD = parseFloat(gd.SoTien || 0);
+        if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+           userMap[gd.MaNV].Net += soTienGD;
+           userMap[gd.MaNV].TongGui += soTienGD;
+           userMap[gd.MaNV].SoMoi += 1; // Số Hợp đồng gửi
+        } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+           userMap[gd.MaNV].Net -= soTienGD;
+           userMap[gd.MaNV].TongRut += soTienGD;
+        }
+        // Ghi nhận Mã Khách Hàng (Tập hợp khách hàng duy nhất)
+        if (gd.MaKH) {
+           userMap[gd.MaNV].KhachHangMap[gd.MaKH] = true;
+        }
+      });
+
+      var onlyAssignedKpi = (filters.onlyAssignedKpi === true || String(filters.onlyAssignedKpi).toLowerCase() === 'true');
+
+      var list = [];
+      Object.keys(userMap).forEach(function(key) {
+        var item = userMap[key];
+        
+        // Nếu lọc chỉ hiện cán bộ có chỉ tiêu
+        if (onlyAssignedKpi && item.ChiTieu <= 0) return;
+        
+        // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
+        if (!onlyAssignedKpi && item.ChiTieu <= 0 && item.Net === 0 && item.TongGui === 0 && item.TongRut === 0) return;
+        
+        // Chỉ push vào mảng nếu có Giao dịch trong thời gian này, HOẶC nếu không lọc by date
+        if ((tuNgay || denNgay) && item.Net === 0 && item.ChiTieu === 0) return;
+        
+        item.HoanThanh = item.ChiTieu > 0 ? (item.Net / item.ChiTieu) * 100 : 0;
+        item.SoKH = Object.keys(item.KhachHangMap).length; // Số lượng khách hàng
+        delete item.KhachHangMap; // Bỏ field trung gian trước khi trả về
+        list.push(item);
+      });
+      
+      // Sắp xếp theo Net (Giảm dần) và lưu Rank thực
+      list.sort(function(a, b) {
+        return b.Net - a.Net;
+      });
+      
+      // Gán hạng cụ thể (vì sau filter array index không còn đúng nữa)
+      list.forEach(function(item, index) { item.Rank = index + 1; });
+      
+      // Map Tên Nhân viên
+      var allNhanSu = NhanSuService.getAll();
+      var nsMap = {};
+      allNhanSu.forEach(function(ns) { 
+        if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; 
+      });
+      
+      finalLeaderboard = list.map(function(item) {
+        var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
+        item.TenNV = ns ? ns.HoTen : item.MaNV;
+        item.Email = ns ? ns.Email : "";
+        return item;
+      });
     }
 
-    // ── CHẾ ĐỘ THỰC TẾ HOẶC KHÔNG CHỌN CHIẾN DỊCH (GIỮ NGUYÊN BẢN GỐC) ────────
-    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
-    var targetChiTieu = allChiTieu;
-    if (maCD) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaCD) === maCD; });
-    if (maNV) targetChiTieu = targetChiTieu.filter(function(ct) { return ValidatorService.normalizeId(ct.MaNV) === maNV; });
+    // Kiểm tra và áp dụng giới hạn hiển thị theo vai trò (chỉ ADMIN mới xem toàn bộ)
+    var userRole = (user && user.Quyen) ? String(user.Quyen).toUpperCase() : "";
+    if (userRole !== "ADMIN") {
+      var normalizedUserMaNV = ValidatorService.normalizeId(user ? user.MaNV : "");
+      var filteredList = finalLeaderboard.filter(function(r) {
+        return ValidatorService.normalizeId(r.MaNV) === normalizedUserMaNV;
+      });
 
-    // Gom nhóm Chỉ tiêu theo Nhân viên từ DB_CHITIEU
-    var userMap = {};
-    targetChiTieu.forEach(function(ct) {
-      if (!userMap[ct.MaNV]) {
-        userMap[ct.MaNV] = { MaNV: ct.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+      // Nếu không tìm thấy dòng dữ liệu của chính user (do không có KPI hoặc giao dịch), tạo dòng giả lập để hiển thị
+      if (filteredList.length === 0) {
+        var fallbackRow = {
+          MaNV: user ? user.MaNV : "",
+          TenNV: user ? (user.HoTen || user.MaNV) : "Không rõ",
+          ChiTieu: 0,
+          Net: 0,
+          HoanThanh: 0,
+          TongGui: 0,
+          TongRut: 0,
+          SoMoi: 0,
+          SoKH: 0,
+          Email: user ? (user.Email || "") : "",
+          Rank: finalLeaderboard.length + 1
+        };
+        filteredList = [fallbackRow];
       }
-      userMap[ct.MaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
-    });
+      return filteredList;
+    }
 
-    // Tính Net thực tế theo bộ lọc bằng cách duyệt Giao Dịch
-    var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
-    var filteredGD = allGD.filter(function(gd) {
-      if (gd.TrangThai === "CANCELLED" || gd.TrangThai === "PENDING" || gd.TrangThai === "REJECTED" || gd.TrangThai === "REVERTED") return false;
-      if (maCD && ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
-      if (maNV && ValidatorService.normalizeId(gd.MaNV) !== maNV) return false;
-      var gdDate = ValidatorService.parseDate(gd.NgayGD);
-      if (tuNgay && gdDate < tuNgay) return false;
-      if (denNgay && gdDate > denNgay) return false;
-      
-      // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
-      if (kpiMode === 'THI_DUA') {
-        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
-        if (cdDateMap[normMaCD]) {
-          var limits = cdDateMap[normMaCD];
-          if (limits.start && gdDate < limits.start) return false;
-          if (limits.end && gdDate > limits.end) return false;
-        }
-      }
-
-      return true;
-    });
-
-    filteredGD.forEach(function(gd) {
-      if (!userMap[gd.MaNV]) {
-         userMap[gd.MaNV] = { MaNV: gd.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
-      }
-      var soTienGD = parseFloat(gd.SoTien || 0);
-      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-         userMap[gd.MaNV].Net += soTienGD;
-         userMap[gd.MaNV].TongGui += soTienGD;
-         userMap[gd.MaNV].SoMoi += 1; // Số Hợp đồng gửi
-      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-         userMap[gd.MaNV].Net -= soTienGD;
-         userMap[gd.MaNV].TongRut += soTienGD;
-      }
-      // Ghi nhận Mã Khách Hàng (Tập hợp khách hàng duy nhất)
-      if (gd.MaKH) {
-         userMap[gd.MaNV].KhachHangMap[gd.MaKH] = true;
-      }
-    });
-
-    var onlyAssignedKpi = (filters.onlyAssignedKpi === true || String(filters.onlyAssignedKpi).toLowerCase() === 'true');
-
-    var list = [];
-    Object.keys(userMap).forEach(function(key) {
-      var item = userMap[key];
-      
-      // Nếu lọc chỉ hiện cán bộ có chỉ tiêu
-      if (onlyAssignedKpi && item.ChiTieu <= 0) return;
-      
-      // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
-      if (!onlyAssignedKpi && item.ChiTieu <= 0 && item.Net === 0 && item.TongGui === 0 && item.TongRut === 0) return;
-      
-      // Chỉ push vào mảng nếu có Giao dịch trong thời gian này, HOẶC nếu không lọc by date
-      if ((tuNgay || denNgay) && item.Net === 0 && item.ChiTieu === 0) return;
-      
-      item.HoanThanh = item.ChiTieu > 0 ? (item.Net / item.ChiTieu) * 100 : 0;
-      item.SoKH = Object.keys(item.KhachHangMap).length; // Số lượng khách hàng
-      delete item.KhachHangMap; // Bỏ field trung gian trước khi trả về
-      list.push(item);
-    });
-    
-    // Sắp xếp theo Net (Giảm dần) và lưu Rank thực
-    list.sort(function(a, b) {
-      return b.Net - a.Net;
-    });
-    
-    // Gán hạng cụ thể (vì sau filter array index không còn đúng nữa)
-    list.forEach(function(item, index) { item.Rank = index + 1; });
-    
-    // Map Tên Nhân viên
-    var allNhanSu = NhanSuService.getAll();
-    var nsMap = {};
-    allNhanSu.forEach(function(ns) { 
-      if(ns.MaNV) nsMap[ValidatorService.normalizeId(ns.MaNV)] = ns; 
-    });
-    
-    var fullLeaderboard = list.map(function(item) {
-      var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
-      item.TenNV = ns ? ns.HoTen : item.MaNV;
-      item.Email = ns ? ns.Email : "";
-      return item;
-    });
-    
-    return fullLeaderboard;
+    return finalLeaderboard;
   },
   
   /**
