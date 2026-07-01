@@ -699,14 +699,43 @@
     showLoading: function () {
       if (!$("#appLoadingOverlay").length) {
         $("body").append(
-          '<div id="appLoadingOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:9999;display:flex;align-items:center;justify-content:center;"><div class="spinner-border text-light" role="status"></div></div>',
+          '<div id="appLoadingOverlay" style="position:fixed;top:0;left:0;width:100%;height:3px;background:rgba(16,185,129,0.15);z-index:99999;pointer-events:none;">' +
+          '<div class="loading-bar-inner" style="width:0%;height:100%;background:#10b981;box-shadow:0 0 10px #10b981, 0 0 5px #10b981;transition:width 0.4s cubic-bezier(0.1, 0.8, 0.3, 1);"></div>' +
+          '</div>'
         );
       }
-      $("#appLoadingOverlay").show();
+      var overlay = $("#appLoadingOverlay");
+      overlay.show();
+      var inner = overlay.find(".loading-bar-inner");
+      inner.css("width", "0%");
+      if (inner.length) {
+        var reflow = inner[0].offsetWidth; 
+      }
+      inner.css("width", "35%");
+      
+      if (this._loadingTimer) clearInterval(this._loadingTimer);
+      this._loadingTimer = setInterval(function() {
+        if (inner.length && inner[0].style && inner[0].style.width) {
+          var w = parseFloat(inner[0].style.width);
+          if (w < 85) {
+            inner.css("width", (w + (90 - w) * 0.1) + "%");
+          }
+        }
+      }, 300);
     },
 
     hideLoading: function () {
-      $("#appLoadingOverlay").hide();
+      if (this._loadingTimer) clearInterval(this._loadingTimer);
+      var overlay = $("#appLoadingOverlay");
+      var inner = overlay.find(".loading-bar-inner");
+      if (inner.length) {
+        inner.css("width", "100%");
+        setTimeout(function() {
+          overlay.fadeOut(150);
+        }, 250);
+      } else {
+        overlay.hide();
+      }
     },
 
   };

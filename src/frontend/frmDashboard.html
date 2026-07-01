@@ -259,14 +259,7 @@
   }
 </style>
 
-<div class="dashboard-wrapper position-relative">
-  <!-- Loading Overlay -->
-  <div id="dashLoadingOverlay" class="position-absolute d-flex flex-column align-items-center justify-content-center" style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.65); z-index: 999; border-radius: var(--radius-lg); min-height: 400px; display: none;">
-    <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
-      <span class="visually-hidden">Đang tải...</span>
-    </div>
-    <div class="mt-3 fw-bold text-emerald-800" style="font-family: 'Outfit', sans-serif;">Đang tải dữ liệu báo cáo...</div>
-  </div>
+<div class="dashboard-wrapper">
 
   <div class="row align-items-center mb-4 pb-3" style="border-bottom: 1px solid rgba(16, 185, 129, 0.08) !important;">
     <div class="col-md-8 col-12 mb-3 mb-md-0">
@@ -350,6 +343,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Thống kê & Báo cáo (Content Area with Non-blocking Overlay) -->
+  <div class="dashboard-content position-relative mt-4">
+    <!-- Loading Overlay -->
+    <div id="dashLoadingOverlay" class="position-absolute d-flex flex-column align-items-center justify-content-center" style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.65); z-index: 999; border-radius: var(--radius-lg); min-height: 400px; display: none;">
+      <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
+      <div class="mt-3 fw-bold text-emerald-800" style="font-family: 'Outfit', sans-serif;">Đang tải dữ liệu báo cáo...</div>
+    </div>
 
   <!-- Thống kê Tổng Quát (KPI Cards) -->
   <div class="row mb-5">
@@ -524,6 +527,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 <!-- End dashboard-wrapper -->

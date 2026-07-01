@@ -109,6 +109,42 @@ function doApiRequest(action, payload) {
         }
     }
     
+    // --- API CACHE LAYER (READ ONLY) ---
+    var cacheableActions = [
+      'getDashboardData', 'getDashboardKpi', 'getLeaderboard',
+      'getLichSuDatatable', 'getKhachHangDatatable', 'getSoTietKiemDatatable', 'getManagedKhachHangDatatable',
+      'getBaoCaoTangTruong', 'getBaoCaoTongHop_ChienDich', 'getBaoCaoChiTietUser', 'getSotietkiemManagedByUser',
+      'getPendingGiaoDich', 'getPendingCount', 'getNhanSuActive', 'getAllChienDich', 'getChienDichActive',
+      'getSoTietKiemActive', 'getKhachHangActive', 'getEmployeeDetails'
+    ];
+    
+    var isCacheable = cacheableActions.indexOf(action) !== -1;
+    var cacheKey = null;
+    
+    if (isCacheable) {
+      var version = getCacheVersion();
+      var payloadStr = payload ? JSON.stringify(payload) : "";
+      cacheKey = "API_RESP_v" + version + "_" + action + "_" + (user ? user.MaNV : "GUEST") + "_" + (user ? user.Role : "") + "_" + payloadStr;
+      cacheKey = cacheKey.replace(/[^a-zA-Z0-9_]/g, "_");
+      if (cacheKey.length > 200) {
+        var rawDigest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, cacheKey);
+        var hash = "";
+        for (var i = 0; i < rawDigest.length; i++) {
+          var byteVal = rawDigest[i];
+          if (byteVal < 0) byteVal += 256;
+          var byteString = byteVal.toString(16);
+          if (byteString.length == 1) byteString = "0" + byteString;
+          hash += byteString;
+        }
+        cacheKey = cacheKey.substring(0, 150) + "_" + hash;
+      }
+      
+      var cachedData = CacheServiceWrapper.get(cacheKey);
+      if (cachedData !== null) {
+        return JSON.stringify({ status: "success", data: cachedData });
+      }
+    }
+
     var result = null;
     
     // 2. Dispatchers
@@ -384,6 +420,22 @@ function doApiRequest(action, payload) {
         LoggerService.log(action, "Execute API", "SUCCESS", logData, { MaNV: userContextStr, IP: logData.ip });
     }
     
+    // Invalidate or save cache based on action type
+    var writeActions = [
+        'submitGiaoDichGui', 'submitGiaoDichRut', 'duyetGiaoDich', 
+        'duyetGiaoDichGui', 'submitDuyetRutTatToan', 'submitHuyGiaoDich',
+        'revertGiaoDich', 'saveKhachHang', 'changePassword', 'resetPassword',
+        'saveNhanSu', 'saveChienDich', 'saveChiTieu',  
+        'archiveTransactions', 'clearServerCache', 'initDummyData',
+        'clearSystemLogs', 'recalculateAllKpi', 'deleteTestData',
+        'executeReconciliation'
+    ];
+    if (writeActions.indexOf(action) !== -1) {
+      invalidateApiCache();
+    } else if (isCacheable && result !== null) {
+      CacheServiceWrapper.put(cacheKey, result, 300); // Cache for 5 minutes
+    }
+    
     return JSON.stringify({ status: 'success', data: result });
     
   } catch (err) {
@@ -404,4 +456,27 @@ function doApiRequest(action, payload) {
       LoggerService.log(action, "API Execute Failed", "FAILED", logDataFail, { MaNV: userContextFail, IP: ipFallback });
       return JSON.stringify({ status: 'error', message: err.message, stack: err.stack });
   }
+}
+
+/**
+ * Lấy phiên bản Cache hiện tại (Generational Cache)
+ */
+function getCacheVersion() {
+  var cache = CacheService.getScriptCache();
+  var version = cache.get("API_CACHE_VERSION");
+  if (version === null) {
+    version = "1";
+    cache.put("API_CACHE_VERSION", version, 12 * 60 * 60); // 12 hours
+  }
+  return version;
+}
+
+/**
+ * Làm mới Cache của API Gateway (Tăng phiên bản cache)
+ */
+function invalidateApiCache() {
+  var cache = CacheService.getScriptCache();
+  var version = String(Date.now());
+  cache.put("API_CACHE_VERSION", version, 12 * 60 * 60);
+  Repository.clearAllCache();
 }
