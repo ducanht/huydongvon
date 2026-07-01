@@ -642,7 +642,7 @@
       if (window.AppManager && typeof AppManager.showLoading === 'function') {
         AppManager.showLoading();
       }
-      $("#dashLoadingOverlay").show();
+      $("#dashLoadingOverlay").css("display", "flex");
       AppManager.callApi("getDashboardData", filters).done(function (res) {
         var kpiData = res.kpi || {};
         var list = res.leaderboard || [];
