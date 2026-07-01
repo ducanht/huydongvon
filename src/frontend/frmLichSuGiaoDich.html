@@ -205,6 +205,9 @@
             var btnFilter = $('button[onclick="frmLichSuGiaoDich_loadGrid()"]');
             var oldText = btnFilter.html();
             btnFilter.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>...');
+            if (window.AppManager && typeof AppManager.showLoading === 'function') {
+                AppManager.showLoading();
+            }
             $('#lichsuLoadingOverlay').css('display', 'flex');
 
             self.dt = $('#tbLichSu').DataTable({
@@ -251,6 +254,9 @@
                         callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
                     }).always(function () {
                         btnFilter.prop('disabled', false).html(oldText);
+                        if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+                            AppManager.hideLoading();
+                        }
                         $('#lichsuLoadingOverlay').hide();
                     });
                 },

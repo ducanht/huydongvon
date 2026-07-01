@@ -2422,7 +2422,7 @@
   <!-- Thống kê & Báo cáo (Content Area with Non-blocking Overlay) -->
   <div class="dashboard-content position-relative mt-4">
     <!-- Loading Overlay -->
-    <div id="dashLoadingOverlay" class="position-absolute d-flex flex-column align-items-center justify-content-center" style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.65); z-index: 999; border-radius: var(--radius-lg); min-height: 400px; display: none;">
+    <div id="dashLoadingOverlay" class="glass-loading">
       <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
         <span class="visually-hidden">Đang tải...</span>
       </div>
@@ -2714,6 +2714,9 @@
       };
 
       // Gọi API Load Gộp KPI + Leaderboard để tối ưu hiệu năng & tránh timeout
+      if (window.AppManager && typeof AppManager.showLoading === 'function') {
+        AppManager.showLoading();
+      }
       $("#dashLoadingOverlay").show();
       AppManager.callApi("getDashboardData", filters).done(function (res) {
         var kpiData = res.kpi || {};
@@ -2875,6 +2878,9 @@
           ],
         });
       }).always(function () {
+        if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+          AppManager.hideLoading();
+        }
         $("#dashLoadingOverlay").fadeOut(150);
       });
 
@@ -6271,6 +6277,9 @@
                 processing: true,
                 deferRender: true,
                 ajax: function (data, callback, settings) {
+                    if (window.AppManager && typeof AppManager.showLoading === 'function') {
+                        AppManager.showLoading();
+                    }
                     $('#khachhangLoadingOverlay').css('display', 'flex');
                     var cleanPayload = {
                         draw: data.draw || 1,
@@ -6303,6 +6312,9 @@
                         Swal.fire('Lỗi Tải Dữ Liệu', 'Không tải được danh sách Khách Hàng.', 'error');
                         callback({ draw: cleanPayload.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
                     }).always(function () {
+                        if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+                            AppManager.hideLoading();
+                        }
                         $('#khachhangLoadingOverlay').hide();
                     });
                 },
@@ -6626,6 +6638,9 @@
             var btnFilter = $('button[onclick="frmLichSuGiaoDich_loadGrid()"]');
             var oldText = btnFilter.html();
             btnFilter.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>...');
+            if (window.AppManager && typeof AppManager.showLoading === 'function') {
+                AppManager.showLoading();
+            }
             $('#lichsuLoadingOverlay').css('display', 'flex');
 
             self.dt = $('#tbLichSu').DataTable({
@@ -6672,6 +6687,9 @@
                         callback({ draw: data.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
                     }).always(function () {
                         btnFilter.prop('disabled', false).html(oldText);
+                        if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+                            AppManager.hideLoading();
+                        }
                         $('#lichsuLoadingOverlay').hide();
                     });
                 },
@@ -8127,12 +8145,18 @@
 
     function showSTKLoading() {
         activeAjaxCount++;
+        if (window.AppManager && typeof AppManager.showLoading === 'function') {
+            AppManager.showLoading();
+        }
         $('#sotietkiemLoadingOverlay').css('display', 'flex');
     }
     function hideSTKLoading() {
         activeAjaxCount--;
         if (activeAjaxCount <= 0) {
             activeAjaxCount = 0;
+            if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+                AppManager.hideLoading();
+            }
             $('#sotietkiemLoadingOverlay').hide();
         }
     }

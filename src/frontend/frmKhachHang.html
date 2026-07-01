@@ -259,6 +259,9 @@
                 processing: true,
                 deferRender: true,
                 ajax: function (data, callback, settings) {
+                    if (window.AppManager && typeof AppManager.showLoading === 'function') {
+                        AppManager.showLoading();
+                    }
                     $('#khachhangLoadingOverlay').css('display', 'flex');
                     var cleanPayload = {
                         draw: data.draw || 1,
@@ -291,6 +294,9 @@
                         Swal.fire('Lỗi Tải Dữ Liệu', 'Không tải được danh sách Khách Hàng.', 'error');
                         callback({ draw: cleanPayload.draw, recordsTotal: 0, recordsFiltered: 0, data: [] });
                     }).always(function () {
+                        if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+                            AppManager.hideLoading();
+                        }
                         $('#khachhangLoadingOverlay').hide();
                     });
                 },

@@ -200,12 +200,18 @@
 
     function showSTKLoading() {
         activeAjaxCount++;
+        if (window.AppManager && typeof AppManager.showLoading === 'function') {
+            AppManager.showLoading();
+        }
         $('#sotietkiemLoadingOverlay').css('display', 'flex');
     }
     function hideSTKLoading() {
         activeAjaxCount--;
         if (activeAjaxCount <= 0) {
             activeAjaxCount = 0;
+            if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+                AppManager.hideLoading();
+            }
             $('#sotietkiemLoadingOverlay').hide();
         }
     }

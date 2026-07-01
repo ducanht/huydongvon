@@ -347,7 +347,7 @@
   <!-- Thống kê & Báo cáo (Content Area with Non-blocking Overlay) -->
   <div class="dashboard-content position-relative mt-4">
     <!-- Loading Overlay -->
-    <div id="dashLoadingOverlay" class="position-absolute d-flex flex-column align-items-center justify-content-center" style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.65); z-index: 999; border-radius: var(--radius-lg); min-height: 400px; display: none;">
+    <div id="dashLoadingOverlay" class="glass-loading">
       <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
         <span class="visually-hidden">Đang tải...</span>
       </div>
@@ -639,6 +639,9 @@
       };
 
       // Gọi API Load Gộp KPI + Leaderboard để tối ưu hiệu năng & tránh timeout
+      if (window.AppManager && typeof AppManager.showLoading === 'function') {
+        AppManager.showLoading();
+      }
       $("#dashLoadingOverlay").show();
       AppManager.callApi("getDashboardData", filters).done(function (res) {
         var kpiData = res.kpi || {};
@@ -800,6 +803,9 @@
           ],
         });
       }).always(function () {
+        if (window.AppManager && typeof AppManager.hideLoading === 'function') {
+          AppManager.hideLoading();
+        }
         $("#dashLoadingOverlay").fadeOut(150);
       });
 
