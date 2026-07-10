@@ -312,13 +312,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-xl col-lg-4 col-md-6">
-              <label class="form-label" style="visibility: hidden;">Lọc KPI</label>
-              <div class="form-check form-switch d-flex align-items-center" style="height: 38px;">
-                <input class="form-check-input" type="checkbox" id="chkOnlyAssignedKpi" checked>
-                <label class="form-check-label fw-bold text-slate-700 ms-2" for="chkOnlyAssignedKpi">Chỉ hiện cán bộ có chỉ tiêu</label>
-              </div>
-            </div>
+
             <div class="col-xl col-lg-4 col-md-6">
               <label class="form-label">Từ Ngày</label>
               <div class="position-relative">
@@ -586,6 +580,7 @@
     AppManager.callApi("getAllChienDich").done(function (res) {
       var cboCD = $("#cboDashChienDich").empty();
       cboCD.append('<option value="">Tất cả chiến dịch</option>');
+      var activeMaCD = '';
       if (res && res.length) {
         var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
         res.forEach(function (cd) {
@@ -601,12 +596,18 @@
           }
           var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
           var statusMark = isRunning ? "" : " [Đã Đóng]";
+          if (isRunning && !activeMaCD) activeMaCD = cd.MaCD; // Ghi nhận campaign đang chạy đầu tiên
           
           cboCD.append(
             `<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`,
           );
         });
       }
+      // Tự động chọn chiến dịch đang chạy và load dữ liệu
+      if (activeMaCD) {
+        cboCD.val(activeMaCD);
+      }
+      loadDashboardData();
     });
 
     if (AppManager.user && AppManager.user.Role === "ADMIN") {
@@ -635,7 +636,7 @@
         tuNgay: $("#txtDashTuNgay").val() || null,
         denNgay: $("#txtDashDenNgay").val() || null,
         kpiMode: $("input[name='radKpiMode']:checked").val() || 'THI_DUA',
-        onlyAssignedKpi: $("#chkOnlyAssignedKpi").is(":checked")
+        onlyAssignedKpi: true
       };
 
       // Gọi API Load Gộp KPI + Leaderboard để tối ưu hiệu năng & tránh timeout
@@ -824,9 +825,7 @@
       loadDashboardData();
     });
 
-    $("#chkOnlyAssignedKpi").change(function () {
-      loadDashboardData();
-    });
+
 
     // Hàm vẽ Biểu đồ Chart.js
     window.renderDashCharts = function (data) {
@@ -1090,8 +1089,7 @@
       $("#thanhVienLegend").html(memLegendHtml);
     };
 
-    // Chạy lần đầu
-    loadDashboardData();
+    // Chú ý: loadDashboardData() được gọi sau khi load dropdown chiến dịch ở trên
   }
 
   // Modal Function

@@ -238,6 +238,78 @@
   <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+  <script>
+    // Đặt mặc định toàn cục cho tất cả Flatpickr: tiếng Việt + dropdown tháng + dropdown năm nhanh
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof flatpickr === 'undefined') return;
+
+      function _addYearSelect(instance) {
+        var yearInput = instance.currentYearElement;
+        if (!yearInput || yearInput.getAttribute('data-ys')) return;
+        yearInput.setAttribute('data-ys', '1');
+
+        var sel = document.createElement('select');
+        sel.className = 'flatpickr-year-sel';
+        var cur = instance.currentYear;
+        var lo = cur - 50, hi = cur + 20;
+        for (var y = lo; y <= hi; y++) {
+          var opt = document.createElement('option');
+          opt.value = y; opt.textContent = y;
+          if (y === cur) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.addEventListener('change', function() {
+          instance.changeYear(parseInt(this.value, 10));
+        });
+        yearInput.parentNode.insertBefore(sel, yearInput);
+        yearInput.style.display = 'none';
+      }
+
+      function _syncYearSelect(instance) {
+        var sel = instance.calendarContainer && instance.calendarContainer.querySelector('.flatpickr-year-sel');
+        if (!sel) return;
+        var y = instance.currentYear;
+        // Thêm option nếu năm ngoài range hiện có
+        if (!sel.querySelector('option[value="' + y + '"]')) {
+          var opt = document.createElement('option');
+          opt.value = y; opt.textContent = y;
+          var inserted = false;
+          for (var i = 0; i < sel.options.length; i++) {
+            if (parseInt(sel.options[i].value, 10) > y) {
+              sel.insertBefore(opt, sel.options[i]);
+              inserted = true; break;
+            }
+          }
+          if (!inserted) sel.appendChild(opt);
+        }
+        sel.value = y;
+      }
+
+      flatpickr.setDefaults({
+        locale: 'vn',
+        monthSelectorType: 'dropdown',
+        onReady:      function(_, __, fp) { _addYearSelect(fp); },
+        onMonthChange:function(_, __, fp) { _syncYearSelect(fp); },
+        onYearChange: function(_, __, fp) { _syncYearSelect(fp); }
+      });
+    });
+  </script>
+  <style>
+    /* Dropdown năm trong Flatpickr */
+    .flatpickr-year-sel {
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      color: inherit;
+      cursor: pointer;
+      padding: 0 2px;
+      outline: none;
+      -webkit-appearance: auto;
+      appearance: auto;
+    }
+    .flatpickr-year-sel:hover { color: var(--bs-primary, #3b82f6); }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <!-- Select2 JS -->

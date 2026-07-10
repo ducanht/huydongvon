@@ -1832,10 +1832,16 @@
         )
         .join("");
 
+      var SOSO_REGEX = /^[A-Z]{2}[0-9]{7}$/;
+
       var htmlForm = `
                 <div class="text-start mt-3">
-                    <label class="form-label text-muted fw-bold small mb-1">Số Số Tiết Kiệm (*)</label>
-                    <input id="swal-soso" class="form-control mb-3 border-primary" value="${soso}">
+                    <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm <span class="text-danger">(*)</span></label>
+                    <input id="swal-soso" class="form-control mb-1 border-primary text-uppercase"
+                           value=""
+                           placeholder="VD: TK0001234"
+                           maxlength="9">
+                    <div id="soso-hint" class="small mb-3" style="min-height:18px;"></div>
                     
                     <label class="form-label text-muted fw-bold small mb-1">Số Tiền Khớp Thực Tế (VNĐ)</label>
                     <input id="swal-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${sotien}">
@@ -1885,9 +1891,36 @@
             allowInput: true,
             defaultDate: curNgay,
           });
+
+          // Disable nút duyệt cho đến khi nhập đúng số sổ
+          var confirmBtn = Swal.getConfirmButton();
+          confirmBtn.disabled = true;
+
+          var soSoInput = document.getElementById('swal-soso');
+          var hint = document.getElementById('soso-hint');
+          function validateSoSo() {
+            var val = soSoInput.value.toUpperCase();
+            soSoInput.value = val;
+            if (SOSO_REGEX.test(val)) {
+              hint.innerHTML = '<span class="text-success"><i class="bx bx-check-circle"></i> Định dạng hợp lệ</span>';
+              soSoInput.classList.remove('border-danger');
+              soSoInput.classList.add('border-success');
+              confirmBtn.disabled = false;
+            } else {
+              var msg = val.length === 0
+                ? '<span class="text-danger">⚠ Nhập số sổ (2 chữ hoa + 7 số, VD: TK0001234)</span>'
+                : '<span class="text-danger">⚠ Chưa đúng: cần 2 chữ hoa + 7 chữ số (tổng 9 ký tự)</span>';
+              hint.innerHTML = msg;
+              soSoInput.classList.add('border-danger');
+              soSoInput.classList.remove('border-success');
+              confirmBtn.disabled = true;
+            }
+          }
+          soSoInput.addEventListener('input', validateSoSo);
+          validateSoSo();
         },
         preConfirm: () => {
-          var newSoSo = document.getElementById("swal-soso").value.trim();
+          var newSoSo = document.getElementById("swal-soso").value.trim().toUpperCase();
           var newSoTienEl = document.getElementById("swal-sotien");
           var newSoTien = newSoTienEl.value
             .replace(/,/g, "")
@@ -1897,6 +1930,12 @@
           var newLaiSuat = document.getElementById("swal-laisuat").value;
           var newLoaiLai = document.getElementById("swal-loailai").value;
 
+          if (!SOSO_REGEX.test(newSoSo)) {
+            Swal.showValidationMessage(
+              "Số sổ không hợp lệ! Cần 2 chữ hoa + 7 chữ số (VD: TK0001234).",
+            );
+            return false;
+          }
           if (!newSoSo || !newSoTien || !newNgayGD) {
             Swal.showValidationMessage(
               "Vui lòng điền đủ thông tin quan trọng (Số Sổ, Tiền, Ngày)!",
@@ -2387,13 +2426,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-xl col-lg-4 col-md-6">
-              <label class="form-label" style="visibility: hidden;">Lọc KPI</label>
-              <div class="form-check form-switch d-flex align-items-center" style="height: 38px;">
-                <input class="form-check-input" type="checkbox" id="chkOnlyAssignedKpi" checked>
-                <label class="form-check-label fw-bold text-slate-700 ms-2" for="chkOnlyAssignedKpi">Chỉ hiện cán bộ có chỉ tiêu</label>
-              </div>
-            </div>
+
             <div class="col-xl col-lg-4 col-md-6">
               <label class="form-label">Từ Ngày</label>
               <div class="position-relative">
@@ -2661,6 +2694,7 @@
     AppManager.callApi("getAllChienDich").done(function (res) {
       var cboCD = $("#cboDashChienDich").empty();
       cboCD.append('<option value="">Tất cả chiến dịch</option>');
+      var activeMaCD = '';
       if (res && res.length) {
         var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
         res.forEach(function (cd) {
@@ -2676,12 +2710,18 @@
           }
           var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
           var statusMark = isRunning ? "" : " [Đã Đóng]";
+          if (isRunning && !activeMaCD) activeMaCD = cd.MaCD; // Ghi nhận campaign đang chạy đầu tiên
           
           cboCD.append(
             `<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`,
           );
         });
       }
+      // Tự động chọn chiến dịch đang chạy và load dữ liệu
+      if (activeMaCD) {
+        cboCD.val(activeMaCD);
+      }
+      loadDashboardData();
     });
 
     if (AppManager.user && AppManager.user.Role === "ADMIN") {
@@ -2710,7 +2750,7 @@
         tuNgay: $("#txtDashTuNgay").val() || null,
         denNgay: $("#txtDashDenNgay").val() || null,
         kpiMode: $("input[name='radKpiMode']:checked").val() || 'THI_DUA',
-        onlyAssignedKpi: $("#chkOnlyAssignedKpi").is(":checked")
+        onlyAssignedKpi: true
       };
 
       // Gọi API Load Gộp KPI + Leaderboard để tối ưu hiệu năng & tránh timeout
@@ -2899,9 +2939,7 @@
       loadDashboardData();
     });
 
-    $("#chkOnlyAssignedKpi").change(function () {
-      loadDashboardData();
-    });
+
 
     // Hàm vẽ Biểu đồ Chart.js
     window.renderDashCharts = function (data) {
@@ -3165,8 +3203,7 @@
       $("#thanhVienLegend").html(memLegendHtml);
     };
 
-    // Chạy lần đầu
-    loadDashboardData();
+    // Chú ý: loadDashboardData() được gọi sau khi load dropdown chiến dịch ở trên
   }
 
   // Modal Function
@@ -3636,10 +3673,18 @@
               });
             }
 
+            var soSoDefault = isRut ? gd.SoSo : ''; // Lệnh Gửi phải nhập số sổ mới
+            var SOSO_REGEX = /^[A-Z]{2}[0-9]{7}$/;
+
             var htmlForm = `
                     <div class="text-start mt-3">
-                        <label class="form-label text-muted fw-bold small mb-1">Số Số Tiết Kiệm (*)</label>
-                        <input id="swal-soso" class="form-control mb-3 border-primary" value="${gd.SoSo}" ${isRut ? "disabled" : ""}>
+                        <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm <span class="text-danger">(*)</span></label>
+                        <input id="swal-soso" class="form-control mb-1 border-primary text-uppercase"
+                               value="${soSoDefault}"
+                               placeholder="VD: TK0001234"
+                               maxlength="9"
+                               ${isRut ? 'disabled style="background:#f8f9fa;"' : ''}>
+                        <div id="soso-hint" class="small mb-3" style="min-height:18px;"></div>
                         
                         <label class="form-label text-muted fw-bold small mb-1">Số Tiền Khớp Thực Tế (VNĐ)</label>
                         <input id="swal-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${gd.SoTien}">
@@ -3684,9 +3729,42 @@
                   allowInput: true,
                   defaultDate: curNgay,
                 });
+
+                // Disable nút duyệt ngay lập tức nếu là lệnh Gửi (chưa có số sổ hợp lệ)
+                var confirmBtn = Swal.getConfirmButton();
+                if (!isRut) {
+                  confirmBtn.disabled = true;
+                }
+
+                var soSoInput = document.getElementById('swal-soso');
+                var hint = document.getElementById('soso-hint');
+                if (soSoInput && !isRut) {
+                  function validateSoSo() {
+                    var val = soSoInput.value.toUpperCase();
+                    soSoInput.value = val; // Ép chữ hoa
+                    if (SOSO_REGEX.test(val)) {
+                      hint.innerHTML = '<span class="text-success"><i class="bx bx-check-circle"></i> Định dạng hợp lệ</span>';
+                      hint.style.color = '';
+                      soSoInput.classList.remove('border-danger');
+                      soSoInput.classList.add('border-success');
+                      confirmBtn.disabled = false;
+                    } else {
+                      var len = val.length;
+                      var msg = len === 0
+                        ? '<span class="text-danger">⚠ Nhập số sổ (2 chữ hoa + 7 số, VD: TK0001234)</span>'
+                        : '<span class="text-danger">⚠ Chưa đúng: cần 2 chữ hoa + 7 chữ số (tổng 9 ký tự)</span>';
+                      hint.innerHTML = msg;
+                      soSoInput.classList.add('border-danger');
+                      soSoInput.classList.remove('border-success');
+                      confirmBtn.disabled = true;
+                    }
+                  }
+                  soSoInput.addEventListener('input', validateSoSo);
+                  validateSoSo(); // chạy lần đầu
+                }
               },
               preConfirm: () => {
-                var newSoSo = document.getElementById("swal-soso").value.trim();
+                var newSoSo = document.getElementById("swal-soso").value.trim().toUpperCase();
                 var newSoTienEl = document.getElementById("swal-sotien");
                 var newSoTien = newSoTienEl.value
                   .replace(/,/g, "")
@@ -3697,6 +3775,12 @@
                 var newMaCD = newMaCDEl ? newMaCDEl.value : null;
                 var newNgayGD = document.getElementById("swal-ngaygd").value;
 
+                if (!isRut && !SOSO_REGEX.test(newSoSo)) {
+                  Swal.showValidationMessage(
+                    "Số sổ không hợp lệ! Cần 2 chữ hoa + 7 chữ số (VD: TK0001234).",
+                  );
+                  return false;
+                }
                 if (!newSoSo || !newSoTien || !newNgayGD) {
                   Swal.showValidationMessage(
                     "Vui lòng điền đủ thông tin quan trọng (Số Sổ, Tiền, Ngày)!",
@@ -8634,7 +8718,7 @@
       </div>
       <!-- DataTable -->
       <div class="table-responsive d-none" id="divTableTT">
-        <table id="tblTangTruong" class="table table-hover mb-0 align-middle" style="font-size:.85rem">
+        <table id="tblTangTruong" class="table table-hover mb-0 align-middle table-mobile-cards" style="font-size:.85rem">
           <thead style="background:#f0fdf4;color:#374151">
             <tr>
               <th class="ps-3">#</th>
@@ -8819,9 +8903,17 @@ function frmTangTruong_init() {
   AppManager.callApi('getAllChienDich', {})
     .done(function(data) {
       var $sel = $('#cboChienDichTT').empty().append('<option value="">— Chọn Chiến Dịch —</option>');
+      var activeMaCD = '';
+      var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
       (data || []).forEach(function(cd) {
         $sel.append('<option value="' + cd.MaCD + '">' + (cd.TenCD || cd.MaCD) + '</option>');
+        if (!activeMaCD && cd.TrangThai === 'ACTIVE') {
+          var startStr = cd.NgayBatDau ? (cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau) : '';
+          var endStr   = cd.NgayKetThuc ? (cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc) : '9999-12-31';
+          if (startStr <= todayStr && todayStr <= endStr) activeMaCD = cd.MaCD;
+        }
       });
+      if (activeMaCD) $sel.val(activeMaCD);
       $sel.trigger('change');
     });
 
@@ -8936,16 +9028,16 @@ function _renderTable() {
       '<small class="ms-1" style="color:' + tyLeColor + ';font-weight:600">' + tyLe.toFixed(1) + '%</small>';
 
     return '<tr style="cursor:pointer" onclick="frmTangTruong_showDetail(\'' + r.MaNV + '\')">' +
-      '<td class="ps-3 text-muted" style="font-size:.78rem">' + (i+1) + '</td>' +
-      '<td><span class="fw-semibold">' + _escHtml(r.TenNV) + '</span></td>' +
-      '<td class="text-end text-muted">' + AppManager.formatCurrency(r.ChiTieu) + '</td>' +
-      '<td class="text-center"><span class="badge rounded-pill px-2" style="background:#fef3c7;color:#92400e">' + r.SoKHMoi + ' KH</span></td>' +
-      '<td class="text-end" style="color:#d97706">' + AppManager.formatCurrency(r.TangTruongKHMoi) + '</td>' +
-      '<td class="text-center"><span class="badge rounded-pill px-2" style="background:#f1f5f9;color:#475569">' + r.SoKHCuTang + ' KH</span></td>' +
-      '<td class="text-end" style="color:#64748b">' + AppManager.formatCurrency(r.TangTruongKHCu) + '</td>' +
-      '<td class="text-end fw-bold" style="color:#059669">' + AppManager.formatCurrency(r.TongTangTruong) + '</td>' +
-      '<td class="text-center"><div class="d-flex align-items-center gap-1">' + progressHtml + ' ' + badgeDat + '</div></td>' +
-      '<td class="text-center"><button class="btn btn-outline-success btn-xs py-0 px-2" style="font-size:.75rem" onclick="event.stopPropagation();frmTangTruong_showDetail(\'' + r.MaNV + '\')"><i class="bx bx-detail"></i></button></td>' +
+      '<td class="ps-3 text-muted" style="font-size:.78rem" data-label="#">' + (i+1) + '</td>' +
+      '<td data-label="Cán Bộ"><span class="fw-semibold">' + _escHtml(r.TenNV) + '</span></td>' +
+      '<td class="text-end text-muted" data-label="Chỉ Tiêu">' + AppManager.formatCurrency(r.ChiTieu) + '</td>' +
+      '<td class="text-center" data-label="KH Mới"><span class="badge rounded-pill px-2" style="background:#fef3c7;color:#92400e">' + r.SoKHMoi + ' KH</span></td>' +
+      '<td class="text-end" style="color:#d97706" data-label="TT KH Mới">' + AppManager.formatCurrency(r.TangTruongKHMoi) + '</td>' +
+      '<td class="text-center" data-label="KH Cũ Tăng"><span class="badge rounded-pill px-2" style="background:#f1f5f9;color:#475569">' + r.SoKHCuTang + ' KH</span></td>' +
+      '<td class="text-end" style="color:#64748b" data-label="TT KH Cũ">' + AppManager.formatCurrency(r.TangTruongKHCu) + '</td>' +
+      '<td class="text-end fw-bold" style="color:#059669" data-label="Tổng Tăng Trưởng">' + AppManager.formatCurrency(r.TongTangTruong) + '</td>' +
+      '<td class="text-center" data-label="% HT"><div class="d-flex align-items-center gap-1">' + progressHtml + ' ' + badgeDat + '</div></td>' +
+      '<td class="text-center" data-label="Chi Tiết"><button class="btn btn-outline-success btn-xs py-0 px-2" style="font-size:.75rem" onclick="event.stopPropagation();frmTangTruong_showDetail(\'' + r.MaNV + '\')"><i class="bx bx-detail"></i></button></td>' +
       '</tr>';
   });
 
@@ -9096,6 +9188,78 @@ function _escHtml(s) {
   <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+  <script>
+    // Đặt mặc định toàn cục cho tất cả Flatpickr: tiếng Việt + dropdown tháng + dropdown năm nhanh
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof flatpickr === 'undefined') return;
+
+      function _addYearSelect(instance) {
+        var yearInput = instance.currentYearElement;
+        if (!yearInput || yearInput.getAttribute('data-ys')) return;
+        yearInput.setAttribute('data-ys', '1');
+
+        var sel = document.createElement('select');
+        sel.className = 'flatpickr-year-sel';
+        var cur = instance.currentYear;
+        var lo = cur - 50, hi = cur + 20;
+        for (var y = lo; y <= hi; y++) {
+          var opt = document.createElement('option');
+          opt.value = y; opt.textContent = y;
+          if (y === cur) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.addEventListener('change', function() {
+          instance.changeYear(parseInt(this.value, 10));
+        });
+        yearInput.parentNode.insertBefore(sel, yearInput);
+        yearInput.style.display = 'none';
+      }
+
+      function _syncYearSelect(instance) {
+        var sel = instance.calendarContainer && instance.calendarContainer.querySelector('.flatpickr-year-sel');
+        if (!sel) return;
+        var y = instance.currentYear;
+        // Thêm option nếu năm ngoài range hiện có
+        if (!sel.querySelector('option[value="' + y + '"]')) {
+          var opt = document.createElement('option');
+          opt.value = y; opt.textContent = y;
+          var inserted = false;
+          for (var i = 0; i < sel.options.length; i++) {
+            if (parseInt(sel.options[i].value, 10) > y) {
+              sel.insertBefore(opt, sel.options[i]);
+              inserted = true; break;
+            }
+          }
+          if (!inserted) sel.appendChild(opt);
+        }
+        sel.value = y;
+      }
+
+      flatpickr.setDefaults({
+        locale: 'vn',
+        monthSelectorType: 'dropdown',
+        onReady:      function(_, __, fp) { _addYearSelect(fp); },
+        onMonthChange:function(_, __, fp) { _syncYearSelect(fp); },
+        onYearChange: function(_, __, fp) { _syncYearSelect(fp); }
+      });
+    });
+  </script>
+  <style>
+    /* Dropdown năm trong Flatpickr */
+    .flatpickr-year-sel {
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      color: inherit;
+      cursor: pointer;
+      padding: 0 2px;
+      outline: none;
+      -webkit-appearance: auto;
+      appearance: auto;
+    }
+    .flatpickr-year-sel:hover { color: var(--bs-primary, #3b82f6); }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <!-- Select2 JS -->

@@ -118,7 +118,7 @@ var SystemAdminService = {
     }
     
     // Xác minh password
-    this.verifyMasterPassword(payload.masterHash);
+    SystemAdminService.verifyMasterPassword(payload.masterHash);
     
     var daysToKeep = parseInt(payload.daysToKeep);
     if (isNaN(daysToKeep) || daysToKeep < 0) {

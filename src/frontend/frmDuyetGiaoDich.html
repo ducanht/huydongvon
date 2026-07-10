@@ -199,10 +199,18 @@
               });
             }
 
+            var soSoDefault = isRut ? gd.SoSo : ''; // Lệnh Gửi phải nhập số sổ mới
+            var SOSO_REGEX = /^[A-Z]{2}[0-9]{7}$/;
+
             var htmlForm = `
                     <div class="text-start mt-3">
-                        <label class="form-label text-muted fw-bold small mb-1">Số Số Tiết Kiệm (*)</label>
-                        <input id="swal-soso" class="form-control mb-3 border-primary" value="${gd.SoSo}" ${isRut ? "disabled" : ""}>
+                        <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm <span class="text-danger">(*)</span></label>
+                        <input id="swal-soso" class="form-control mb-1 border-primary text-uppercase"
+                               value="${soSoDefault}"
+                               placeholder="VD: TK0001234"
+                               maxlength="9"
+                               ${isRut ? 'disabled style="background:#f8f9fa;"' : ''}>
+                        <div id="soso-hint" class="small mb-3" style="min-height:18px;"></div>
                         
                         <label class="form-label text-muted fw-bold small mb-1">Số Tiền Khớp Thực Tế (VNĐ)</label>
                         <input id="swal-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${gd.SoTien}">
@@ -247,9 +255,42 @@
                   allowInput: true,
                   defaultDate: curNgay,
                 });
+
+                // Disable nút duyệt ngay lập tức nếu là lệnh Gửi (chưa có số sổ hợp lệ)
+                var confirmBtn = Swal.getConfirmButton();
+                if (!isRut) {
+                  confirmBtn.disabled = true;
+                }
+
+                var soSoInput = document.getElementById('swal-soso');
+                var hint = document.getElementById('soso-hint');
+                if (soSoInput && !isRut) {
+                  function validateSoSo() {
+                    var val = soSoInput.value.toUpperCase();
+                    soSoInput.value = val; // Ép chữ hoa
+                    if (SOSO_REGEX.test(val)) {
+                      hint.innerHTML = '<span class="text-success"><i class="bx bx-check-circle"></i> Định dạng hợp lệ</span>';
+                      hint.style.color = '';
+                      soSoInput.classList.remove('border-danger');
+                      soSoInput.classList.add('border-success');
+                      confirmBtn.disabled = false;
+                    } else {
+                      var len = val.length;
+                      var msg = len === 0
+                        ? '<span class="text-danger">⚠ Nhập số sổ (2 chữ hoa + 7 số, VD: TK0001234)</span>'
+                        : '<span class="text-danger">⚠ Chưa đúng: cần 2 chữ hoa + 7 chữ số (tổng 9 ký tự)</span>';
+                      hint.innerHTML = msg;
+                      soSoInput.classList.add('border-danger');
+                      soSoInput.classList.remove('border-success');
+                      confirmBtn.disabled = true;
+                    }
+                  }
+                  soSoInput.addEventListener('input', validateSoSo);
+                  validateSoSo(); // chạy lần đầu
+                }
               },
               preConfirm: () => {
-                var newSoSo = document.getElementById("swal-soso").value.trim();
+                var newSoSo = document.getElementById("swal-soso").value.trim().toUpperCase();
                 var newSoTienEl = document.getElementById("swal-sotien");
                 var newSoTien = newSoTienEl.value
                   .replace(/,/g, "")
@@ -260,6 +301,12 @@
                 var newMaCD = newMaCDEl ? newMaCDEl.value : null;
                 var newNgayGD = document.getElementById("swal-ngaygd").value;
 
+                if (!isRut && !SOSO_REGEX.test(newSoSo)) {
+                  Swal.showValidationMessage(
+                    "Số sổ không hợp lệ! Cần 2 chữ hoa + 7 chữ số (VD: TK0001234).",
+                  );
+                  return false;
+                }
                 if (!newSoSo || !newSoTien || !newNgayGD) {
                   Swal.showValidationMessage(
                     "Vui lòng điền đủ thông tin quan trọng (Số Sổ, Tiền, Ngày)!",

@@ -116,7 +116,14 @@ var GiaoDichService = {
          
          // 1. Transaction Start - Mark as Active 
          // [H8] Type Safety & Override từ Admin
-         var finalSoSo = payload.SoSoMoi ? payload.SoSoMoi.trim() : gdData.SoSo;
+         var finalSoSo = payload.SoSoMoi ? payload.SoSoMoi.trim().toUpperCase() : gdData.SoSo;
+         // Validate định dạng số sổ cho lệnh Gửi: 2 chữ hoa + 7 số
+         if (gdData.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+           var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
+           if (!finalSoSo || !sosoPattern.test(finalSoSo)) {
+             throw new Error("Số sổ '" + finalSoSo + "' không hợp lệ. Yêu cầu: 2 chữ hoa + 7 số (VD: TK0001234).");
+           }
+         }
          var finalSoTien = gdData.SoTien;
          if (payload.SoTienMoi) {
              finalSoTien = Number(String(payload.SoTienMoi).replace(/[^0-9.]/g, ''));

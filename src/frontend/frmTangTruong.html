@@ -124,7 +124,7 @@
       </div>
       <!-- DataTable -->
       <div class="table-responsive d-none" id="divTableTT">
-        <table id="tblTangTruong" class="table table-hover mb-0 align-middle" style="font-size:.85rem">
+        <table id="tblTangTruong" class="table table-hover mb-0 align-middle table-mobile-cards" style="font-size:.85rem">
           <thead style="background:#f0fdf4;color:#374151">
             <tr>
               <th class="ps-3">#</th>
@@ -309,9 +309,17 @@ function frmTangTruong_init() {
   AppManager.callApi('getAllChienDich', {})
     .done(function(data) {
       var $sel = $('#cboChienDichTT').empty().append('<option value="">— Chọn Chiến Dịch —</option>');
+      var activeMaCD = '';
+      var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
       (data || []).forEach(function(cd) {
         $sel.append('<option value="' + cd.MaCD + '">' + (cd.TenCD || cd.MaCD) + '</option>');
+        if (!activeMaCD && cd.TrangThai === 'ACTIVE') {
+          var startStr = cd.NgayBatDau ? (cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau) : '';
+          var endStr   = cd.NgayKetThuc ? (cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc) : '9999-12-31';
+          if (startStr <= todayStr && todayStr <= endStr) activeMaCD = cd.MaCD;
+        }
       });
+      if (activeMaCD) $sel.val(activeMaCD);
       $sel.trigger('change');
     });
 
@@ -426,16 +434,16 @@ function _renderTable() {
       '<small class="ms-1" style="color:' + tyLeColor + ';font-weight:600">' + tyLe.toFixed(1) + '%</small>';
 
     return '<tr style="cursor:pointer" onclick="frmTangTruong_showDetail(\'' + r.MaNV + '\')">' +
-      '<td class="ps-3 text-muted" style="font-size:.78rem">' + (i+1) + '</td>' +
-      '<td><span class="fw-semibold">' + _escHtml(r.TenNV) + '</span></td>' +
-      '<td class="text-end text-muted">' + AppManager.formatCurrency(r.ChiTieu) + '</td>' +
-      '<td class="text-center"><span class="badge rounded-pill px-2" style="background:#fef3c7;color:#92400e">' + r.SoKHMoi + ' KH</span></td>' +
-      '<td class="text-end" style="color:#d97706">' + AppManager.formatCurrency(r.TangTruongKHMoi) + '</td>' +
-      '<td class="text-center"><span class="badge rounded-pill px-2" style="background:#f1f5f9;color:#475569">' + r.SoKHCuTang + ' KH</span></td>' +
-      '<td class="text-end" style="color:#64748b">' + AppManager.formatCurrency(r.TangTruongKHCu) + '</td>' +
-      '<td class="text-end fw-bold" style="color:#059669">' + AppManager.formatCurrency(r.TongTangTruong) + '</td>' +
-      '<td class="text-center"><div class="d-flex align-items-center gap-1">' + progressHtml + ' ' + badgeDat + '</div></td>' +
-      '<td class="text-center"><button class="btn btn-outline-success btn-xs py-0 px-2" style="font-size:.75rem" onclick="event.stopPropagation();frmTangTruong_showDetail(\'' + r.MaNV + '\')"><i class="bx bx-detail"></i></button></td>' +
+      '<td class="ps-3 text-muted" style="font-size:.78rem" data-label="#">' + (i+1) + '</td>' +
+      '<td data-label="Cán Bộ"><span class="fw-semibold">' + _escHtml(r.TenNV) + '</span></td>' +
+      '<td class="text-end text-muted" data-label="Chỉ Tiêu">' + AppManager.formatCurrency(r.ChiTieu) + '</td>' +
+      '<td class="text-center" data-label="KH Mới"><span class="badge rounded-pill px-2" style="background:#fef3c7;color:#92400e">' + r.SoKHMoi + ' KH</span></td>' +
+      '<td class="text-end" style="color:#d97706" data-label="TT KH Mới">' + AppManager.formatCurrency(r.TangTruongKHMoi) + '</td>' +
+      '<td class="text-center" data-label="KH Cũ Tăng"><span class="badge rounded-pill px-2" style="background:#f1f5f9;color:#475569">' + r.SoKHCuTang + ' KH</span></td>' +
+      '<td class="text-end" style="color:#64748b" data-label="TT KH Cũ">' + AppManager.formatCurrency(r.TangTruongKHCu) + '</td>' +
+      '<td class="text-end fw-bold" style="color:#059669" data-label="Tổng Tăng Trưởng">' + AppManager.formatCurrency(r.TongTangTruong) + '</td>' +
+      '<td class="text-center" data-label="% HT"><div class="d-flex align-items-center gap-1">' + progressHtml + ' ' + badgeDat + '</div></td>' +
+      '<td class="text-center" data-label="Chi Tiết"><button class="btn btn-outline-success btn-xs py-0 px-2" style="font-size:.75rem" onclick="event.stopPropagation();frmTangTruong_showDetail(\'' + r.MaNV + '\')"><i class="bx bx-detail"></i></button></td>' +
       '</tr>';
   });
 

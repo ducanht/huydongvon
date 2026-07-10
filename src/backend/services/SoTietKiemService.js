@@ -5,6 +5,8 @@
 var SoTietKiemService = {
   
   /**
+   * Kiểm tra sự tồn tại của Sổ Tiết Kiệm
+   */
   isSoTietKiemExists: function(soSo, useCache) {
     if (soSo === undefined || soSo === null) return false;
     useCache = useCache !== false;
@@ -24,7 +26,7 @@ var SoTietKiemService = {
     try {
       lock.waitLock(15000);
       
-      if (this.isSoTietKiemExists(soSo, false)) {
+      if (SoTietKiemService.isSoTietKiemExists(soSo, false)) {
         throw new Error("Số sổ " + soSo + " đã tồn tại trên hệ thống!");
       }
       
@@ -44,7 +46,7 @@ var SoTietKiemService = {
       // Lai suat
       var rate = parseFloat(laiSuat || 0);
       var type = loaiLai || "Standard"; 
-      var tienLai = this.calculateInterest(soTien, kyHan, rate, type);
+      var tienLai = SoTietKiemService.calculateInterest(soTien, kyHan, rate, type);
       
       var newSo = {
         SoSo: soSo,
@@ -144,7 +146,7 @@ var SoTietKiemService = {
    * Lấy danh sách sổ của một nhân viên đang ACTIVE (để Rút tiền)
    */
   getActiveByUser: function(user) {
-    return this.getSoTietKiemList(user, { TrangThai: "ACTIVE" });
+    return SoTietKiemService.getSoTietKiemList(user, { TrangThai: "ACTIVE" });
   },
 
   getDatatable: function(user, payload) {
@@ -153,7 +155,7 @@ var SoTietKiemService = {
       MaCD: payload.MaCD,
       TrangThai: payload.TrangThai
     };
-    var allSoFilteredByRole = this.getSoTietKiemList(user, filters);
+    var allSoFilteredByRole = SoTietKiemService.getSoTietKiemList(user, filters);
     var recordsTotal = allSoFilteredByRole.length; // Tổng số bản ghi mà USER có quyền xem
     var filteredSo = allSoFilteredByRole;
 
@@ -223,7 +225,7 @@ var SoTietKiemService = {
     };
     
     // Lấy toàn bộ sổ khớp filter
-    var allSo = this.getSoTietKiemList(user, filters);
+    var allSo = SoTietKiemService.getSoTietKiemList(user, filters);
     
     // Gom nhóm theo MaKH
     var khGroups = {};
