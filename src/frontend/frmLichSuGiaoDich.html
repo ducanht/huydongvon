@@ -179,9 +179,11 @@
                             if (startStr > todayStr) isNotStarted = true;
                         }
                         var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
-                        var statusMark = isRunning ? '' : ' [Đã Đóng]';
-                        
-                        cbo.append(`<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`);
+                        var statusMark = isRunning ? '' : ' (Đã kết thúc)';
+                        var cleanTen = (window.AppManager && AppManager.formatTenCD)
+                            ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+                            : (cd.TenCD || cd.MaCD);
+                        cbo.append(`<option value="${cd.MaCD}">${cleanTen}${statusMark}</option>`);
                     });
                 }
             });

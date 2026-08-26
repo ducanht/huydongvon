@@ -980,10 +980,13 @@
       var cbo = $("#cboChienDich").empty();
       if (res && res.length > 0) {
         res.forEach(function (cd) {
-          cbo.append($("<option>").val(cd.MaCD).text(cd.TenCD));
+          var cleanTen = (window.AppManager && AppManager.formatTenCD)
+            ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+            : (cd.TenCD || cd.MaCD);
+          cbo.append($('<option>').val(cd.MaCD).text(cleanTen));
         });
       } else {
-        cbo.append('<option value="">(Không có chiến dịch Active)</option>');
+        cbo.append('<option value="">(Hiện chưa có chiến dịch đang hoạt động)</option>');
       }
     });
 
@@ -1160,10 +1163,10 @@
 
               Swal.fire({
                 icon: "success",
-                title: "Đã ghi nhận!",
-                text: "Lệnh gửi đã được tạo và đang chờ ADMIN duyệt. Chỉ tiêu huy động sẽ được ghi nhận sau khi phê duyệt.",
-                confirmButtonText: "Hoàn tất",
-                confirmButtonColor: "#1a56db",
+                title: "Ghi nhận thành công!",
+                text: "Lệnh gửi đã được tạo và chờ phê duyệt. Chỉ tiêu KPI sẽ được cập nhật sau khi Ban quản lý phê duyệt.",
+                confirmButtonText: "Đóng",
+                confirmButtonColor: "#059669",
               });
             })
             .fail(function (err) {
