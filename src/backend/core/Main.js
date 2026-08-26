@@ -8,7 +8,10 @@
  */
 function doGet(e) {
   try {
-    return loadHtml("index", {});
+    return HtmlService.createHtmlOutputFromFile("index")
+      .setTitle(CONFIG.APP_NAME || "Quản Lý Huy Động Vốn - QTDND Yên Thọ")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   } catch (error) {
     return HtmlService.createHtmlOutput("Lỗi khởi tạo ứng dụng: " + error.message);
   }
@@ -272,6 +275,14 @@ function doApiRequest(action, payload) {
           break;
       
       // --- CHỨC NĂNG ADMIN ---
+      case 'getSystemDiagnostics':
+          if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được xem chẩn đoán.");
+          result = diagnoseSheetStructure();
+          break;
+      case 'auditDatabaseIntegrity':
+          if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được rà soát dữ liệu.");
+          result = auditDatabaseIntegrity();
+          break;
       case 'getAllNhanSu':
           if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được xem danh sách nhân sự.");
           result = NhanSuService.getAll();
