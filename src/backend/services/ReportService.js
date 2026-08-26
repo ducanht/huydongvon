@@ -921,63 +921,80 @@ var ReportService = {
     var year = cdStartDate.getFullYear();
     var yearStart = new Date(year, 0, 1, 0, 0, 0, 0); // Ngày 1/1 của năm diễn ra chiến dịch
 
-    // ── 2. Lấy toàn bộ GD và ChiTiêu (1 lần vào RAM) ────────────────────────
+    // ── 2. SINGLE-PASS PARTITIONING (Duyệt allGD 1 lần duy nhất cho toàn bộ mảng) ────
     var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
+    var filteredGD = [];
+    var targetMaKHSet = {};
+    var tellersSet = {};
+    var bookNetMap = {};
+    var activeGdsByKH = {}; // Phục vụ phân loại KH Mới/Cũ
+    var customerBalanceStart = {}; // { MaKH: balance }
+    var customerBalanceEnd = {};   // { MaKH: balance }
+    var preCampaignBookBalances = {}; // { SoSo: net }
 
-    // Lọc GD trong phạm vi chiến dịch (đã duyệt + đúng CD + theo kpiMode)
-    // Lưu ý: Không lọc maNVFilter sớm ở đây để đảm bảo tính tổng net của khách hàng trên toàn hệ thống (Anti-churn).
-    var filteredGD = allGD.filter(function(gd) {
-      if (gd.TrangThai !== 'ACTIVE') return false;
-      if (ValidatorService.normalizeId(gd.MaCD) !== maCD) return false;
+    allGD.forEach(function(gd) {
+      if (gd.TrangThai !== 'ACTIVE') return;
+      
+      var maKH = ValidatorService.normalizeId(gd.MaKH);
+      var maNV = ValidatorService.normalizeId(gd.MaNV);
+      var soSo = String(gd.SoSo || "").trim();
+      var soTien = parseFloat(gd.SoTien || 0);
+      var gdDate = ValidatorService.parseDate(gd.NgayGD);
+      if (!gdDate) return;
 
-      // Lọc theo ngày bắt đầu / kết thúc chiến dịch nếu kpiMode = THI_DUA
-      if (kpiMode === 'THI_DUA') {
-        var gdDate = ValidatorService.parseDate(gd.NgayGD);
-        if (cdStartDate && gdDate < cdStartDate) return false;
-        if (cdEndDate && gdDate > cdEndDate) return false;
+      var change = (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) ? soTien : -soTien;
+
+      // 1. Phục vụ phân loại KH Mới/Cũ & Tính số dư KH
+      if (maKH) {
+        if (!activeGdsByKH[maKH]) activeGdsByKH[maKH] = [];
+        activeGdsByKH[maKH].push(gdDate);
+
+        // Số dư đầu năm (< yearStart)
+        if (gdDate < yearStart) {
+          customerBalanceStart[maKH] = (customerBalanceStart[maKH] || 0) + change;
+        }
+        // Số dư cuối chiến dịch (<= cdEndDate)
+        if (!cdEndDate || gdDate <= cdEndDate) {
+          customerBalanceEnd[maKH] = (customerBalanceEnd[maKH] || 0) + change;
+        }
       }
-      return true;
+
+      // 2. Số dư sổ trước chiến dịch
+      if (soSo && gdDate < cdStartDate) {
+        preCampaignBookBalances[soSo] = (preCampaignBookBalances[soSo] || 0) + change;
+      }
+
+      // 3. GD thuộc Chiến dịch
+      if (ValidatorService.normalizeId(gd.MaCD) === maCD) {
+        if (kpiMode === 'THI_DUA') {
+          if (cdStartDate && gdDate < cdStartDate) return;
+          if (cdEndDate && gdDate > cdEndDate) return;
+        }
+
+        filteredGD.push(gd);
+        if (maKH) targetMaKHSet[maKH] = true;
+        if (maNV) tellersSet[maNV] = true;
+
+        if (soSo && maNV && maKH) {
+          var key = soSo + "_" + maNV;
+          if (!bookNetMap[key]) {
+            bookNetMap[key] = { SoSo: gd.SoSo, MaNV: maNV, MaKH: maKH, gui: 0, rut: 0 };
+          }
+          if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+            bookNetMap[key].gui += soTien;
+          } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
+            bookNetMap[key].rut += soTien;
+          }
+        }
+      }
     });
 
-    // ── 3. Xây dựng tập KH tham gia chiến dịch ───────────────────────────────
-    var targetMaKHSet = {}; // Tập KH xuất hiện trong filteredGD
-    filteredGD.forEach(function(gd) {
-      if (gd.MaKH) targetMaKHSet[ValidatorService.normalizeId(gd.MaKH)] = true;
-    });
-
-    // ── 4. Phân loại KH Mới / KH Cũ ──────────────────────────────────────────
+    // ── 3. Phân loại KH Mới / KH Cũ ──────────────────────────────────────────
     var classified = this._classifyCustomers(allGD, cdStartDate, targetMaKHSet);
     var newKHSet = classified.newSet;   // { MaKH: true }
     var oldKHSet = classified.oldSet;   // { MaKH: true }
 
-    // ── 5. Tính Net trong chiến dịch theo từng Sổ tiết kiệm và từng Cán bộ ──────────
-    var bookNetMap = {}; // { "SoSo_MaNV": { SoSo, MaNV, MaKH, gui, rut } }
-    var tellersSet = {}; // Tập cán bộ có hoạt động giao dịch
-
-    filteredGD.forEach(function(gd) {
-      var soSo = String(gd.SoSo || "").trim();
-      if (!soSo) return; // Bỏ qua giao dịch không có số sổ
-
-      var maNV = ValidatorService.normalizeId(gd.MaNV);
-      var maKH = ValidatorService.normalizeId(gd.MaKH);
-      if (!maNV || !maKH) return;
-
-      tellersSet[maNV] = true;
-
-      var key = soSo + "_" + maNV;
-      if (!bookNetMap[key]) {
-        bookNetMap[key] = { SoSo: gd.SoSo, MaNV: maNV, MaKH: maKH, gui: 0, rut: 0 };
-      }
-
-      var soTien = parseFloat(gd.SoTien || 0);
-      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-        bookNetMap[key].gui += soTien;
-      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-        bookNetMap[key].rut += soTien;
-      }
-    });
-
-    // ── 6. Lọc các sổ có tăng trưởng ròng dương ─────────────────────────────────────
+    // ── 4. Lọc các sổ có tăng trưởng ròng dương ─────────────────────────────────────
     var positiveBooks = []; // Danh sách các sổ có net dương của từng cán bộ
     var positiveBookKeysSet = {}; // { SoSo: true }
 
@@ -997,40 +1014,13 @@ var ReportService = {
       }
     });
 
-    // ── 7. Tính Số Dư Đầu Kỳ của các sổ cũ trước chiến dịch ─────────────────────────
-    var preCampaignBookBalance = this._buildPreCampaignBookBalanceMap(allGD, cdStartDate, positiveBookKeysSet);
-
-    // ── 8. Tính Số Dư của Khách Hàng Cũ tại đầu năm và cuối chiến dịch ─────────────
-    var customerBalanceStart = {}; // { MaKH: balance }
-    var customerBalanceEnd = {};   // { MaKH: balance }
-
-    allGD.forEach(function(gd) {
-      if (gd.TrangThai !== 'ACTIVE') return;
-      var maKH = ValidatorService.normalizeId(gd.MaKH);
-      if (!maKH || !oldKHSet[maKH]) return;
-
-      var gdDate = ValidatorService.parseDate(gd.NgayGD);
-      if (!gdDate) return;
-
-      var soTien = parseFloat(gd.SoTien || 0);
-      var change = 0;
-      if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-        change = soTien;
-      } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-        change = -soTien;
-      }
-
-      // Giao dịch diễn ra trước đầu năm (01/01 của năm diễn ra chiến dịch)
-      if (gdDate < yearStart) {
-        customerBalanceStart[maKH] = (customerBalanceStart[maKH] || 0) + change;
-      }
-
-      // Giao dịch diễn ra trước hoặc trong chiến dịch (<= cdEndDate)
-      if (gdDate <= cdEndDate) {
-        customerBalanceEnd[maKH] = (customerBalanceEnd[maKH] || 0) + change;
-      }
+    // ── 5. Tính Số Dư Đầu Kỳ của các sổ cũ trước chiến dịch từ map đã tính ─────────
+    var preCampaignBookBalance = {};
+    Object.keys(positiveBookKeysSet).forEach(function(soSo) {
+      preCampaignBookBalance[soSo] = preCampaignBookBalances[soSo] || 0;
     });
 
+    // ── 6. Tính Tăng trưởng của Khách Hàng Cũ từ map đã tính ───────────────────────
     var customerYearlyGrowth = {};
     Object.keys(oldKHSet).forEach(function(maKH) {
       var startBal = customerBalanceStart[maKH] || 0;

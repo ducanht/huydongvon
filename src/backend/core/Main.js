@@ -447,7 +447,18 @@ function doApiRequest(action, payload) {
     if (writeActions.indexOf(action) !== -1) {
       invalidateApiCache();
     } else if (isCacheable && result !== null) {
-      CacheServiceWrapper.put(cacheKey, result, 300); // Cache for 5 minutes
+      // Xác định TTL phân tầng theo loại Action (Cache Tiering)
+      var ttl = CacheServiceWrapper.TIERS.WARM; // Mặc định 5 phút
+      var hotActions = ['getDashboardData', 'getDashboardKpi', 'getLeaderboard', 'getDanhSachChoDuyet', 'getSotietkiemManagedByUser'];
+      var coldActions = ['getDanhMucCauHinh', 'getSystemLogs', 'getChienDichOverviewStats', 'getSystemDiagnostics'];
+      
+      if (hotActions.indexOf(action) !== -1) {
+        ttl = CacheServiceWrapper.TIERS.HOT; // 60s
+      } else if (coldActions.indexOf(action) !== -1) {
+        ttl = CacheServiceWrapper.TIERS.COLD; // 6 giờ
+      }
+      
+      CacheServiceWrapper.put(cacheKey, result, ttl);
     }
     
     return JSON.stringify({ status: 'success', data: result });

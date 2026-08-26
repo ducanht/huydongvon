@@ -6,6 +6,13 @@ var CacheServiceWrapper = {
   // Giới hạn an toàn cho mỗi chunk của CacheService (100KB là limit cứng, ta dùng 90KB cho an toàn)
   CHUNK_SIZE_LIMIT: 90 * 1024, 
 
+  // Phân tầng thời gian sống (Cache Tiering)
+  TIERS: {
+    HOT: 60,       // 1 phút: Dashboard, Leaderboard real-time
+    WARM: 300,     // 5 phút: Báo cáo tăng trưởng, chi tiết nhân sự
+    COLD: 21600    // 6 giờ: Dữ liệu chiến dịch đã kết thúc, danh mục hệ thống
+  },
+
   /**
    * Lấy dữ liệu từ cache (Hỗ trợ tự động ghép các chunks nếu có)
    */
