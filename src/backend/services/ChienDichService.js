@@ -107,5 +107,167 @@ var ChienDichService = {
     } finally {
       lock.releaseLock();
     }
+  },
+
+  /**
+   * Lấy Thống Kê Tổng Quan Vĩ Mô Toàn Bộ Chiến Dịch
+   */
+  getChienDichOverviewStats: function() {
+    var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+    var allSummary = Repository.getAll(CONFIG.SHEETS.SUMMARY);
+    var todayStr = Utilities.formatDate(new Date(), "Asia/Ho_Chi_Minh", "yyyy-MM-dd");
+
+    var runningCount = 0;
+    var upcomingCount = 0;
+    var endedCount = 0;
+    var inactiveCount = 0;
+
+    allCD.forEach(function(cd) {
+      if (cd.TrangThai !== 'ACTIVE') {
+        inactiveCount++;
+        return;
+      }
+      var startStr = cd.NgayBatDau ? (cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau) : "";
+      var endStr = cd.NgayKetThuc ? (cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc) : "";
+
+      if (startStr && startStr > todayStr) {
+        upcomingCount++;
+      } else if (endStr && endStr < todayStr) {
+        endedCount++;
+      } else {
+        runningCount++;
+      }
+    });
+
+    var totalKpi = 0;
+    var tellersCount = 0;
+    allChiTieu.forEach(function(ct) {
+      var val = parseFloat(ct.ChiTieu || 0);
+      if (val > 0) {
+        totalKpi += val;
+        tellersCount++;
+      }
+    });
+
+    var totalNet = 0;
+    allSummary.forEach(function(sm) {
+      totalNet += parseFloat(sm.Net || 0);
+    });
+
+    var avgRate = totalKpi > 0 ? (totalNet / totalKpi) * 100 : 0;
+
+    return {
+      totalCampaigns: allCD.length,
+      runningCampaigns: runningCount,
+      upcomingCampaigns: upcomingCount,
+      endedCampaigns: endedCount,
+      inactiveCampaigns: inactiveCount,
+      totalKpiAssigned: totalKpi,
+      totalTellersAssigned: tellersCount,
+      totalMobilizedNet: totalNet,
+      averageCompletionRate: Math.round(avgRate * 10) / 10
+    };
+  },
+
+  /**
+   * Lấy danh sách chiến dịch phân nhóm chi tiết & thống kê từng chiến dịch
+   */
+  getChienDichGroupedList: function() {
+    var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+    var allSummary = Repository.getAll(CONFIG.SHEETS.SUMMARY);
+    var now = new Date();
+    var todayStr = Utilities.formatDate(now, "Asia/Ho_Chi_Minh", "yyyy-MM-dd");
+
+    // Tạo map chỉ tiêu và net theo từng MaCD
+    var kpiByCd = {};
+    var tellersByCd = {};
+    allChiTieu.forEach(function(ct) {
+      var mcd = ValidatorService.normalizeId(ct.MaCD);
+      if (!mcd) return;
+      var val = parseFloat(ct.ChiTieu || 0);
+      kpiByCd[mcd] = (kpiByCd[mcd] || 0) + val;
+      if (val > 0) tellersByCd[mcd] = (tellersByCd[mcd] || 0) + 1;
+    });
+
+    var netByCd = {};
+    allSummary.forEach(function(sm) {
+      var mcd = ValidatorService.normalizeId(sm.MaCD);
+      if (!mcd) return;
+      netByCd[mcd] = (netByCd[mcd] || 0) + parseFloat(sm.Net || 0);
+    });
+
+    return allCD.map(function(cd) {
+      var mcdNorm = ValidatorService.normalizeId(cd.MaCD);
+      var startStr = cd.NgayBatDau ? (cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau) : "";
+      var endStr = cd.NgayKetThuc ? (cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc) : "";
+
+      var statusGroup = "RUNNING";
+      var statusBadge = "Đang Diễn Ra";
+      var statusClass = "success";
+
+      if (cd.TrangThai !== 'ACTIVE') {
+        statusGroup = "INACTIVE";
+        statusBadge = "Đã Tạm Dừng";
+        statusClass = "secondary";
+      } else if (startStr && startStr > todayStr) {
+        statusGroup = "UPCOMING";
+        statusBadge = "Sắp Diễn Ra";
+        statusClass = "warning";
+      } else if (endStr && endStr < todayStr) {
+        statusGroup = "ENDED";
+        statusBadge = "Đã Kết Thúc";
+        statusClass = "dark";
+      }
+
+      // Tính % thời gian trôi qua
+      var elapsedPercent = 0;
+      if (cd.NgayBatDau && cd.NgayKetThuc) {
+        var dtStart = ValidatorService.parseDate(cd.NgayBatDau);
+        var dtEnd = ValidatorService.parseDate(cd.NgayKetThuc);
+        if (dtStart && dtEnd && dtEnd.getTime() > dtStart.getTime()) {
+          var totalDuration = dtEnd.getTime() - dtStart.getTime();
+          var elapsedDuration = now.getTime() - dtStart.getTime();
+          if (elapsedDuration <= 0) {
+            elapsedPercent = 0;
+          } else if (elapsedDuration >= totalDuration) {
+            elapsedPercent = 100;
+          } else {
+            elapsedPercent = Math.round((elapsedDuration / totalDuration) * 100);
+          }
+        }
+      }
+
+      var cdKpi = kpiByCd[mcdNorm] || 0;
+      var cdNet = netByCd[mcdNorm] || 0;
+      var completionRate = cdKpi > 0 ? Math.round((cdNet / cdKpi) * 1000) / 10 : 0;
+
+      // Chuẩn hóa tên chiến dịch nếu là ISO date string
+      var cleanTenCD = cd.TenCD || "";
+      if (typeof cleanTenCD === 'string' && (cleanTenCD.indexOf('T00:00:00') !== -1 || /^\d{4}-\d{2}-\d{2}/.test(cleanTenCD))) {
+        var dt = ValidatorService.parseDate(cleanTenCD);
+        if (dt) {
+          cleanTenCD = "Chiến Dịch Tháng " + (dt.getMonth() + 1) + "/" + dt.getFullYear();
+        }
+      }
+
+      return {
+        MaCD: cd.MaCD,
+        TenCD: cleanTenCD,
+        LoaiCD: cd.LoaiCD,
+        NgayBatDau: cd.NgayBatDau,
+        NgayKetThuc: cd.NgayKetThuc,
+        TrangThai: cd.TrangThai,
+        statusGroup: statusGroup,
+        statusBadge: statusBadge,
+        statusClass: statusClass,
+        totalKpi: cdKpi,
+        tellersCount: tellersByCd[mcdNorm] || 0,
+        totalNet: cdNet,
+        completionRate: completionRate,
+        elapsedPercent: elapsedPercent
+      };
+    });
   }
 };

@@ -159,6 +159,10 @@ function doApiRequest(action, payload) {
           break;
           
       case 'resetPassword':
+          // Security Phase 6 Remediation: Enforce HR/Admin Roles
+          if (!user || (user.role !== 'ADMIN' && user.role !== 'TP_NHANSU')) {
+              throw new Error('Bạn không có quyền thực hiện thao tác đặt lại mật khẩu nhân sự.');
+          }
           result = NhanSuService.resetPassword(user, payload.targetMaNV);
           break;
           
@@ -282,6 +286,12 @@ function doApiRequest(action, payload) {
       case 'getAllChienDich':
           result = ChienDichService.getAll();
           break;
+      case 'getChienDichOverviewStats':
+          result = ChienDichService.getChienDichOverviewStats();
+          break;
+      case 'getChienDichGroupedList':
+          result = ChienDichService.getChienDichGroupedList();
+          break;
       case 'saveChienDich':
           if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được quản lý chiến dịch.");
           result = ChienDichService.saveChienDich(payload);
@@ -293,6 +303,10 @@ function doApiRequest(action, payload) {
       case 'saveChiTieu':
           if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được lưu KPI.");
           result = KPIService.saveChiTieu(user, payload);
+          break;
+      case 'copyChiTieuFromCampaign':
+          if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được sao chép chỉ tiêu KPI.");
+          result = KPIService.copyChiTieuFromCampaign(user, payload);
           break;
       case 'saveKhachHang':
           result = KhachHangService.saveKhachHang(user, payload);
@@ -425,7 +439,7 @@ function doApiRequest(action, payload) {
         'submitGiaoDichGui', 'submitGiaoDichRut', 'duyetGiaoDich', 
         'duyetGiaoDichGui', 'submitDuyetRutTatToan', 'submitHuyGiaoDich',
         'revertGiaoDich', 'saveKhachHang', 'changePassword', 'resetPassword',
-        'saveNhanSu', 'saveChienDich', 'saveChiTieu',  
+        'saveNhanSu', 'saveChienDich', 'saveChiTieu', 'copyChiTieuFromCampaign', 
         'archiveTransactions', 'clearServerCache', 'initDummyData',
         'clearSystemLogs', 'recalculateAllKpi', 'deleteTestData',
         'executeReconciliation'

@@ -233,5 +233,27 @@ var Repository = {
     // Dùng UUID để tránh trùng lặp trong môi trường multi-user concurrent
     var uuid = Utilities.getUuid().replace(/-/g, '').toUpperCase().substring(0, 10);
     return prefix + uuid;
+  },
+
+  /**
+   * Truy vấn tối ưu hóa lọc theo khoảng ngày (Range Filtering)
+   */
+  getRangeByDate: function(sheetName, dateColName, fromDate, toDate, useCache) {
+    var dtFrom = fromDate ? (fromDate instanceof Date ? fromDate : ValidatorService.parseDate(fromDate)) : null;
+    var dtTo = toDate ? (toDate instanceof Date ? toDate : ValidatorService.parseDate(toDate)) : null;
+    if (dtFrom) dtFrom.setHours(0, 0, 0, 0);
+    if (dtTo) dtTo.setHours(23, 59, 59, 999);
+
+    return this.getAll(sheetName, useCache, function(row) {
+      if (!dtFrom && !dtTo) return true;
+      var rawDate = row[dateColName];
+      if (!rawDate) return false;
+      var rowDt = rawDate instanceof Date ? rawDate : ValidatorService.parseDate(rawDate);
+      if (!rowDt || isNaN(rowDt.getTime())) return false;
+
+      if (dtFrom && rowDt.getTime() < dtFrom.getTime()) return false;
+      if (dtTo && rowDt.getTime() > dtTo.getTime()) return false;
+      return true;
+    });
   }
 };

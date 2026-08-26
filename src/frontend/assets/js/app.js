@@ -576,54 +576,77 @@
       payload.ClientIP = window.APP_CONTEXT.ClientIP || "Unknown";
 
       var self = this;
-      google.script.run
-        .withSuccessHandler(function (resStr) {
-          if (isWriteAction) {
-            delete self._pendingActions[actionKey];
-            self.hideLoading();
-          }
-          try {
-            var json = typeof resStr === "string" ? JSON.parse(resStr) : resStr;
-            if (json.status === "success") {
-              if (cacheableActions.indexOf(action) !== -1) {
-                self._clientCache[cacheKey] = JSON.parse(JSON.stringify(json.data));
-              }
-              d.resolve(json.data);
-            } else {
-              if (
-                json.message === "TOKEN_EXPIRED" ||
-                (json.message && json.message.indexOf("Token hết hạn") !== -1)
-              ) {
-                AppManager.logout();
-                d.reject("Phiên đăng nhập hết hạn.");
-              } else {
-                d.reject(json.message || "Lỗi không xác định từ Server.");
-              }
-            }
-          } catch (e) {
-            console.error("API Parse Error", e, resStr);
-            d.reject("Lỗi Parse JSON Data: " + e.message);
-          }
-        })
-        .withFailureHandler(function (err) {
-          if (isWriteAction) {
-            delete self._pendingActions[actionKey];
-            self.hideLoading();
-          }
-          var errMsg = err.message || "Lỗi Network/Server không xác định.";
-          console.error("[API FAILURE]", action, errMsg);
 
-          if (
-            errMsg === "TOKEN_EXPIRED" ||
-            errMsg.indexOf("Token hết hạn") !== -1
-          ) {
-            AppManager.logout();
-            d.reject("Phiên đăng nhập hết hạn.");
+      var handleResponse = function (resStr) {
+        if (isWriteAction) {
+          delete self._pendingActions[actionKey];
+          self.hideLoading();
+        }
+        try {
+          var json = typeof resStr === "string" ? JSON.parse(resStr) : resStr;
+          if (json.status === "success") {
+            if (cacheableActions.indexOf(action) !== -1) {
+              self._clientCache[cacheKey] = JSON.parse(JSON.stringify(json.data));
+            }
+            d.resolve(json.data);
           } else {
-            d.reject(errMsg);
+            if (
+              json.message === "TOKEN_EXPIRED" ||
+              (json.message && json.message.indexOf("Token hết hạn") !== -1)
+            ) {
+              AppManager.logout();
+              d.reject("Phiên đăng nhập hết hạn.");
+            } else {
+              d.reject(json.message || "Lỗi không xác định từ Server.");
+            }
           }
+        } catch (e) {
+          console.error("API Parse Error", e, resStr);
+          d.reject("Lỗi Parse JSON Data: " + e.message);
+        }
+      };
+
+      var handleFailure = function (err) {
+        if (isWriteAction) {
+          delete self._pendingActions[actionKey];
+          self.hideLoading();
+        }
+        var errMsg = (err && err.message) ? err.message : (typeof err === "string" ? err : "Lỗi Network/Server không xác định.");
+        console.error("[API FAILURE]", action, errMsg);
+
+        if (
+          errMsg === "TOKEN_EXPIRED" ||
+          errMsg.indexOf("Token hết hạn") !== -1
+        ) {
+          AppManager.logout();
+          d.reject("Phiên đăng nhập hết hạn.");
+        } else {
+          d.reject(errMsg);
+        }
+      };
+
+      // PATH 1: Môi trường Google Apps Script Web App
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(handleResponse)
+          .withFailureHandler(handleFailure)
+          .doApiRequest(action, payload);
+      } else {
+        // PATH 2: Môi trường Vercel Web Proxy (/api/data)
+        $.ajax({
+          url: "/api/data",
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({ action: action, payload: payload }),
+          dataType: "json",
+          timeout: 25000,
         })
-        .doApiRequest(action, payload);
+          .done(handleResponse)
+          .fail(function (xhr, status, error) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : ("Lỗi máy chủ (" + status + "): " + error);
+            handleFailure(new Error(msg));
+          });
+      }
 
       return d.promise();
     },

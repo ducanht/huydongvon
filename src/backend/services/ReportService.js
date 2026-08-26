@@ -101,9 +101,12 @@ var ReportService = {
           TenNV: r.TenNV,
           ChiTieu: r.ChiTieu,
           Net: r.TongTangTruong,             // Thực đạt Net theo KPI Tăng Trưởng
+          Net_ThiDua: r.TongTangTruong,      // Điểm thi đua chiến dịch
+          Net_HienTai: rawStats.gui - rawStats.rut, // Số dư thực tế còn lại
           HoanThanh: r.TyLeHoanThanh,        // % Hoàn thành theo KPI Tăng Trưởng
           TongGui: rawStats.gui,             // Số tiền gửi thực tế phát sinh trong CD
           TongRut: rawStats.rut,             // Số tiền rút thực tế phát sinh trong CD
+          TongRut_SauChienDich: rawStats.rutSauCD || 0, // Rút sau khi đóng chiến dịch
           SoMoi: Object.keys(rawStats.booksCount).length, // Số lượng sổ mở trong CD
           SoKH: r.SoKHMoi + r.SoKHCuTang,     // Số lượng KH tăng trưởng (nguyên người)
           Email: ns.Email || ""

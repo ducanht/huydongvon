@@ -386,8 +386,8 @@
             ">
             0 đ
           </h2>
-          <p class="text-muted x-small mb-0">
-            <i class="bx bx-log-out-circle me-1"></i>Rút trước hạn
+          <p class="text-muted x-small mb-0" id="lblTongRutSubText">
+            <i class="bx bx-log-out-circle me-1"></i>Rút trong đợt
           </p>
         </div>
       </div>
@@ -399,13 +399,13 @@
             <div class="icon-box mb-0 me-3" style="color: #10b981">
               <i class="bx bxs-bolt fs-4"></i>
             </div>
-            <div class="stat-label text-success">TĂNG TRƯỞNG RÒNG</div>
+            <div class="stat-label text-success" id="lblNetTitle">TĂNG TRƯỞNG RÒNG</div>
           </div>
           <h2 id="lblNet" class="stat-number" style="padding-right: 5px">
             0 đ
           </h2>
-          <p class="text-muted x-small mb-0">
-            <i class="bx bx-check-double me-1"></i>Net Growth thực tế
+          <p class="text-muted x-small mb-0" id="lblNetSubText">
+            <i class="bx bx-check-double me-1"></i>Điểm thi đua chiến dịch
           </p>
         </div>
       </div>
@@ -651,10 +651,30 @@
         // 1. Render KPI Cards
         var tongGui = kpiData.TongGui || 0;
         var tongRut = kpiData.TongRut || 0;
+        var isThiDua = (filters.kpiMode === 'THI_DUA');
 
         $("#lblTongGui").text(formatCurrency(tongGui));
         $("#lblTongRut").text(formatCurrency(tongRut));
         $("#lblNet").text(formatCurrency(kpiData.Net || 0));
+
+        if (isThiDua) {
+          $("#lblNetTitle").text("ĐIỂM THI ĐUA");
+          if (kpiData.isCampaignEnded) {
+            $("#lblNetSubText").html("<i class='bx bx-lock-alt text-amber-500 me-1'></i>Số liệu chốt khi đóng CD");
+            if (kpiData.TongRut_SauChienDich > 0) {
+              $("#lblTongRutSubText").html("<i class='bx bx-info-circle me-1'></i>Trong đợt (Rút sau CD: " + formatCurrency(kpiData.TongRut_SauChienDich) + ")");
+            } else {
+              $("#lblTongRutSubText").html("<i class='bx bx-log-out-circle me-1'></i>Rút trong đợt");
+            }
+          } else {
+            $("#lblNetSubText").html("<i class='bx bx-check-double me-1'></i>Tiến độ thi đua thực tế");
+            $("#lblTongRutSubText").html("<i class='bx bx-log-out-circle me-1'></i>Rút trong đợt");
+          }
+        } else {
+          $("#lblNetTitle").text("SỐ DƯ THỰC TẾ");
+          $("#lblNetSubText").html("<i class='bx bx-line-chart me-1'></i>Dòng tiền thực còn tại Quỹ");
+          $("#lblTongRutSubText").html("<i class='bx bx-log-out-circle me-1'></i>Toàn bộ số tiền đã rút");
+        }
 
         if (kpiData.ChiTieu > 0) {
           $("#lblHoanThanh").text((kpiData.HoanThanh || 0).toFixed(2) + "%");

@@ -49,7 +49,10 @@ function main() {
         }
             
         const moduleName = path.parse(filename).name;
-        const filePath = path.join(frontendDir, filename);
+        const filePath = path.resolve(frontendDir, filename);
+        if (!filePath.startsWith(path.resolve(frontendDir))) {
+            throw new Error(`Security Exception: Unsafe path traversal detected for ${filename}`);
+        }
         const content = fs.readFileSync(filePath, "utf8").trim();
             
         let templateStr = "";

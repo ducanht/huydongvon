@@ -1,0 +1,788 @@
+============================================================
+PROJECT TASK
+UI RECONCILIATION + GOOGLE STITCH MIGRATION
+============================================================
+
+DỰ ÁN:
+Gia Phả Gia Tộc — Heritage Ledger
+
+MỤC TIÊU:
+
+Hệ thống hiện tại ĐÃ CÓ RẤT NHIỀU:
+
+- Pages
+- Routes
+- Components
+- Modals
+- Drawers
+- Forms
+- Tables
+- Dashboards
+- Business Logic
+- Services
+- Supabase integration
+- Authentication
+- RLS
+- Financial Core
+- Calendar
+- Memorial
+- Events
+- Subscription
+- Billing
+- Admin
+- Support
+
+Vì vậy:
+
+KHÔNG được xây dựng lại ứng dụng từ đầu.
+
+KHÔNG được xóa các màn hình hiện tại.
+
+KHÔNG được bỏ các tính năng đã hoạt động.
+
+KHÔNG được thay đổi Business Logic.
+
+KHÔNG được reset Database.
+
+KHÔNG được xóa dữ liệu TEST.
+
+NHIỆM VỤ LÀ:
+
+ĐỐI CHIẾU TOÀN BỘ UI HIỆN TẠI
+VỚI GOOGLE STITCH
+
+sau đó:
+
+1. Màn hình đã có Stitch
+   → lấy Stitch làm chuẩn
+   → chỉnh Code cho khớp Stitch.
+
+2. Màn hình chưa có Stitch
+   → giữ nguyên Business Logic hiện tại
+   → đưa yêu cầu/màn hình lên Google Stitch để thiết kế
+   → lấy thiết kế Stitch
+   → chỉnh Code theo thiết kế đó.
+
+3. Màn hình hiện tại thiếu UI/UX
+   → thiết kế bổ sung trên Stitch
+   → sau đó implement vào Code.
+
+4. Màn hình hiện tại tốt nhưng lệch Stitch
+   → KHÔNG viết lại logic
+   → chỉ điều chỉnh Presentation/UI Layer.
+
+5. Nếu phát hiện tính năng đã code nhưng chưa có thiết kế tương ứng
+   → KHÔNG xóa tính năng.
+   → thiết kế màn hình đó trên Stitch.
+   → sau đó đưa thiết kế vào Code.
+
+============================================================
+I. NGUYÊN TẮC KIẾN TRÚC
+============================================================
+
+Từ thời điểm này sử dụng mô hình:
+
+                 GOOGLE STITCH
+                DESIGN SOURCE
+                     ↓
+              UI IMPLEMENTATION
+                     ↓
+              EXISTING BUSINESS
+                  LOGIC/API
+                     ↓
+                 SUPABASE
+
+Không được đảo ngược:
+
+Code → tự suy diễn Design.
+
+Phải:
+
+Design → Code.
+
+Tuy nhiên, vì Code hiện tại đã tồn tại rất lớn:
+
+Code hiện tại được sử dụng làm:
+
+"FUNCTIONAL INVENTORY"
+
+Google Stitch được sử dụng làm:
+
+"VISUAL SOURCE OF TRUTH"
+
+============================================================
+II. KHÔNG ĐƯỢC CODE NGAY
+============================================================
+
+BƯỚC ĐẦU TIÊN:
+
+CHỈ AUDIT.
+
+Không chỉnh sửa UI.
+
+Không refactor.
+
+Không xóa component.
+
+Không thay đổi route.
+
+Không thay đổi database.
+
+Không thay đổi business logic.
+
+============================================================
+III. QUÉT TOÀN BỘ CODEBASE
+============================================================
+
+Phân tích toàn bộ:
+
+src/pages/
+src/components/
+src/layouts/
+src/routes/
+src/services/
+src/hooks/
+src/lib/
+src/features/
+
+và các route được khai báo trong:
+
+React Router
+App Router
+Route configuration
+Navigation configuration
+
+Đồng thời tìm:
+
+- Modal
+- Drawer
+- Dialog
+- Form
+- Table
+- Wizard
+- Dashboard
+- Settings
+- Admin screen
+- Empty state
+- Loading state
+- Error state
+
+============================================================
+IV. TẠO UI INVENTORY
+============================================================
+
+Tạo:
+
+docs/UI_SCREEN_INVENTORY.md
+
+Bảng:
+
+| ID | Route | Screen | Component | Feature | Current Status | Stitch Status |
+|----|-------|--------|-----------|---------|----------------|---------------|
+
+Ví dụ:
+
+UI-001 | /app | Family Dashboard | FamilyDashboardPage | Dashboard | Implemented | EXISTS
+UI-002 | /app/members | Members | MembersListPage | Genealogy | Implemented | EXISTS
+UI-003 | /app/members/import | Import | DataImportWizard | Import | Implemented | MISSING
+UI-004 | /app/funds | Funds | FundsPage | Finance | Implemented | EXISTS
+UI-005 | /admin/payments | Payment Queue | PaymentQueuePage | Billing | Implemented | MISSING
+
+============================================================
+V. PHÂN LOẠI TỪNG MÀN HÌNH
+============================================================
+
+Mỗi UI phải thuộc một trong các nhóm:
+
+A — MATCH
+
+Code hiện tại phù hợp Stitch.
+
+ACTION:
+Không redesign lớn.
+Chỉ Visual QA.
+
+--------------------------------------------
+
+B — VISUAL MISMATCH
+
+Đã có Stitch nhưng Code khác thiết kế.
+
+ACTION:
+Giữ nguyên logic.
+Điều chỉnh UI Code theo Stitch.
+
+--------------------------------------------
+
+C — STITCH MISSING
+
+Code đã tồn tại nhưng chưa có thiết kế Stitch.
+
+ACTION:
+
+1. Phân tích UI hiện tại.
+2. Phân tích nghiệp vụ.
+3. Đưa màn hình lên Google Stitch.
+4. Thiết kế theo Design System.
+5. Hoàn thiện Stitch.
+6. Sau đó chỉnh Code theo Stitch.
+
+--------------------------------------------
+
+D — PARTIAL
+
+Có Stitch nhưng thiếu một số trạng thái/tính năng.
+
+Ví dụ:
+
+Stitch có:
+
+Dashboard
+
+nhưng Code có thêm:
+
+- Loading
+- Error
+- Empty
+- Subscription expired
+- Read-only
+- Quota reached
+
+ACTION:
+
+Bổ sung các trạng thái còn thiếu vào Stitch.
+
+Sau đó Code theo Stitch.
+
+--------------------------------------------
+
+E — CODE FEATURE WITHOUT UI
+
+Business feature đã tồn tại nhưng UI chưa hoàn chỉnh.
+
+ACTION:
+
+Không xóa feature.
+
+Thiết kế UI trên Stitch trước.
+
+Sau đó implement.
+
+--------------------------------------------
+
+F — ORPHAN
+
+Component/route tồn tại nhưng không còn được sử dụng.
+
+KHÔNG tự động xóa.
+
+Đánh dấu:
+
+ORPHAN — NEED HUMAN REVIEW
+
+============================================================
+VI. KIỂM TRA GOOGLE STITCH
+============================================================
+
+Sử dụng Google Stitch MCP.
+
+Không chỉ tìm kiếm tên màn hình.
+
+Phải kiểm tra:
+
+- Screen
+- Page
+- Navigation
+- Components
+- States
+- Responsive variants
+- Design System
+- Typography
+- Colors
+- Spacing
+- Cards
+- Tables
+- Forms
+- Modals
+- Empty states
+- Error states
+
+============================================================
+VII. TẠO STITCH MAPPING
+============================================================
+
+Tạo:
+
+docs/STITCH_SCREEN_MAPPING.md
+
+Ví dụ:
+
+| Code Screen | Stitch Screen | Status | Action |
+|-------------|---------------|--------|--------|
+| Family Dashboard | Family Dashboard | MATCH | Keep |
+| Members | Members | MISMATCH | Redesign UI |
+| Import Wizard | — | MISSING | Create Stitch |
+| Fund Ledger | Fund Ledger | MATCH | Keep |
+| Payment Queue | — | MISSING | Create Stitch |
+| Admin Billing | Admin Billing | PARTIAL | Update Stitch |
+
+============================================================
+VIII. QUY TẮC CHO MÀN HÌNH ĐÃ CÓ STITCH
+============================================================
+
+Nếu:
+
+STITCH EXISTS
+
+thì:
+
+1. Đọc Stitch.
+2. Đối chiếu Code.
+3. Xác định differences.
+4. Không thay đổi business logic.
+5. Chỉ thay đổi UI/Presentation.
+6. Visual QA.
+
+Không được:
+
+"Code hiện tại đẹp hơn nên giữ Code."
+
+STITCH là chuẩn.
+
+============================================================
+IX. QUY TẮC CHO MÀN HÌNH CHƯA CÓ STITCH
+============================================================
+
+Nếu:
+
+STITCH MISSING
+
+thì:
+
+KHÔNG được tự ý chỉnh Code UI trước.
+
+Thực hiện:
+
+CURRENT CODE
+      ↓
+UNDERSTAND FUNCTION
+      ↓
+UNDERSTAND USER FLOW
+      ↓
+CREATE STITCH DESIGN
+      ↓
+APPROVE / FINALIZE STITCH
+      ↓
+IMPLEMENT UI
+      ↓
+VISUAL QA
+
+============================================================
+X. QUAN TRỌNG: KHÔNG MẤT TÍNH NĂNG
+============================================================
+
+Trong quá trình redesign:
+
+Không được vô tình loại bỏ:
+
+- Button
+- Action
+- Filter
+- Search
+- Sort
+- Pagination
+- Export
+- Import
+- Modal
+- Form field
+- Validation
+- Permission
+- Role
+- State
+- Business action
+
+Nếu Stitch hiện tại chưa thể hiện một tính năng đang tồn tại:
+
+KHÔNG XÓA TÍNH NĂNG.
+
+Bổ sung tính năng đó vào Stitch.
+
+============================================================
+XI. DATA-DRIVEN UI
+============================================================
+
+Sau khi chỉnh UI:
+
+PHẢI sử dụng dữ liệu test hiện tại.
+
+Không tạo mock data mới nếu không cần thiết.
+
+Phải kiểm tra với:
+
+Family Alpha
+Family Beta
+Family Gamma
+
+và các dữ liệu:
+
+- Members
+- Relationships
+- Memorials
+- Events
+- Funds
+- Transactions
+- Contributions
+- Subscriptions
+- Invoices
+- Payments
+- Quotas
+
+============================================================
+XII. BILLING
+============================================================
+
+GIỮ NGUYÊN QUY TẮC:
+
+Không có Bank API thật.
+
+Không tự động xác nhận thanh toán.
+
+User:
+
+Create Invoice
+→ VietQR
+→ chuyển khoản ngoài hệ thống
+→ WAITING_CONFIRMATION
+
+Admin:
+
+Payment Confirmation Queue
+→ kiểm tra giao dịch
+→ Confirm
+→ Payment SUCCESS
+→ Invoice PAID
+→ Subscription ACTIVE
+
+UI của quy trình này phải được thiết kế trên Stitch trước nếu
+Stitch chưa có.
+
+============================================================
+XIII. DATA TEST
+============================================================
+
+TUYỆT ĐỐI KHÔNG:
+
+DROP DATABASE
+
+TRUNCATE
+
+DELETE TEST FAMILY
+
+RESET SUPABASE
+
+RE-SEED
+
+XÓA:
+
+Alpha
+Beta
+Gamma
+
+Dữ liệu hiện tại phải được giữ nguyên.
+
+Mục đích của redesign là:
+
+Dùng chính dữ liệu test để kiểm tra UI.
+
+============================================================
+XIV. IMPLEMENTATION STRATEGY
+============================================================
+
+Không rewrite toàn bộ Frontend cùng lúc.
+
+Thực hiện theo thứ tự:
+
+STEP 1
+Audit
+
+STEP 2
+Screen Inventory
+
+STEP 3
+Stitch Mapping
+
+STEP 4
+Design System Audit
+
+STEP 5
+Core Layout
+
+STEP 6
+Dashboard
+
+STEP 7
+Genealogy
+
+STEP 8
+Calendar / Memorial
+
+STEP 9
+Events
+
+STEP 10
+Financial
+
+STEP 11
+Billing
+
+STEP 12
+Super Admin
+
+STEP 13
+Support
+
+STEP 14
+Responsive
+
+STEP 15
+Visual QA
+
+STEP 16
+Regression Test
+
+============================================================
+XV. ƯU TIÊN REDESIGN
+============================================================
+
+Ưu tiên:
+
+P0 — Global Layout
+P0 — Navigation
+P0 — Login / Auth
+P0 — Family Dashboard
+
+P1 — Genealogy
+P1 — Members
+P1 — Calendar
+P1 — Memorial
+
+P1 — Financial
+P1 — Billing
+
+P2 — Admin
+P2 — Support
+P2 — Settings
+
+P3 — Rare/Secondary screens
+
+============================================================
+XVI. COMPONENT REUSE
+============================================================
+
+Không tạo component trùng lặp.
+
+Nếu Code hiện tại có:
+
+CardA
+CardB
+CardC
+
+nhưng Stitch chỉ định một Card system:
+
+→ hợp nhất thành component chuẩn.
+
+Tương tự:
+
+Button
+Input
+Select
+Modal
+Drawer
+Table
+Badge
+Tabs
+Toast
+
+Nhưng:
+
+KHÔNG refactor business logic chỉ để đổi UI.
+
+============================================================
+XVII. VISUAL QA
+============================================================
+
+Sau mỗi nhóm màn hình:
+
+So sánh:
+
+GOOGLE STITCH
+vs
+RUNNING APPLICATION
+
+Kiểm tra:
+
+- Layout
+- Width
+- Height
+- Spacing
+- Typography
+- Color
+- Border
+- Radius
+- Shadow
+- Icon
+- Alignment
+- Responsive
+- Interaction
+
+============================================================
+XVIII. FUNCTIONAL REGRESSION
+============================================================
+
+Sau redesign:
+
+npm run build
+
+npm test
+
+Phải đảm bảo toàn bộ test hiện tại vẫn PASS.
+
+Không sửa test chỉ để làm PASS.
+
+Không bỏ test.
+
+============================================================
+XIX. OUTPUT DOCUMENTATION
+============================================================
+
+Tạo:
+
+docs/UI_RECONCILIATION_REPORT.md
+
+docs/UI_SCREEN_INVENTORY.md
+
+docs/STITCH_SCREEN_MAPPING.md
+
+docs/STITCH_MISSING_SCREENS.md
+
+docs/UI_REDESIGN_PLAN.md
+
+docs/UI_VISUAL_QA_REPORT.md
+
+docs/UI_REDESIGN_COMPLETION_REPORT.md
+
+============================================================
+XX. FINAL ACCEPTANCE
+============================================================
+
+Hoàn thành khi:
+
+[ ] 100% Routes đã được audit.
+
+[ ] 100% Pages đã được audit.
+
+[ ] 100% Major Components đã được audit.
+
+[ ] 100% Modals/Drawers quan trọng đã được audit.
+
+[ ] Mọi màn hình đã có Stitch:
+    → Code được đối chiếu.
+
+[ ] Mọi màn hình chưa có Stitch:
+    → đã được thiết kế trên Stitch.
+
+[ ] Không còn UI quan trọng:
+    → tồn tại trong Code nhưng không có Design Reference.
+
+[ ] Không có tính năng cũ bị mất.
+
+[ ] Không thay đổi Business Logic.
+
+[ ] Không thay đổi Database.
+
+[ ] Không thay đổi RLS.
+
+[ ] Không xóa dữ liệu test.
+
+[ ] Family Alpha hoạt động.
+
+[ ] Family Beta hoạt động.
+
+[ ] Family Gamma hoạt động.
+
+[ ] Billing Manual Confirmation hoạt động.
+
+[ ] Admin Payment Confirmation hoạt động.
+
+[ ] npm run build PASS.
+
+[ ] npm test PASS.
+
+[ ] Không có console errors.
+
+[ ] Không có broken routes.
+
+[ ] Visual QA PASS.
+
+============================================================
+XXI. QUY TẮC QUAN TRỌNG NHẤT
+============================================================
+
+KHÔNG PHẢI:
+
+"REDESIGN THE APP"
+
+MÀ LÀ:
+
+"RECONCILE THE EXISTING APP WITH GOOGLE STITCH"
+
+Tức là:
+
+CODE HIỆN TẠI
+     ↓
+LÀM INVENTORY
+     ↓
+ĐỐI CHIẾU STITCH
+     ↓
+┌─────────────────────────────┐
+│ Stitch đã có?                │
+│                             │
+│ YES → chỉnh Code             │
+│                             │
+│ NO → thiết kế Stitch         │
+│      ↓                      │
+│      chỉnh Code              │
+└─────────────────────────────┘
+     ↓
+VISUAL QA
+     ↓
+FUNCTIONAL QA
+     ↓
+DONE
+
+============================================================
+BẮT ĐẦU NGAY
+============================================================
+
+BƯỚC ĐẦU TIÊN CHỈ LÀ:
+
+AUDIT + INVENTORY + STITCH MAPPING.
+
+KHÔNG SỬA CODE Ở BƯỚC ĐẦU.
+
+Sau khi hoàn thành Audit,
+hãy báo cáo:
+
+TOTAL SCREENS
+STITCH EXISTS
+STITCH MISSING
+VISUAL MISMATCH
+PARTIAL
+ORPHAN
+PRIORITY
+
+và chờ chuyển sang bước:
+
+STITCH DESIGN / REDESIGN.
+
+============================================================

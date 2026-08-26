@@ -109,11 +109,16 @@ var KPIService = {
     var result = {
       TongGui: 0,
       TongRut: 0,
+      TongRut_TrongChienDich: 0,
+      TongRut_SauChienDich: 0,
       Net: 0,
+      Net_ThiDua: 0,
+      Net_HienTai: 0,
       HoanThanh: 0,
       ChiTieu: 0,
       TongGuiThanhVien: 0,
       TongGuiKhongThanhVien: 0,
+      isCampaignEnded: false,
       Timeline: [],
       KyHanMap: {}
     };
@@ -134,6 +139,7 @@ var KPIService = {
     });
 
     var kpiMode = filters.kpiMode || 'THI_DUA'; // Mặc định là THI_DUA để bảo toàn thành tích thi đua gốc
+    var nowTime = new Date().getTime();
     
     // Load thông tin chiến dịch để lấy ngày bắt đầu/kết thúc
     var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
@@ -144,7 +150,11 @@ var KPIService = {
         var end = cd.NgayKetThuc ? ValidatorService.parseDate(cd.NgayKetThuc) : null;
         if (start) start.setHours(0, 0, 0, 0);
         if (end) end.setHours(23, 59, 59, 999);
-        cdDateMap[ValidatorService.normalizeId(cd.MaCD)] = { start: start, end: end };
+        var normId = ValidatorService.normalizeId(cd.MaCD);
+        cdDateMap[normId] = { start: start, end: end, isEnded: end ? (nowTime > end.getTime()) : false };
+        if (maCD && normId === maCD) {
+          result.isCampaignEnded = cdDateMap[normId].isEnded;
+        }
       }
     });
 
@@ -160,13 +170,14 @@ var KPIService = {
       if (tuNgay && gdDate < tuNgay) return false;
       if (denNgay && gdDate > denNgay) return false;
       
-      // Áp dụng bộ lọc cho chế độ Thi Đua (THI_DUA)
-      if (kpiMode === 'THI_DUA') {
-        // Loại bỏ giao dịch ngoài khung thời gian chạy của Chiến dịch
-        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
-        if (cdDateMap[normMaCD]) {
-          var limits = cdDateMap[normMaCD];
-          if (limits.start && gdDate < limits.start) return false;
+      // Phân loại GD trong đợt vs sau đợt
+      var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+      if (cdDateMap[normMaCD]) {
+        var limits = cdDateMap[normMaCD];
+        if (limits.start && gdDate < limits.start) return false;
+        
+        // Nếu ở chế độ Thi Đua thuần túy, bỏ các GD phát sinh sau khi chiến dịch kết thúc
+        if (kpiMode === 'THI_DUA') {
           if (limits.end && gdDate > limits.end) return false;
         }
       }
@@ -209,20 +220,15 @@ var KPIService = {
         var kyHan = "KKH"; 
         var normSoSo = String(gd.SoSo || "").trim().toUpperCase();
 
-        // Priority 1: Check STK Map first if ACTIVE (the most reliable source)
         if (stkMap[normSoSo]) {
           kyHan = stkMap[normSoSo];
-        } 
-        // Priority 2: Try to parse from GhiChu (SYS_DATA or SYS_LOG)
-        else if (gd.GhiChu) {
+        } else if (gd.GhiChu) {
           try {
-            // Check SYS_LOG first (for approved transactions)
             var logMatch = gd.GhiChu.match(/SYS_LOG:\s*(\{.*?\})/);
             if (logMatch) {
               var logObj = JSON.parse(logMatch[1]);
               if (logObj.kyHan) kyHan = logObj.kyHan;
             }
-            // Then check SYS_DATA (for pending/initial transactions)
             if (kyHan === "KKH") {
               var dataMatch = gd.GhiChu.match(/SYS_DATA:\s*(\{.*?\})/);
               if (dataMatch) {
@@ -232,25 +238,27 @@ var KPIService = {
             }
           } catch(e) { }
 
-          // Priority 3: Fallback Regex
           if (kyHan === "KKH") {
             var m = gd.GhiChu.match(/(?:Kỳ hạn|Ky han) ([^,)|]+)/i);
             if (m) kyHan = m[1].trim();
           }
         }
 
-        // Normalize display label
         var displayKyHan = kyHan === "KKH" ? "Không Kỳ Hạn" : kyHan;
         if (!result.KyHanMap[displayKyHan]) result.KyHanMap[displayKyHan] = 0;
+
+        var normMaCD = ValidatorService.normalizeId(gd.MaCD);
+        var isAfterCampaign = false;
+        if (cdDateMap[normMaCD] && cdDateMap[normMaCD].end && gdDate > cdDateMap[normMaCD].end) {
+          isAfterCampaign = true;
+        }
 
         if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
            result.TongGui += soTienGD;
            timelineMap[dateStr].Net += soTienGD;
            timelineMap[dateStr].SoMoi += 1;
-           
            result.KyHanMap[displayKyHan] += soTienGD;
            
-           // Phân loại Thành viên / Không thành viên
            if (gd.MaKH && khMap[ValidatorService.normalizeId(gd.MaKH)]) {
                result.TongGuiThanhVien += soTienGD;
            } else {
@@ -259,9 +267,11 @@ var KPIService = {
         } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
            result.TongRut += soTienGD;
            timelineMap[dateStr].Net -= soTienGD;
-           
-           // KHÔNG trừ khỏi KyHanMap để Biểu đồ "Cơ cấu kỳ hạn" phản ánh đúng số tiền HUY ĐỘNG ĐƯỢC
-           // result.KyHanMap[displayKyHan] -= soTienGD; 
+           if (isAfterCampaign) {
+             result.TongRut_SauChienDich += soTienGD;
+           } else {
+             result.TongRut_TrongChienDich += soTienGD;
+           }
         }
       }
     });
@@ -272,6 +282,8 @@ var KPIService = {
     result.Timeline = timeline;
 
     result.Net = result.TongGui - result.TongRut;
+    result.Net_ThiDua = result.TongGui - result.TongRut_TrongChienDich;
+    result.Net_HienTai = result.TongGui - result.TongRut;
     
     // Override Net và HoanThanh trong chế độ THI_DUA có chọn chiến dịch
     if (kpiMode === 'THI_DUA' && maCD) {
@@ -283,6 +295,7 @@ var KPIService = {
           totalTangTruong += r.TongTangTruong;
         });
         result.Net = totalTangTruong;
+        result.Net_ThiDua = totalTangTruong;
       } catch (e) {
         // Fallback về raw net nếu có lỗi
       }
@@ -591,5 +604,57 @@ var KPIService = {
     } finally {
       lock.releaseLock();
     }
+  },
+
+  /**
+   * Sao chép toàn bộ mức phân bổ chỉ tiêu từ 1 Chiến dịch nguồn sang Chiến dịch đích
+   * @param {Object} user - Cán bộ thực hiện (Admin)
+   * @param {Object} payload - { sourceMaCD: "CD_...", targetMaCD: "CD_..." }
+   */
+  copyChiTieuFromCampaign: function(user, payload) {
+    if (!payload || !payload.sourceMaCD || !payload.targetMaCD) {
+      throw new Error("Vui lòng chọn Chiến dịch nguồn và Chiến dịch đích.");
+    }
+    if (ValidatorService.normalizeId(payload.sourceMaCD) === ValidatorService.normalizeId(payload.targetMaCD)) {
+      throw new Error("Chiến dịch nguồn và Chiến dịch đích không được trùng nhau.");
+    }
+
+    var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+    var sourceCD = allCD.filter(function(cd) {
+      return ValidatorService.normalizeId(cd.MaCD) === ValidatorService.normalizeId(payload.sourceMaCD);
+    })[0];
+    var targetCD = allCD.filter(function(cd) {
+      return ValidatorService.normalizeId(cd.MaCD) === ValidatorService.normalizeId(payload.targetMaCD);
+    })[0];
+
+    if (!sourceCD) throw new Error("Không tìm thấy Chiến dịch nguồn.");
+    if (!targetCD) throw new Error("Không tìm thấy Chiến dịch đích.");
+
+    // Lấy danh sách chỉ tiêu của chiến dịch nguồn
+    var allChiTieu = Repository.getAll(CONFIG.SHEETS.CHITIEU);
+    var sourceChiTieu = allChiTieu.filter(function(ct) {
+      return ValidatorService.normalizeId(ct.MaCD) === ValidatorService.normalizeId(payload.sourceMaCD);
+    });
+
+    if (!sourceChiTieu.length) {
+      throw new Error("Chiến dịch nguồn '" + sourceCD.TenCD + "' chưa có dữ liệu chỉ tiêu để sao chép.");
+    }
+
+    // Chuẩn bị danh sách cán bộ sao chép
+    var listNhanVien = sourceChiTieu.map(function(ct) {
+      var val = typeof ct.ChiTieu === 'number' ? ct.ChiTieu : parseFloat(String(ct.ChiTieu || 0).replace(/,/g, '')) || 0;
+      return {
+        MaNV: ct.MaNV,
+        ChiTieu: val
+      };
+    });
+
+    // Lưu vào chiến dịch đích
+    this.saveChiTieu(user, {
+      MaCD: payload.targetMaCD,
+      ListNhanVien: listNhanVien
+    });
+
+    return "Đã sao chép thành công chỉ tiêu cho " + listNhanVien.length + " cán bộ từ '" + sourceCD.TenCD + "' sang '" + targetCD.TenCD + "'!";
   }
 };
