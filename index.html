@@ -3055,8 +3055,12 @@
           var statusMark = isRunning ? "" : " [Đã Đóng]";
           if (isRunning && !activeMaCD) activeMaCD = cd.MaCD; // Ghi nhận campaign đang chạy đầu tiên
           
+          var cleanTen = (window.AppManager && AppManager.formatTenCD) 
+            ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) 
+            : (cd.TenCD || cd.MaCD);
+
           cboCD.append(
-            `<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`,
+            `<option value="${cd.MaCD}">${cleanTen}${statusMark}</option>`,
           );
         });
       }
@@ -8860,7 +8864,7 @@
                             <td><input type="checkbox" class="chk-reconcile-item" data-soso="${so.SoSo}" checked onchange="updateSelectedReconcileStats()"></td>
                             <td data-label="Số Sổ" class="fw-bold text-primary">${so.SoSo}</td>
                             <td data-label="Khách Hàng">${so.TenKH}</td>
-                            <td data-label="Cán bộ QL"><span class="badge bg-secondary">${so.MaVN}</span></td>
+                            <td data-label="Cán bộ QL"><span class="badge bg-secondary">${so.MaNV || so.MaVN || ''}</span></td>
                             <td data-label="Số trừ KPI" class="text-danger fw-bold">-${AppManager.formatCurrency(so.SoDuHienTai)}</td>
                         </tr>`;
                         tbody.append(row);
@@ -9269,7 +9273,10 @@ function frmTangTruong_init() {
       var activeMaCD = '';
       var todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
       (data || []).forEach(function(cd) {
-        $sel.append('<option value="' + cd.MaCD + '">' + (cd.TenCD || cd.MaCD) + '</option>');
+        var cleanTen = (window.AppManager && AppManager.formatTenCD) 
+          ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) 
+          : (cd.TenCD || cd.MaCD);
+        $sel.append('<option value="' + cd.MaCD + '">' + cleanTen + '</option>');
         if (!activeMaCD && cd.TrangThai === 'ACTIVE') {
           var startStr = cd.NgayBatDau ? (cd.NgayBatDau.indexOf('T') !== -1 ? cd.NgayBatDau.split('T')[0] : cd.NgayBatDau) : '';
           var endStr   = cd.NgayKetThuc ? (cd.NgayKetThuc.indexOf('T') !== -1 ? cd.NgayKetThuc.split('T')[0] : cd.NgayKetThuc) : '9999-12-31';

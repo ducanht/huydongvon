@@ -306,28 +306,83 @@ var SoTietKiemService = {
   // ==========================================
 
   /**
-   * 1. Phân tích đối chiếu: Đọc DB_SYS_STK (Cột SO_SO_TG)
+   * [HELPER] Trích xuất tập hợp số sổ từ DB_SYS_STK (Hỗ trợ Smart Column Detection)
+   */
+  _extractCorePassbookSet: function() {
+    var sysData = Repository.getAll(CONFIG.SHEETS.STK_CORE, false);
+    var sysMap = {};
+    if (!sysData || sysData.length === 0) {
+      return { sysMap: {}, count: 0, hasData: false, detectedKey: "" };
+    }
+
+    // Tự động phát hiện cột chứa Số Sổ (Smart Column Matching)
+    var sample = sysData[0];
+    var targetKey = null;
+    var possibleKeys = ['SO_SO_TG', 'SoSo', 'SO_SO', 'SO_SO_TIEN_GUI', 'SoSoTietKiem', 'Số Sổ', 'SỐ SỔ', 'MA_SO', 'MaSo', 'STK'];
+
+    for (var k in sample) {
+      if (k === '_rowIndex') continue;
+      var cleanK = String(k).toUpperCase().replace(/[\s_\-]/g, '');
+      if (cleanK.indexOf('SOSO') !== -1 || cleanK.indexOf('STK') !== -1 || cleanK === 'SO' || cleanK.indexOf('MASO') !== -1) {
+        targetKey = k;
+        break;
+      }
+    }
+
+    if (!targetKey) {
+      for (var i = 0; i < possibleKeys.length; i++) {
+        if (sample.hasOwnProperty(possibleKeys[i])) {
+          targetKey = possibleKeys[i];
+          break;
+        }
+      }
+    }
+
+    var validCount = 0;
+    sysData.forEach(function(row) {
+      var rawVal = targetKey ? row[targetKey] : null;
+      if (!rawVal) {
+        for (var f in row) {
+          if (f !== '_rowIndex' && row[f]) {
+            rawVal = row[f];
+            break;
+          }
+        }
+      }
+
+      if (rawVal) {
+        var norm = ValidatorService.normalizeId(rawVal);
+        if (norm) {
+          sysMap[norm] = true;
+          validCount++;
+        }
+      }
+    });
+
+    return {
+      sysMap: sysMap,
+      count: validCount,
+      hasData: validCount > 0,
+      detectedKey: targetKey || "Cột đầu tiên"
+    };
+  },
+
+  /**
+   * 1. Phân tích đối chiếu: Đọc DB_SYS_STK
    * So sánh với danh sách sổ đang ACTIVE trên hệ thống.
    * Cảnh báo những Sổ khuyết (Có trên App mà DB không có).
    */
   analyzeReconciliation: function() {
     LoggerService.log("INFO", "analyzeReconciliation", "START", {});
     
-    // 1. Đọc dữ liệu từ DB_SYS_STK (Bypass cache)
-    var sysData = Repository.getAll(CONFIG.SHEETS.STK_CORE, false);
-    var sysMap = {};
-    if (!sysData || sysData.length === 0) {
-      throw new Error("Không có dữ liệu trong " + CONFIG.SHEETS.STK_CORE + ". Vui lòng chép danh sách sổ vào cột SO_SO_TG trước khi đối chiếu.");
+    var coreInfo = this._extractCorePassbookSet();
+    if (!coreInfo.hasData) {
+      throw new Error("Không có dữ liệu trong " + CONFIG.SHEETS.STK_CORE + ". Vui lòng dán danh sách sổ từ Sao kê Core Banking vào Sheet " + CONFIG.SHEETS.STK_CORE + " trước khi đối chiếu.");
     }
 
-    // 2. Chuyển thành Hash Bản đồ để tra cứu O(1)
-    sysData.forEach(function(row) {
-      if (row.SO_SO_TG) {
-        sysMap[ValidatorService.normalizeId(row.SO_SO_TG)] = true;
-      }
-    });
+    var sysMap = coreInfo.sysMap;
 
-    // 3. Quét hệ thống App -> Lấy tất cả sổ ACTIVE (Bypass cache)
+    // 2. Quét hệ thống App -> Lấy tất cả sổ ACTIVE (Bypass cache)
     var allActiveSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM, false).filter(function(so) {
       return so.TrangThai === "ACTIVE";
     });
@@ -352,9 +407,10 @@ var SoTietKiemService = {
           SoSo: so.SoSo,
           MaKH: so.MaKH,
           TenKH: kh.HoTen || so.MaKH,
-          MaVN: so.MaNV,
+          MaNV: so.MaNV,
           SoDuHienTai: so.SoDuHienTai,
           KyHan: so.KyHan,
+          MaCD: so.MaCD,
           NgayPhatHanh: so.NgayPhatHanh
         });
       }
@@ -365,7 +421,9 @@ var SoTietKiemService = {
       totalKiemTra: allActiveSo.length,
       totalPhatHien: dsCanTatToan.length,
       totalTienBiTru: totalSoDuBocHoi,
-      danhSachThuHoi: dsCanTatToan
+      danhSachThuHoi: dsCanTatToan,
+      coreCount: coreInfo.count,
+      detectedKey: coreInfo.detectedKey
     };
   },
 
@@ -398,7 +456,7 @@ var SoTietKiemService = {
         var soToanTrang = soMapBySoSo[ValidatorService.normalizeId(item.SoSo)];
         if (!soToanTrang || soToanTrang.TrangThai !== "ACTIVE") return;
 
-        var soTienRut = parseFloat(soToanTrang.SoDuHienTai);
+        var soTienRut = parseFloat(soToanTrang.SoDuHienTai || 0);
         if (soTienRut <= 0) return;
 
         var sysMaGD = "RC_" + Math.random().toString(36).substr(2, 6).toUpperCase() + "_" + Date.now();
@@ -434,7 +492,7 @@ var SoTietKiemService = {
         affectedUsers[nvKey] = { nv: soToanTrang.MaNV, cd: soToanTrang.MaCD };
       });
 
-      // BATCH EXECUTE
+      // BATCH EXECUTE TRONG 1 LẦN I/O DUY NHẤT
       if (capNhatGIAODICH.length > 0) {
          Repository.insertBatch(CONFIG.SHEETS.GIAODICH, capNhatGIAODICH);
       }
@@ -442,10 +500,8 @@ var SoTietKiemService = {
          Repository.updateBatch(CONFIG.SHEETS.SOTIETKIEM, capNhatSOTIETKIEM);
       }
 
-      // TRIGGER KPI (Chạy ngầm liên hoàn)
-      Object.keys(affectedUsers).forEach(function(key) {
-         KPIService.updateSummary(affectedUsers[key].nv, affectedUsers[key].cd);
-      });
+      // TỐI ƯU HIỆU NĂNG: Đồng bộ KPI đồng loạt thay vì lặp từng người
+      KPIService.recalculateAllSummary(user);
 
       LoggerService.log("INFO", "executeReconciliation", "SUCCESS", { Tally: capNhatGIAODICH.length });
 
@@ -469,20 +525,12 @@ var SoTietKiemService = {
   syncCampaignReconciliation: function(user, maCD) {
     if (!maCD) return;
     
-    // 1. Đọc dữ liệu từ DB_SYS_STK (Bypass cache)
-    var sysData = Repository.getAll(CONFIG.SHEETS.STK_CORE, false);
-    var sysMap = {};
-    if (!sysData || sysData.length === 0) {
-      // Không có dữ liệu đối chiếu, không làm gì để tránh xóa nhầm dữ liệu
-      return;
+    var coreInfo = this._extractCorePassbookSet();
+    if (!coreInfo.hasData) {
+      return; // Không có dữ liệu lõi, bỏ qua an toàn
     }
 
-    // Chuyển thành Hash Bản đồ để tra cứu O(1)
-    sysData.forEach(function(row) {
-      if (row.SO_SO_TG) {
-        sysMap[ValidatorService.normalizeId(row.SO_SO_TG)] = true;
-      }
-    });
+    var sysMap = coreInfo.sysMap;
 
     var lock = LockService.getScriptLock();
     try {
@@ -494,7 +542,6 @@ var SoTietKiemService = {
       
       var capNhatSOTIETKIEM = [];
       var capNhatGIAODICH = [];
-      var affectedUsers = {};
       var now = new Date();
 
       allSo.forEach(function(so) {
@@ -503,13 +550,11 @@ var SoTietKiemService = {
         
         var normSoSo = ValidatorService.normalizeId(so.SoSo);
         if (!sysMap[normSoSo]) {
-          // Cuốn sổ này đang ảo (không tồn tại trong core) -> Tự động đóng (CLOSED)
           var soTienRut = parseFloat(so.SoDuHienTai || 0);
           if (soTienRut <= 0) return;
 
           var sysMaGD = "RC_" + Math.random().toString(36).substr(2, 6).toUpperCase() + "_" + Date.now();
 
-          // Tạo Phiếu GIAODICH (RÚT) trực tiếp ACTIVE
           capNhatGIAODICH.push({
             MaGD: sysMaGD,
             LoaiGD: "RUT",
@@ -526,7 +571,6 @@ var SoTietKiemService = {
             NgayDuyet: now
           });
 
-          // Chốt số SOTIETKIEM
           capNhatSOTIETKIEM.push({
             rowIndex: so._rowIndex,
             data: {
@@ -534,31 +578,17 @@ var SoTietKiemService = {
               TrangThai: "CLOSED"
             }
           });
-
-          var nvKey = so.MaNV + "_" + so.MaCD;
-          affectedUsers[nvKey] = { nv: so.MaNV, cd: so.MaCD };
         }
       });
 
-      // Thực thi batch ghi
       if (capNhatGIAODICH.length > 0) {
          Repository.insertBatch(CONFIG.SHEETS.GIAODICH, capNhatGIAODICH);
-      }
-      if (capNhatSOTIETKIEM.length > 0) {
          Repository.updateBatch(CONFIG.SHEETS.SOTIETKIEM, capNhatSOTIETKIEM);
-      }
-
-      // Trigger KPI cập nhật lại bảng Summary
-      Object.keys(affectedUsers).forEach(function(key) {
-         KPIService.updateSummary(affectedUsers[key].nv, affectedUsers[key].cd);
-      });
-
-      if (capNhatGIAODICH.length > 0) {
-        LoggerService.log("INFO", "syncCampaignReconciliation", "SUCCESS", { MaCD: maCD, Count: capNhatGIAODICH.length });
+         KPIService.recalculateAllSummary(user);
+         LoggerService.log("INFO", "syncCampaignReconciliation", "SUCCESS", { MaCD: maCD, Count: capNhatGIAODICH.length });
       }
     } catch(e) {
       LoggerService.log("ERROR", "syncCampaignReconciliation", "FAILED", { error: e.message, MaCD: maCD });
-      throw new Error("Lỗi khi đồng bộ dữ liệu sổ tiết kiệm cho chiến dịch: " + e.message);
     } finally {
       lock.releaseLock();
     }

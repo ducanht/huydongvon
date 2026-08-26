@@ -64,6 +64,25 @@
       }
     },
 
+    // Format Tên Chiến Dịch chuẩn xác (tự động khử chuỗi ngày ISO)
+    formatTenCD: function (tenCD, maCD, ngayBatDau) {
+      if (!tenCD || tenCD === "undefined" || tenCD === "null") {
+        if (ngayBatDau) {
+          var dt = new Date(ngayBatDau);
+          if (!isNaN(dt.getTime())) return "Chiến Dịch Tháng " + (dt.getMonth() + 1) + "/" + dt.getFullYear();
+        }
+        return maCD ? ("Chiến Dịch " + maCD) : "Chiến Dịch";
+      }
+      var s = String(tenCD).trim();
+      if (s.indexOf('T00:00:00') !== -1 || /^\d{4}-\d{2}-\d{2}/.test(s)) {
+        var dt2 = new Date(s);
+        if (!isNaN(dt2.getTime())) {
+          return "Chiến Dịch Tháng " + (dt2.getMonth() + 1) + "/" + dt2.getFullYear();
+        }
+      }
+      return s;
+    },
+
     init: function () {
       // Cấu hình ngôn ngữ tiếng Việt mặc định cho toàn bộ lịch Flatpickr
       if (typeof flatpickr !== "undefined" && flatpickr.l10ns && flatpickr.l10ns.vn) {

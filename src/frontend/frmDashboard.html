@@ -598,8 +598,12 @@
           var statusMark = isRunning ? "" : " [Đã Đóng]";
           if (isRunning && !activeMaCD) activeMaCD = cd.MaCD; // Ghi nhận campaign đang chạy đầu tiên
           
+          var cleanTen = (window.AppManager && AppManager.formatTenCD) 
+            ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) 
+            : (cd.TenCD || cd.MaCD);
+
           cboCD.append(
-            `<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`,
+            `<option value="${cd.MaCD}">${cleanTen}${statusMark}</option>`,
           );
         });
       }

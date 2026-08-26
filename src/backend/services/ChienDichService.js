@@ -5,9 +5,51 @@
 var ChienDichService = {
   
   /**
+   * [HELPER] Chuẩn hóa tên Chiến Dịch (Xử lý dứt điểm trường hợp chuỗi Date ISO, rỗng hoặc Date object)
+   */
+  _sanitizeChienDich: function(cd) {
+    if (!cd) return cd;
+    var rawTen = cd.TenCD;
+    var cleanTenCD = "";
+    
+    if (rawTen instanceof Date) {
+      cleanTenCD = "Chiến Dịch Tháng " + (rawTen.getMonth() + 1) + "/" + rawTen.getFullYear();
+    } else if (typeof rawTen === 'string') {
+      rawTen = rawTen.trim();
+      // Nhận diện chuỗi ngày ISO như "2026-09-01T00:00:00.000+07:00" hoặc "2026-09-01"
+      if (rawTen.indexOf('T00:00:00') !== -1 || /^\d{4}-\d{2}-\d{2}/.test(rawTen)) {
+        var dt = ValidatorService.parseDate(rawTen);
+        if (dt) {
+          cleanTenCD = "Chiến Dịch Tháng " + (dt.getMonth() + 1) + "/" + dt.getFullYear();
+        } else {
+          cleanTenCD = rawTen;
+        }
+      } else {
+        cleanTenCD = rawTen;
+      }
+    } else if (rawTen) {
+      cleanTenCD = String(rawTen);
+    }
+    
+    // Nếu tên chiến dịch rỗng hoặc vô nghĩa, suy luận từ ngày bắt đầu
+    if (!cleanTenCD || cleanTenCD.trim() === "" || cleanTenCD === "undefined" || cleanTenCD === "null") {
+      if (cd.NgayBatDau) {
+        var dtStart = ValidatorService.parseDate(cd.NgayBatDau);
+        cleanTenCD = dtStart ? ("Chiến Dịch Tháng " + (dtStart.getMonth() + 1) + "/" + dtStart.getFullYear()) : ("Chiến Dịch " + (cd.MaCD || ""));
+      } else {
+        cleanTenCD = "Chiến Dịch " + (cd.MaCD || "");
+      }
+    }
+    
+    cd.TenCD = cleanTenCD;
+    return cd;
+  },
+
+  /**
    * Lấy danh sách chiến dịch (Tất cả để Admin giao KPI linh hoạt)
    */
   getActive: function() {
+    var self = this;
     var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
     var todayStr = Utilities.formatDate(new Date(), "Asia/Ho_Chi_Minh", "yyyy-MM-dd");
     
@@ -41,11 +83,13 @@ var ChienDichService = {
       return timeB - timeA;
     });
     
-    return activeCD;
+    return activeCD.map(function(cd) { return self._sanitizeChienDich(cd); });
   },
   
   getAll: function() {
-    return Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+    var self = this;
+    var allCD = Repository.getAll(CONFIG.SHEETS.CHIENDICH);
+    return allCD.map(function(cd) { return self._sanitizeChienDich(cd); });
   },
   
   /**

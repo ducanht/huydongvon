@@ -22,7 +22,8 @@ var DB_SCHEMAS = {
   "DB_GIAODICH_ARCHIVE": ["MaGD", "MaNV", "MaKH", "MaCD", "SoSo", "LoaiGD", "SoTien", "NgayGD", "TrangThai", "GhiChu", "DuyetBoi", "NgayDuyet"],
   "DB_SUMMARY": ["MaNV", "MaCD", "TongGui", "TongRut", "Net", "ChiTieu", "LastUpdate"],
   "DB_LOG": ["LogID", "Timestamp", "User", "Action", "Description", "Status", "Details", "IP"],
-  "DB_CAUHINH": ["Key", "Value", "Description"]
+  "DB_CAUHINH": ["Key", "Value", "Description"],
+  "DB_SYS_STK": ["SO_SO_TG", "MA_KH", "TEN_KH", "SO_DU_GOC", "NGAY_MO", "NGAY_DAO_HAN"]
 };
 
 /**

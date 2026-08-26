@@ -468,7 +468,7 @@
                             <td><input type="checkbox" class="chk-reconcile-item" data-soso="${so.SoSo}" checked onchange="updateSelectedReconcileStats()"></td>
                             <td data-label="Số Sổ" class="fw-bold text-primary">${so.SoSo}</td>
                             <td data-label="Khách Hàng">${so.TenKH}</td>
-                            <td data-label="Cán bộ QL"><span class="badge bg-secondary">${so.MaVN}</span></td>
+                            <td data-label="Cán bộ QL"><span class="badge bg-secondary">${so.MaNV || so.MaVN || ''}</span></td>
                             <td data-label="Số trừ KPI" class="text-danger fw-bold">-${AppManager.formatCurrency(so.SoDuHienTai)}</td>
                         </tr>`;
                         tbody.append(row);
