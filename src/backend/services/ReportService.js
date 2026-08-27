@@ -137,10 +137,12 @@ var ReportService = {
       // Gom nhóm Chỉ tiêu theo Nhân viên từ DB_CHITIEU
       var userMap = {};
       targetChiTieu.forEach(function(ct) {
-        if (!userMap[ct.MaNV]) {
-          userMap[ct.MaNV] = { MaNV: ct.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+        var normMaNV = ValidatorService.normalizeId(ct.MaNV);
+        if (!normMaNV) return;
+        if (!userMap[normMaNV]) {
+          userMap[normMaNV] = { MaNV: ct.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
         }
-        userMap[ct.MaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
+        userMap[normMaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
       });
 
       // Tính Net thực tế theo bộ lọc bằng cách duyệt Giao Dịch
@@ -167,21 +169,24 @@ var ReportService = {
       });
 
       filteredGD.forEach(function(gd) {
-        if (!userMap[gd.MaNV]) {
-           userMap[gd.MaNV] = { MaNV: gd.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
+        var normMaNV = ValidatorService.normalizeId(gd.MaNV);
+        if (!normMaNV) return;
+        if (!userMap[normMaNV]) {
+           userMap[normMaNV] = { MaNV: gd.MaNV, Net: 0, ChiTieu: 0, TongGui: 0, TongRut: 0, SoMoi: 0, KhachHangMap: {} };
         }
         var soTienGD = parseFloat(gd.SoTien || 0);
         if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-           userMap[gd.MaNV].Net += soTienGD;
-           userMap[gd.MaNV].TongGui += soTienGD;
-           userMap[gd.MaNV].SoMoi += 1; // Số Hợp đồng gửi
+           userMap[normMaNV].Net += soTienGD;
+           userMap[normMaNV].TongGui += soTienGD;
+           userMap[normMaNV].SoMoi += 1; // Số Hợp đồng gửi
         } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-           userMap[gd.MaNV].Net -= soTienGD;
-           userMap[gd.MaNV].TongRut += soTienGD;
+           userMap[normMaNV].Net -= soTienGD;
+           userMap[normMaNV].TongRut += soTienGD;
         }
-        // Ghi nhận Mã Khách Hàng (Tập hợp khách hàng duy nhất)
-        if (gd.MaKH) {
-           userMap[gd.MaNV].KhachHangMap[gd.MaKH] = true;
+        // Ghi nhận Mã Khách Hàng (Tập hợp khách hàng duy nhất đã chuẩn hóa)
+        var normMaKH = ValidatorService.normalizeId(gd.MaKH);
+        if (normMaKH) {
+           userMap[normMaNV].KhachHangMap[normMaKH] = true;
         }
       });
 
@@ -343,10 +348,12 @@ var ReportService = {
 
     var userMap = {};
     allChiTieu.forEach(function(ct) {
-      if (!userMap[ct.MaNV]) {
-        userMap[ct.MaNV] = { MaNV: ct.MaNV, ChiTieu: 0, Gui: 0, Rut: 0, Net: 0, KHMap: {}, SoSoMap: {} };
+      var normMaNV = ValidatorService.normalizeId(ct.MaNV);
+      if (!normMaNV) return;
+      if (!userMap[normMaNV]) {
+        userMap[normMaNV] = { MaNV: ct.MaNV, ChiTieu: 0, Gui: 0, Rut: 0, Net: 0, KHMap: {}, SoSoMap: {} };
       }
-      userMap[ct.MaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
+      userMap[normMaNV].ChiTieu += parseFloat(ct.ChiTieu || 0);
     });
 
     var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
@@ -371,59 +378,43 @@ var ReportService = {
       return true;
     });
 
-    // Tối ưu hóa KH Mới: Một KH được coi là mới nếu giao dịch hiện tại cách giao dịch trước đó > 180 ngày 
-    // hoặc chưa từng giao dịch trước đó. Sử dụng Map để tăng tốc độ lookup.
-    var khGDMoiMap = {}; // MaNV -> { MaKH: true }
-    
-    // 1. Phân nhóm GD theo MaKH để tính toán Date nhanh hơn
-    var gdByKH = {};
-    allGD.forEach(function(gd) {
-      if (gd.TrangThai !== "ACTIVE") return;
-      if (!gdByKH[gd.MaKH]) gdByKH[gd.MaKH] = [];
-      gdByKH[gd.MaKH].push(ValidatorService.parseDate(gd.NgayGD));
-    });
-    
-    // 2. Sắp xếp ngày cho từng KH (mảng con nhỏ nên nhanh hơn sắp xếp mảng tổng 10k+ dòng)
-    for (var mkh in gdByKH) {
-      gdByKH[mkh].sort(function(a, b) { return a - b; });
-    }
-
-    // 3. Kiểm tra từng giao dịch trong filteredGD xem có phải là "Mới" không
+    // ── Phân loại KH Mới / Cũ chuẩn hóa toàn DB bằng helper _classifyCustomers ──
+    var targetMaKHSet = {};
     filteredGD.forEach(function(gd) {
-      if (!userMap[gd.MaNV]) {
-         userMap[gd.MaNV] = { MaNV: gd.MaNV, ChiTieu: 0, Gui: 0, Rut: 0, Net: 0, KHMap: {}, SoSoMap: {}, KHMoiMap: {} };
+      var normKH = ValidatorService.normalizeId(gd.MaKH);
+      if (normKH) targetMaKHSet[normKH] = true;
+    });
+
+    var cdStartDate = (maCD && cdDateMap[maCD]) ? cdDateMap[maCD].start : (tuNgay || new Date(0));
+    var classified = this._classifyCustomers(allGD, cdStartDate, targetMaKHSet);
+    var newKHSet = classified.newSet; // { [normMaKH]: true }
+    var khGDMoiMap = {}; // normMaNV -> { normMaKH: true }
+
+    filteredGD.forEach(function(gd) {
+      var normMaNV = ValidatorService.normalizeId(gd.MaNV);
+      if (!normMaNV) return;
+      if (!userMap[normMaNV]) {
+         userMap[normMaNV] = { MaNV: gd.MaNV, ChiTieu: 0, Gui: 0, Rut: 0, Net: 0, KHMap: {}, SoSoMap: {} };
       }
       var soTienGD = parseFloat(gd.SoTien || 0);
-      var maKH = gd.MaKH;
-      if (maKH) userMap[gd.MaNV].KHMap[maKH] = true;
-      if (gd.SoSo && gd.LoaiGD === CONFIG.GIAO_DICH.GUI) userMap[gd.MaNV].SoSoMap[gd.SoSo] = true;
-
-      // Logic xác định KH Mới tại thời điểm gd.NgayGD
-      var curDate = ValidatorService.parseDate(gd.NgayGD);
-      var khDates = gdByKH[maKH] || [];
-      var isNew = false;
-      
-      // Tìm vị trí của curDate trong chuỗi dates của khách này
-      var idx = khDates.findIndex(function(d) { return d.getTime() === curDate.getTime(); });
-      if (idx === 0) {
-        isNew = true; // Giao dịch đầu tiên trọn đời
-      } else if (idx > 0) {
-        var prevDate = khDates[idx - 1];
-        var diffDays = (curDate - prevDate) / (1000 * 60 * 60 * 24);
-        if (diffDays > 180) isNew = true; // Quay lại sau 6 tháng
+      var normMaKH = ValidatorService.normalizeId(gd.MaKH);
+      if (normMaKH) {
+        userMap[normMaNV].KHMap[normMaKH] = true;
+        if (newKHSet[normMaKH]) {
+          if (!khGDMoiMap[normMaNV]) khGDMoiMap[normMaNV] = {};
+          khGDMoiMap[normMaNV][normMaKH] = true;
+        }
       }
-
-      if (isNew) {
-        if (!khGDMoiMap[gd.MaNV]) khGDMoiMap[gd.MaNV] = {};
-        khGDMoiMap[gd.MaNV][maKH] = true;
+      if (gd.SoSo && gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
+        userMap[normMaNV].SoSoMap[gd.SoSo] = true;
       }
 
       if (gd.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-         userMap[gd.MaNV].Gui += soTienGD;
-         userMap[gd.MaNV].Net += soTienGD;
+         userMap[normMaNV].Gui += soTienGD;
+         userMap[normMaNV].Net += soTienGD;
       } else if (gd.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-         userMap[gd.MaNV].Rut += soTienGD;
-         userMap[gd.MaNV].Net -= soTienGD;
+         userMap[normMaNV].Rut += soTienGD;
+         userMap[normMaNV].Net -= soTienGD;
       }
     });
 
@@ -444,8 +435,9 @@ var ReportService = {
       // Bỏ qua USER không được giao chỉ tiêu và không có giao dịch phát sinh
       if (!onlyAssignedKpi && item.ChiTieu <= 0 && item.Net === 0 && item.Gui === 0 && item.Rut === 0) return;
       
-      var ns = nsMap[ValidatorService.normalizeId(item.MaNV)];
-      var khMoiSet = khGDMoiMap[item.MaNV] || {};
+      var normNV = ValidatorService.normalizeId(item.MaNV);
+      var ns = nsMap[normNV];
+      var khMoiSet = khGDMoiMap[normNV] || {};
       
       var resItem = {
         TenNV: ns ? ns.HoTen : item.MaNV,
