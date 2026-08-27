@@ -9,39 +9,7 @@ var ChienDichService = {
    */
   _sanitizeChienDich: function(cd) {
     if (!cd) return cd;
-    var rawTen = cd.TenCD;
-    var cleanTenCD = "";
-    
-    if (rawTen instanceof Date) {
-      cleanTenCD = "Chiến Dịch Tháng " + (rawTen.getMonth() + 1) + "/" + rawTen.getFullYear();
-    } else if (typeof rawTen === 'string') {
-      rawTen = rawTen.trim();
-      // Nhận diện chuỗi ngày ISO như "2026-09-01T00:00:00.000+07:00" hoặc "2026-09-01"
-      if (rawTen.indexOf('T00:00:00') !== -1 || /^\d{4}-\d{2}-\d{2}/.test(rawTen)) {
-        var dt = ValidatorService.parseDate(rawTen);
-        if (dt) {
-          cleanTenCD = "Chiến Dịch Tháng " + (dt.getMonth() + 1) + "/" + dt.getFullYear();
-        } else {
-          cleanTenCD = rawTen;
-        }
-      } else {
-        cleanTenCD = rawTen;
-      }
-    } else if (rawTen) {
-      cleanTenCD = String(rawTen);
-    }
-    
-    // Nếu tên chiến dịch rỗng hoặc vô nghĩa, suy luận từ ngày bắt đầu
-    if (!cleanTenCD || cleanTenCD.trim() === "" || cleanTenCD === "undefined" || cleanTenCD === "null") {
-      if (cd.NgayBatDau) {
-        var dtStart = ValidatorService.parseDate(cd.NgayBatDau);
-        cleanTenCD = dtStart ? ("Chiến Dịch Tháng " + (dtStart.getMonth() + 1) + "/" + dtStart.getFullYear()) : ("Chiến Dịch " + (cd.MaCD || ""));
-      } else {
-        cleanTenCD = "Chiến Dịch " + (cd.MaCD || "");
-      }
-    }
-    
-    cd.TenCD = cleanTenCD;
+    cd.TenCD = Repository._sanitizeTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau);
     return cd;
   },
 

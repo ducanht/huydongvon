@@ -550,9 +550,11 @@
                         if (startStr > todayStr) isNotStarted = true;
                     }
                     var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
-                    var statusMark = isRunning ? '' : ' [Đã Đóng]';
-                    
-                    cbo.append(`<option value="${cd.MaCD}">${cd.TenCD}${statusMark}</option>`);
+                    var statusMark = isRunning ? '' : ' (Đã kết thúc)';
+                    var cleanTen = (window.AppManager && AppManager.formatTenCD)
+                        ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+                        : (cd.TenCD || cd.MaCD);
+                    cbo.append(`<option value="${cd.MaCD}">${cleanTen}${statusMark}</option>`);
                 });
             }
             cbo.select2({ theme: 'bootstrap-5', width: '100%', placeholder: '-- Chọn chiến dịch --' });
@@ -1311,7 +1313,10 @@
             if (val) {
                 currentMaCD = val;
                 var cdSelected = listChienDich.find(x => x.MaCD === val);
-                $('#lblSelectedCdName').text(cdSelected ? cdSelected.TenCD : val);
+                var cleanName = cdSelected 
+                    ? ((window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cdSelected.TenCD, cdSelected.MaCD, cdSelected.NgayBatDau) : (cdSelected.TenCD || val))
+                    : val;
+                $('#lblSelectedCdName').text(cleanName);
                 loadKPIList(val);
             } else {
                 $('#divKPIForm').fadeOut();
@@ -1529,9 +1534,12 @@
         var cd = listChienDich.find(x => x.MaCD === maCD);
         if (!cd) return;
 
-        $('#modalCDTitle').html('<i class="bx bx-edit-alt"></i> Cập Nhật Chiến Dịch: ' + cd.TenCD);
+        var cleanTen = (window.AppManager && AppManager.formatTenCD)
+            ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+            : (cd.TenCD || cd.MaCD);
+        $('#modalCDTitle').html('<i class="bx bx-edit-alt"></i> Cập Nhật Chiến Dịch: ' + cleanTen);
         $('#txtMaCD').val(cd.MaCD);
-        $('#txtTenCD').val(cd.TenCD);
+        $('#txtTenCD').val(cleanTen);
         $('#cboLoaiCD').val(cd.LoaiCD);
         $('#cboTrangThaiCD').val(cd.TrangThai);
 
@@ -1574,17 +1582,26 @@
 
                 if (running.length > 0) {
                     var optRunning = $('<optgroup label="🟢 ĐANG DIỄN RA"></optgroup>');
-                    running.forEach(cd => optRunning.append(`<option value="${cd.MaCD}">${cd.TenCD}</option>`));
+                    running.forEach(function(cd) {
+                        var t = (window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) : (cd.TenCD || cd.MaCD);
+                        optRunning.append(`<option value="${cd.MaCD}">${t}</option>`);
+                    });
                     cbo.append(optRunning);
                 }
                 if (upcoming.length > 0) {
                     var optUpcoming = $('<optgroup label="🟡 SẮP DIỄN RA"></optgroup>');
-                    upcoming.forEach(cd => optUpcoming.append(`<option value="${cd.MaCD}">${cd.TenCD}</option>`));
+                    upcoming.forEach(function(cd) {
+                        var t = (window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) : (cd.TenCD || cd.MaCD);
+                        optUpcoming.append(`<option value="${cd.MaCD}">${t}</option>`);
+                    });
                     cbo.append(optUpcoming);
                 }
                 if (ended.length > 0) {
                     var optEnded = $('<optgroup label="⚪ ĐÃ KẾT THÚC / TẠM DỪNG"></optgroup>');
-                    ended.forEach(cd => optEnded.append(`<option value="${cd.MaCD}">${cd.TenCD} (Đã kết thúc)</option>`));
+                    ended.forEach(function(cd) {
+                        var t = (window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) : (cd.TenCD || cd.MaCD);
+                        optEnded.append(`<option value="${cd.MaCD}">${t} (Đã kết thúc)</option>`);
+                    });
                     cbo.append(optEnded);
                 }
 
@@ -1741,8 +1758,11 @@
         if (listChienDich && listChienDich.length > 0) {
             listChienDich.forEach(function (cd) {
                 var kpiStr = cd.totalKpi ? ' (' + new Intl.NumberFormat('vi-VN').format(cd.totalKpi) + ' ₫)' : '';
-                cboSource.append(`<option value="${cd.MaCD}">${cd.TenCD}${kpiStr}</option>`);
-                cboTarget.append(`<option value="${cd.MaCD}">${cd.TenCD}</option>`);
+                var cleanTen = (window.AppManager && AppManager.formatTenCD)
+                    ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+                    : (cd.TenCD || cd.MaCD);
+                cboSource.append(`<option value="${cd.MaCD}">${cleanTen}${kpiStr}</option>`);
+                cboTarget.append(`<option value="${cd.MaCD}">${cleanTen}</option>`);
             });
 
             if (currentMaCD) {
@@ -4034,9 +4054,12 @@
                   if (startStr > todayStr) isNotStarted = true;
                 }
                 var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
-                var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                var statusMark = isRunning ? '' : ' (Đã kết thúc)';
                 var selected = cd.MaCD === gd.MaCD ? 'selected' : '';
-                campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cd.TenCD}${statusMark}</option>`;
+                var cleanTen = (window.AppManager && AppManager.formatTenCD)
+                  ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+                  : (cd.TenCD || cd.MaCD);
+                campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cleanTen}${statusMark}</option>`;
               });
             }
 
@@ -7322,9 +7345,12 @@
                         if (startStr > todayStr) isNotStarted = true;
                     }
                     var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
-                    var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                    var statusMark = isRunning ? '' : ' (Đã kết thúc)';
                     var selected = cd.MaCD === gd.MaCD ? 'selected' : '';
-                    campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cd.TenCD}${statusMark}</option>`;
+                    var cleanTen = (window.AppManager && AppManager.formatTenCD)
+                        ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+                        : (cd.TenCD || cd.MaCD);
+                    campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cleanTen}${statusMark}</option>`;
                 });
             }
 
@@ -8639,7 +8665,10 @@
         AppManager.callApi('getAllChienDich').done(function (res) {
             var html = '<option value="">-- Tất cả chiến dịch --</option>';
             res.forEach(function (item) {
-                html += `<option value="${item.MaCD}">${item.TenCD}</option>`;
+                var cleanTen = (window.AppManager && AppManager.formatTenCD) 
+                    ? AppManager.formatTenCD(item.TenCD, item.MaCD, item.NgayBatDau) 
+                    : (item.TenCD || item.MaCD);
+                html += `<option value="${item.MaCD}">${cleanTen}</option>`;
             });
             $('#cboFillMaCD').html(html);
         });

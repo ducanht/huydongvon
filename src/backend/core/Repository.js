@@ -44,7 +44,9 @@ var Repository = {
         var obj = {};
         for (var j = 0; j < headers.length; j++) {
             var cellVal = data[i][j];
-            if (cellVal instanceof Date && !isNaN(cellVal.getTime())) {
+            if (headers[j] === "TenCD") {
+                obj[headers[j]] = Repository._sanitizeTenCD(cellVal, data[i][headers.indexOf("MaCD")], data[i][headers.indexOf("NgayBatDau")]);
+            } else if (cellVal instanceof Date && !isNaN(cellVal.getTime())) {
                 obj[headers[j]] = Utilities.formatDate(cellVal, "Asia/Ho_Chi_Minh", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
             } else {
                 obj[headers[j]] = cellVal;
@@ -73,6 +75,32 @@ var Repository = {
     }
     
     return resultFiltered;
+  },
+
+  /**
+   * [HELPER] Chuẩn hóa Tên Chiến Dịch (khử triệt để chuỗi ISO date hoặc Date object từ Sheets)
+   */
+  _sanitizeTenCD: function(val, maCD, ngayBatDau) {
+    if (val === null || val === undefined || val === "" || val === "undefined" || val === "null") {
+      if (ngayBatDau) {
+        var dt = (typeof ValidatorService !== "undefined" && ValidatorService.parseDate) ? ValidatorService.parseDate(ngayBatDau) : new Date(ngayBatDau);
+        if (dt && !isNaN(dt.getTime())) {
+          return "Chiến Dịch Tháng " + (dt.getMonth() + 1) + "/" + dt.getFullYear();
+        }
+      }
+      return maCD ? ("Chiến Dịch " + maCD) : "Chiến Dịch";
+    }
+    if (val instanceof Date) {
+      return "Chiến Dịch Tháng " + (val.getMonth() + 1) + "/" + val.getFullYear();
+    }
+    var s = String(val).trim();
+    if (s.indexOf('T00:00:00') !== -1 || /^\d{4}[-\/]\d{2}[-\/]\d{2}/.test(s) || /^\d{4}-\d{2}/.test(s)) {
+      var dt2 = (typeof ValidatorService !== "undefined" && ValidatorService.parseDate) ? ValidatorService.parseDate(s) : new Date(s);
+      if (dt2 && !isNaN(dt2.getTime())) {
+        return "Chiến Dịch Tháng " + (dt2.getMonth() + 1) + "/" + dt2.getFullYear();
+      }
+    }
+    return s;
   },
 
   /**

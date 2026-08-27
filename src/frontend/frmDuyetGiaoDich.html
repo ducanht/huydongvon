@@ -193,9 +193,12 @@
                   if (startStr > todayStr) isNotStarted = true;
                 }
                 var isRunning = cd.TrangThai === 'ACTIVE' && !isExpired && !isNotStarted;
-                var statusMark = isRunning ? '' : ' [Đã Đóng]';
+                var statusMark = isRunning ? '' : ' (Đã kết thúc)';
                 var selected = cd.MaCD === gd.MaCD ? 'selected' : '';
-                campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cd.TenCD}${statusMark}</option>`;
+                var cleanTen = (window.AppManager && AppManager.formatTenCD)
+                  ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
+                  : (cd.TenCD || cd.MaCD);
+                campaignOptionsHtml += `<option value="${cd.MaCD}" ${selected}>${cleanTen}${statusMark}</option>`;
               });
             }
 

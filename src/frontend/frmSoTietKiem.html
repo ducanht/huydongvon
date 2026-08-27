@@ -238,7 +238,10 @@
         AppManager.callApi('getAllChienDich').done(function (res) {
             var html = '<option value="">-- Tất cả chiến dịch --</option>';
             res.forEach(function (item) {
-                html += `<option value="${item.MaCD}">${item.TenCD}</option>`;
+                var cleanTen = (window.AppManager && AppManager.formatTenCD) 
+                    ? AppManager.formatTenCD(item.TenCD, item.MaCD, item.NgayBatDau) 
+                    : (item.TenCD || item.MaCD);
+                html += `<option value="${item.MaCD}">${cleanTen}</option>`;
             });
             $('#cboFillMaCD').html(html);
         });
