@@ -9403,15 +9403,6 @@ var _ttKHCuTang   = [];
  * Init module — được AppManager gọi khi trang được nạp
  */
 function frmTangTruong_init() {
-  // Khởi tạo Select2
-  $('#cboChienDichTT, #cboCBTangTruong').select2({
-    theme: 'bootstrap-5',
-    dropdownParent: $('#frmTangTruong'),
-    placeholder: '— Chọn —',
-    allowClear: true,
-    width: '100%'
-  });
-
   // Nạp danh sách chiến dịch
   AppManager.callApi('getAllChienDich', {})
     .done(function(data) {
@@ -9430,6 +9421,12 @@ function frmTangTruong_init() {
         }
       });
       if (activeMaCD) $sel.val(activeMaCD);
+      $sel.select2({
+        theme: 'bootstrap-5',
+        placeholder: '— Chọn Chiến Dịch —',
+        allowClear: true,
+        width: '100%'
+      });
       $sel.trigger('change');
     });
 
@@ -9439,6 +9436,12 @@ function frmTangTruong_init() {
       var $sel = $('#cboCBTangTruong').empty().append('<option value="">— Tất cả Cán Bộ —</option>');
       (data || []).forEach(function(nv) {
         $sel.append('<option value="' + nv.MaNV + '">' + (nv.HoTen || nv.MaNV) + '</option>');
+      });
+      $sel.select2({
+        theme: 'bootstrap-5',
+        placeholder: '— Tất cả Cán Bộ —',
+        allowClear: true,
+        width: '100%'
       });
       $sel.trigger('change');
     });
