@@ -118,7 +118,8 @@ function doApiRequest(action, payload) {
       'getLichSuDatatable', 'getKhachHangDatatable', 'getSoTietKiemDatatable', 'getManagedKhachHangDatatable',
       'getBaoCaoTangTruong', 'getBaoCaoTongHop_ChienDich', 'getBaoCaoChiTietUser', 'getSotietkiemManagedByUser',
       'getPendingGiaoDich', 'getPendingCount', 'getNhanSuActive', 'getAllChienDich', 'getChienDichActive',
-      'getSoTietKiemActive', 'getKhachHangActive', 'getEmployeeDetails'
+      'getSoTietKiemActive', 'getKhachHangActive', 'getEmployeeDetails',
+      'getChienDichOverviewStats', 'getChienDichGroupedList'
     ];
     
     var isCacheable = cacheableActions.indexOf(action) !== -1;
@@ -163,7 +164,7 @@ function doApiRequest(action, payload) {
           
       case 'resetPassword':
           // Security Phase 6 Remediation: Enforce HR/Admin Roles
-          if (!user || (user.role !== 'ADMIN' && user.role !== 'TP_NHANSU')) {
+          if (!user || (user.Role !== 'ADMIN' && user.Role !== 'TP_NHANSU')) {
               throw new Error('Bạn không có quyền thực hiện thao tác đặt lại mật khẩu nhân sự.');
           }
           result = NhanSuService.resetPassword(user, payload.targetMaNV);
@@ -383,6 +384,7 @@ function doApiRequest(action, payload) {
           result = SystemAdminService.deleteTestData(user, payload);
           break;
       case 'debugLeaderboardDates':
+          if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được truy cập dữ liệu chẩn đoán.");
           result = (function() {
              var cdDateMap = _buildCdDateMap();
              var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);

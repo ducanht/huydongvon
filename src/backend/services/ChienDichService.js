@@ -255,14 +255,8 @@ var ChienDichService = {
       var cdNet = netByCd[mcdNorm] || 0;
       var completionRate = cdKpi > 0 ? Math.round((cdNet / cdKpi) * 1000) / 10 : 0;
 
-      // Chuẩn hóa tên chiến dịch nếu là ISO date string
-      var cleanTenCD = cd.TenCD || "";
-      if (typeof cleanTenCD === 'string' && (cleanTenCD.indexOf('T00:00:00') !== -1 || /^\d{4}-\d{2}-\d{2}/.test(cleanTenCD))) {
-        var dt = ValidatorService.parseDate(cleanTenCD);
-        if (dt) {
-          cleanTenCD = "Chiến Dịch Tháng " + (dt.getMonth() + 1) + "/" + dt.getFullYear();
-        }
-      }
+      // Chuẩn hóa tên chiến dịch chuẩn xác qua Repository
+      var cleanTenCD = Repository._sanitizeTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau);
 
       return {
         MaCD: cd.MaCD,

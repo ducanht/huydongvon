@@ -63,8 +63,10 @@
     /* ===== TEXT COLORS - FIXED ===== */
     --text-dark: #020617;
     /* Sậm hơn, tăng độ tương phản */
-    --text-muted: #0d7efff0;
-    /* Đậm hơn The slate-600 thay vì slate-500 */
+    --text-primary: #0f172a;
+    /* Main body text */
+    --text-muted: #64748b;
+    /* Slate-500 standard neutral muted */
     --text-light: #f8fafc;
 
     /* ===== GLASSMORPHISM EFFECTS ===== */
@@ -128,7 +130,8 @@
   [data-bs-theme="dark"] {
     /* Dark mode text */
     --text-dark: #ffffff;
-    --text-muted: #0d7efff0;
+    --text-primary: #f1f5f9;
+    --text-muted: #94a3b8;
     --text-light: #f8fafc;
 
     /* Dark glass - FIXED */

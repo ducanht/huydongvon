@@ -567,32 +567,41 @@ var KPIService = {
         records.push(summaryMap[k]);
       }
       
-      // 4. Ghi đè vào DB_SUMMARY
+      // 4. Chuẩn bị mảng dữ liệu trước khi xóa bảng (Zero Data Loss Pattern)
       var ss = getDbSpreadsheet();
       var sheetSummary = ss.getSheetByName(CONFIG.SHEETS.SUMMARY);
       if (!sheetSummary) throw new Error("Không tìm thấy bảng SUMMARY.");
       
       var lastRow = sheetSummary.getLastRow();
-      var headers = sheetSummary.getRange(1, 1, 1, sheetSummary.getLastColumn()).getValues()[0]
+      var lastCol = sheetSummary.getLastColumn();
+      var headers = sheetSummary.getRange(1, 1, 1, lastCol).getValues()[0]
                                 .map(function(h) { return String(h).trim(); });
       
-      // Xóa dữ liệu cũ từ dòng 2
-      if (lastRow > 1) {
-        sheetSummary.getRange(2, 1, lastRow - 1, headers.length).clearContent();
-      }
-      
-      // Ghi dữ liệu mới
-      if (records.length > 0) {
-        var dataToInsert = records.map(function(record) {
-          return headers.map(function(header) {
-            // Định dạng ngày tháng về dạng ISO string cho đồng bộ lưu trữ
-            if (header === "LastUpdate" && record[header] instanceof Date) {
-              return record[header].toISOString();
-            }
-            return record[header] !== undefined ? record[header] : "";
-          });
+      var dataToInsert = records.map(function(record) {
+        return headers.map(function(header) {
+          if (header === "LastUpdate" && record[header] instanceof Date) {
+            return record[header].toISOString();
+          }
+          return record[header] !== undefined ? record[header] : "";
         });
-        sheetSummary.getRange(2, 1, dataToInsert.length, headers.length).setValues(dataToInsert);
+      });
+
+      // Lưu bản sao dự phòng trong RAM trước khi clear
+      var backupData = (lastRow > 1) ? sheetSummary.getRange(2, 1, lastRow - 1, headers.length).getValues() : null;
+      
+      try {
+        if (lastRow > 1) {
+          sheetSummary.getRange(2, 1, lastRow - 1, headers.length).clearContent();
+        }
+        if (dataToInsert.length > 0) {
+          sheetSummary.getRange(2, 1, dataToInsert.length, headers.length).setValues(dataToInsert);
+        }
+      } catch (writeErr) {
+        // Rollback phục hồi dữ liệu cũ nếu ghi thất bại
+        if (backupData && backupData.length > 0) {
+          sheetSummary.getRange(2, 1, backupData.length, headers.length).setValues(backupData);
+        }
+        throw new Error("Lỗi ghi dữ liệu mới vào DB_SUMMARY (Đã phục hồi dữ liệu gốc): " + writeErr.message);
       }
       
       SpreadsheetApp.flush();

@@ -23,6 +23,12 @@
         sNext: "&raquo;",
         sLast: "Cuối",
       },
+      buttons: {
+        copy: "Sao chép",
+        print: "In",
+        excel: "Xuất Excel",
+        pdf: "Xuất PDF"
+      }
     },
     // Múi giờ Việt Nam
     _VN_TIMEZONE: "Asia/Ho_Chi_Minh",
@@ -528,26 +534,7 @@
       }
     },
 
-    // Cấu hình ngôn ngữ DataTables VN (Nhúng trực tiếp để không phụ thuộc CDN)
-    _DT_LANG_VI: {
-      sProcessing: "Đang xử lý...",
-      sLengthMenu: "Xem _MENU_ mục",
-      sZeroRecords: "Không tìm thấy dòng nào phù hợp",
-      sInfo: "Đang xem _START_ đến _END_ trong tổng số _TOTAL_ mục",
-      sInfoEmpty: "Đang xem 0 đến 0 trong tổng số 0 mục",
-      sInfoFiltered: "(được lọc từ _MAX_ mục)",
-      sSearch: "Tìm kiếm:",
-      oPaginate: {
-        sFirst: "Đầu",
-        sPrevious: "Trước",
-        sNext: "Tiếp",
-        sLast: "Cuối",
-      },
-      buttons: {
-        copy: "Sao chép",
-        print: "In",
-      },
-    },
+
 
     /**
      * Helper gọi API Server (google.script.run)
