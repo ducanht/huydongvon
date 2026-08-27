@@ -133,27 +133,42 @@ var SystemAdminService = {
       var sheetLog = ss.getSheetByName(CONFIG.SHEETS.LOG);
       if (!sheetLog) throw new Error("Không tìm thấy Sheet LOG.");
       
-      var data = sheetLog.getDataRange().getValues();
-      if (data.length <= 1) return "Không có log nào để xóa.";
+      var lastRow = sheetLog.getLastRow();
+      var lastCol = sheetLog.getLastColumn();
+      if (lastRow <= 1) return "Không có nhật ký nào để xóa.";
       
-      var headers = data[0];
+      var headers = sheetLog.getRange(1, 1, 1, lastCol).getValues()[0];
       var timestampIndex = headers.indexOf("Timestamp");
       if (timestampIndex === -1) throw new Error("Cột Timestamp không tồn tại trong sheet LOG.");
       
+      // Lấy bộ lọc từ payload
+      var uFilter = payload.userFilter ? String(payload.userFilter).trim().toLowerCase() : null;
+      var aFilter = payload.actionFilter ? String(payload.actionFilter).trim().toLowerCase() : null;
+      var startDt = (payload.tuNgay && String(payload.tuNgay).trim() !== "" && String(payload.tuNgay) !== "null" && String(payload.tuNgay) !== "undefined") ? ValidatorService.parseDate(payload.tuNgay) : null;
+      if (startDt) startDt.setHours(0, 0, 0, 0);
+      var endDt = (payload.denNgay && String(payload.denNgay).trim() !== "" && String(payload.denNgay) !== "null" && String(payload.denNgay) !== "undefined") ? ValidatorService.parseDate(payload.denNgay) : null;
+      if (endDt) endDt.setHours(23, 59, 59, 999);
+
+      // TRƯỜNG HỢP 1: XÓA TOÀN BỘ LOGS (daysToKeep = 0 và không có bộ lọc tùy biến)
+      if (daysToKeep === 0 && !startDt && !endDt && !uFilter && !aFilter) {
+        var countAll = lastRow - 1;
+        sheetLog.getRange(2, 1, countAll, lastCol).clearContent();
+        if (sheetLog.getMaxRows() > 200) {
+          sheetLog.deleteRows(2, countAll);
+        }
+        SpreadsheetApp.flush();
+        Repository.clearCache(CONFIG.SHEETS.LOG);
+        return "Đã xoá sạch toàn bộ " + countAll + " bản ghi nhật ký hệ thống!";
+      }
+
+      // TRƯỜNG HỢP 2: XÓA THEO SỐ NGÀY HOẶC BỘ LỌC
       var cutoffDate = null;
       if (!isNaN(daysToKeep) && daysToKeep > 0) {
         cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
       }
       
-      // Lấy bộ lọc từ payload
-      var uFilter = payload.userFilter ? payload.userFilter.toLowerCase() : null;
-      var aFilter = payload.actionFilter ? payload.actionFilter.toLowerCase() : null;
-      var startDt = (payload.tuNgay && String(payload.tuNgay).trim() !== "" && String(payload.tuNgay) !== "null" && String(payload.tuNgay) !== "undefined") ? ValidatorService.parseDate(payload.tuNgay) : null;
-      if (startDt) startDt.setHours(0, 0, 0, 0);
-      var endDt = (payload.denNgay && String(payload.denNgay).trim() !== "" && String(payload.denNgay) !== "null" && String(payload.denNgay) !== "undefined") ? ValidatorService.parseDate(payload.denNgay) : null;
-      if (endDt) endDt.setHours(23, 59, 59, 999);
-  
+      var data = sheetLog.getDataRange().getValues();
       var rowsToDelete = [];
       var tsIdx = headers.indexOf("Timestamp");
       var userIdx = headers.indexOf("User");
@@ -184,10 +199,10 @@ var SystemAdminService = {
       }
       
       if (rowsToDelete.length === 0) {
-        return "Không tìm thấy logs nào phù hợp với bộ lọc để xoá.";
+        return "Không tìm thấy nhật ký nào phù hợp với điều kiện để xoá.";
       }
       
-      // Batch delete (Phải xóa từ dưới lên để không lệch index dòng)
+      // Batch delete (Xóa từ dưới lên để không lệch index dòng)
       rowsToDelete.sort(function(a, b) { return b - a; });
       
       // Run-length deletion
@@ -199,17 +214,14 @@ var SystemAdminService = {
              runStart = rIndex;
              runLength = 1;
          } else if (rIndex === runStart - runLength) {
-             // Adjacent row going upwards
              runLength++;
          } else {
-             // Gap found, execute delete
              sheetLog.deleteRows(runStart - runLength + 1, runLength);
              runStart = rIndex;
              runLength = 1;
          }
       });
   
-      // Ensure last run is deleted
       if (runStart !== -1) {
          sheetLog.deleteRows(runStart - runLength + 1, runLength);
       }
@@ -217,7 +229,11 @@ var SystemAdminService = {
       SpreadsheetApp.flush();
       Repository.clearCache(CONFIG.SHEETS.LOG);
       
-      return "Đã xoá thành công " + rowsToDelete.length + " nhật ký cũ hơn " + daysToKeep + " ngày.";
+      if (daysToKeep > 0) {
+        return "Đã xoá thành công " + rowsToDelete.length + " nhật ký cũ (chỉ giữ lại " + daysToKeep + " ngày gần nhất).";
+      } else {
+        return "Đã xoá thành công " + rowsToDelete.length + " nhật ký thỏa mãn điều kiện.";
+      }
     } catch(e) {
       throw new Error("Lỗi khi xoá nhật ký: " + e.message);
     } finally {

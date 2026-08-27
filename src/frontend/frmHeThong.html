@@ -587,8 +587,8 @@
     function handleClearLogs() {
         var start = fpLogStart.selectedDates[0];
         var end = fpLogEnd.selectedDates[0];
-        var userF = $('#log-user-filter').val();
-        var actionF = $('#log-action-filter').val();
+        var userF = $('#log-user-filter').val().trim();
+        var actionF = $('#log-action-filter').val().trim();
 
         var filterDesc = [];
         if (start) filterDesc.push('Từ ' + flatpickr.formatDate(start, "d/m/Y"));
@@ -596,73 +596,125 @@
         if (userF) filterDesc.push('Cán bộ: ' + userF);
         if (actionF) filterDesc.push('Hành động: ' + actionF);
 
-        var confirmTitle = 'Dọn dẹp Logs?';
-        var confirmText = 'Bạn có chắc chắn muốn xóa các nhật ký hệ thống đang được lọc? Thao tác này không thể hoàn tác.';
+        var hasFilter = filterDesc.length > 0;
 
-        if (filterDesc.length > 0) {
-            confirmText = '<strong>Bạn sắp xóa các logs thỏa mãn:</strong><br/>' + filterDesc.join(' | ') + '<br/><br/>Thao tác này không thể hoàn tác.';
-        } else {
-            confirmText = 'Bạn chưa chọn bộ lọc. Bạn muốn xoá đi các Nhật ký hệ thống cũ hơn bao nhiêu ngày?';
-        }
-
-        Swal.fire({
-            title: confirmTitle,
-            html: confirmText,
+        // === BƯỚC 1: Chọn kiểu xoá ===
+        var swalConfig = {
+            title: '<i class="bx bx-trash me-2 text-danger"></i>Dọn dẹp Nhật ký',
             icon: 'warning',
-            input: filterDesc.length === 0 ? 'select' : undefined,
-            inputOptions: filterDesc.length === 0 ? {
-                '30': 'Cũ hơn 30 ngày',
-                '60': 'Cũ hơn 60 ngày',
-                '90': 'Cũ hơn 90 ngày (3 tháng)',
-                '180': 'Cũ hơn 180 ngày (6 tháng)'
-            } : undefined,
-            inputPlaceholder: 'Chọn thời gian giữ lại',
             showCancelButton: true,
-            confirmButtonText: 'Đồng ý xóa',
-            confirmButtonColor: '#dc3545'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                var days = result.value || 0;
-                Swal.fire({
-                    title: 'Xác thực Quản trị',
-                    text: 'Vui lòng nhập Mật khẩu Quản trị Hệ thống để xoá LOG:',
-                    icon: 'warning',
-                    input: 'password',
-                    inputPlaceholder: 'Mật khẩu...',
-                    showCancelButton: true,
-                    confirmButtonText: 'Tiếp Tục Xoá',
-                    confirmButtonColor: '#dc3545',
-                    inputValidator: (val) => {
-                        if (!val) return 'Vui lòng nhập mật khẩu xác thực!'
-                    }
-                }).then((pwdRes) => {
-                    if (pwdRes.isConfirmed) {
-                        var hash = CryptoJS.SHA256(pwdRes.value).toString(CryptoJS.enc.Hex);
-                        var btn = $('#btnClearLogs').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang xóa...');
+            confirmButtonText: '<i class="bx bx-trash me-1"></i> Tiếp tục',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#dc3545',
+            customClass: { popup: 'shadow-lg rounded-4' }
+        };
 
-                        var clearPayload = {
-                            daysToKeep: days,
-                            masterHash: hash,
-                            tuNgay: start ? flatpickr.formatDate(start, "Y-m-d") : null,
-                            denNgay: end ? flatpickr.formatDate(end, "Y-m-d") : null,
-                            userFilter: userF,
-                            actionFilter: actionF
-                        };
-
-                        AppManager.callApi('clearSystemLogs', clearPayload)
-                            .done(function (msg) {
-                                Swal.fire('Hoàn tất!', msg, 'success');
-                                loadLogs(); // Reload
-                            })
-                            .fail(function (err) {
-                                Swal.fire('Lỗi', err, 'error');
-                            })
-                            .always(function () {
-                                btn.prop('disabled', false).html("<i class='bx bx-trash'></i> Dọn dẹp Logs cũ");
-                            });
+        if (hasFilter) {
+            // Nếu đang có bộ lọc, xóa trực tiếp logs thoả điều kiện
+            swalConfig.html = `<div class="text-start">
+                <p class="mb-2">Bạn sắp xóa các nhật ký thỏa mãn điều kiện lọc hiện tại:</p>
+                <ul class="list-group list-group-flush mb-3">
+                    ${filterDesc.map(f => `<li class="list-group-item px-0 py-1"><i class="bx bx-filter-alt text-primary me-1"></i>${f}</li>`).join('')}
+                </ul>
+                <div class="alert alert-danger py-2 mb-0"><i class="bx bx-error-circle me-1"></i>Thao tác <strong>không thể hoàn tác</strong>!</div>
+            </div>`;
+        } else {
+            // Không có bộ lọc → cho chọn kiểu xoá theo ngày
+            swalConfig.html = `<p class="mb-2 text-muted small">Chọn chế độ dọn dẹp nhật ký hệ thống:</p>`;
+            swalConfig.input = 'select';
+            swalConfig.inputOptions = {
+                '10':  '🔟 Giữ lại 10 ngày gần nhất',
+                '30':  '📅 Giữ lại 30 ngày (1 tháng)',
+                '60':  '📅 Giữ lại 60 ngày (2 tháng)',
+                '90':  '📅 Giữ lại 90 ngày (3 tháng)',
+                '180': '📅 Giữ lại 180 ngày (6 tháng)',
+                '0':   '🗑️ XÓA TOÀN BỘ (không giữ lại)'
+            };
+            swalConfig.inputPlaceholder = '— Chọn chế độ xoá —';
+            swalConfig.inputValidator = (val) => {
+                if (!val && val !== '0') return 'Vui lòng chọn chế độ dọn dẹp!';
+                if (val === '0') {
+                    // Cảnh báo thêm nếu chọn xóa toàn bộ
+                    return undefined;
+                }
+            };
+            // Highlight màu đỏ khi người dùng chọn "XÓA TOÀN BỘ"
+            swalConfig.didOpen = () => {
+                var $sel = $(Swal.getPopup()).find('select');
+                $sel.on('change', function() {
+                    if ($(this).val() === '0') {
+                        $(this).addClass('text-danger fw-bold border-danger');
+                        $(Swal.getPopup()).find('.swal2-html-container').html(
+                            `<p class="mb-2 text-muted small">Chọn chế độ dọn dẹp nhật ký hệ thống:</p>
+                             <div class="alert alert-danger py-2 mt-2 mb-0"><i class="bx bx-error-circle me-1"></i><strong>CẢNH BÁO:</strong> Sẽ xóa TOÀN BỘ ${('<strong>tất cả</strong>')} nhật ký. Thao tác không thể hoàn tác!</div>`
+                        );
+                    } else {
+                        $(this).removeClass('text-danger fw-bold border-danger');
+                        $(Swal.getPopup()).find('.swal2-html-container').html(
+                            `<p class="mb-2 text-muted small">Chọn chế độ dọn dẹp nhật ký hệ thống:</p>`
+                        );
                     }
                 });
-            }
+            };
+        }
+
+        Swal.fire(swalConfig).then((result) => {
+            if (!result.isConfirmed) return;
+
+            var days = hasFilter ? 0 : (result.value || '');
+            var isDeleteAll = (!hasFilter && days === '0');
+
+            // === BƯỚC 2: Xác thực mật khẩu ===
+            Swal.fire({
+                title: '<i class="bx bx-lock-alt me-2 text-warning"></i>Xác thực Quản trị',
+                html: isDeleteAll
+                    ? `<div class="alert alert-danger py-2 mb-3"><i class="bx bx-error-circle me-1"></i><strong>Cảnh báo: Xóa toàn bộ nhật ký!</strong></div>
+                       <p>Nhập Mật khẩu Quản trị để xác nhận:</p>`
+                    : `<p>Nhập Mật khẩu Quản trị Hệ thống để xoá LOG:</p>`,
+                icon: isDeleteAll ? 'error' : 'warning',
+                input: 'password',
+                inputPlaceholder: 'Mật khẩu...',
+                showCancelButton: true,
+                confirmButtonText: isDeleteAll ? '<i class="bx bx-trash me-1"></i> XÁC NHẬN XÓA TẤT CẢ' : 'Tiếp Tục Xoá',
+                confirmButtonColor: '#dc3545',
+                inputValidator: (val) => {
+                    if (!val) return 'Vui lòng nhập mật khẩu xác thực!';
+                }
+            }).then((pwdRes) => {
+                if (!pwdRes.isConfirmed) return;
+
+                var hash = CryptoJS.SHA256(pwdRes.value).toString(CryptoJS.enc.Hex);
+                var $btn = $('#btnClearLogs').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang xóa...');
+
+                var clearPayload = {
+                    daysToKeep: days === '0' ? 0 : (parseInt(days) || 0),
+                    masterHash: hash,
+                    tuNgay: start ? flatpickr.formatDate(start, "Y-m-d") : null,
+                    denNgay: end ? flatpickr.formatDate(end, "Y-m-d") : null,
+                    userFilter: userF || null,
+                    actionFilter: actionF || null
+                };
+
+                AppManager.callApi('clearSystemLogs', clearPayload)
+                    .done(function (msg) {
+                        Swal.fire({
+                            title: 'Hoàn tất!',
+                            html: `<i class="bx bx-check-circle text-success fs-1 d-block mb-2"></i>${msg}`,
+                            icon: 'success'
+                        });
+                        // Reset bộ lọc và tải lại
+                        fpLogStart.clear();
+                        fpLogEnd.clear();
+                        $('#log-user-filter, #log-action-filter').val('');
+                        loadLogs();
+                    })
+                    .fail(function (err) {
+                        Swal.fire('Lỗi', err, 'error');
+                    })
+                    .always(function () {
+                        $btn.prop('disabled', false).html("<i class='bx bx-trash'></i> Dọn dẹp Logs cũ");
+                    });
+            });
         });
     }
 
