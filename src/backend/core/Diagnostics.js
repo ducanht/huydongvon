@@ -13,7 +13,7 @@ function diagnoseSheetStructure() {
     "DB_SUMMARY": ["MaNV", "MaCD", "TongGui", "TongRut", "Net", "ChiTieu", "LastUpdate"]
   };
 
-  const ss = Repository._getSpreadsheet();
+  const ss = getDbSpreadsheet();
   if (!ss) {
     return { status: "error", message: "Không tìm thấy Spreadsheet CSDL." };
   }
@@ -51,7 +51,7 @@ function diagnoseSheetStructure() {
  * Rà Soát Toàn Diện Tính Toàn Vẹn & Khớp Số Liệu Cơ Sở Dữ Liệu
  */
 function auditDatabaseIntegrity() {
-  const ss = Repository._getSpreadsheet();
+  const ss = getDbSpreadsheet();
   if (!ss) throw new Error("Không thể kết nối Spreadsheet Database.");
 
   const structure = diagnoseSheetStructure();

@@ -6,6 +6,10 @@ var Repository = {
   // Bổ sung In-Memory Cache để tránh đọc Sheet nhiều lần trong cùng 1 lần thực hiện (Single Execution)
   _executionCache: {},
   
+  _getSpreadsheet: function() {
+    return getDbSpreadsheet();
+  },
+  
   getAll: function(sheetName, useCache, filterFn) {
     useCache = useCache !== false; 
     
@@ -34,6 +38,8 @@ var Repository = {
     if (data.length <= 1) return []; 
     
     var headers = data[0].map(function(h) { return String(h).trim(); });
+    var idxMaCD = headers.indexOf("MaCD");
+    var idxNgayBatDau = headers.indexOf("NgayBatDau");
     var resultForCache = [];
     var resultFiltered = [];
     
@@ -45,7 +51,9 @@ var Repository = {
         for (var j = 0; j < headers.length; j++) {
             var cellVal = data[i][j];
             if (headers[j] === "TenCD") {
-                obj[headers[j]] = Repository._sanitizeTenCD(cellVal, data[i][headers.indexOf("MaCD")], data[i][headers.indexOf("NgayBatDau")]);
+                var rawMaCD = idxMaCD !== -1 ? data[i][idxMaCD] : null;
+                var rawNgayBatDau = idxNgayBatDau !== -1 ? data[i][idxNgayBatDau] : null;
+                obj[headers[j]] = Repository._sanitizeTenCD(cellVal, rawMaCD, rawNgayBatDau);
             } else if (cellVal instanceof Date && !isNaN(cellVal.getTime())) {
                 obj[headers[j]] = Utilities.formatDate(cellVal, "Asia/Ho_Chi_Minh", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
             } else {
