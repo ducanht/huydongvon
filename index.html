@@ -866,206 +866,317 @@
 
 <template id="tpl-frmChiTieu">
 <style>
-    .custom-tabs .nav-link {
-        color: var(--text-muted, #64748b);
-        border: none;
-        border-bottom: 3px solid transparent;
-        padding: 12px 24px;
-        font-weight: 700;
-        transition: all 0.2s ease-in-out;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .custom-tabs .nav-link:hover {
-        color: #10b981;
-        background: rgba(16, 185, 129, 0.05);
-    }
-
-    .custom-tabs .nav-link.active {
-        color: #047857;
-        background: rgba(16, 185, 129, 0.1);
-        border-bottom: 3px solid #10b981;
-    }
-
-    .kpi-stat-card {
-        background: #ffffff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    /* ── PAGE HEADER ─────────────────────────────────────── */
+    .page-header-chiendich {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 60%, #d1fae5 100%);
+        border: 1px solid #bbf7d0;
+        border-radius: 20px;
+        padding: 24px 28px;
         position: relative;
         overflow: hidden;
     }
+    .page-header-chiendich::before {
+        content: '';
+        position: absolute;
+        top: -40px; right: -40px;
+        width: 160px; height: 160px;
+        background: rgba(16,185,129,0.07);
+        border-radius: 50%;
+    }
+    .page-header-chiendich::after {
+        content: '';
+        position: absolute;
+        bottom: -20px; right: 80px;
+        width: 80px; height: 80px;
+        background: rgba(16,185,129,0.05);
+        border-radius: 50%;
+    }
 
+    /* ── STAT CARDS ──────────────────────────────────────── */
+    .kpi-stat-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        padding: 18px 20px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+        height: 100%;
+    }
     .kpi-stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.09);
     }
-
     .kpi-stat-card .icon-box {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 50px; height: 50px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
         font-size: 24px;
+        flex-shrink: 0;
+    }
+    .stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-bottom: 4px;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1.1;
     }
 
-    /* Clean Modern Table Styling */
+    /* ── TAB NAV ─────────────────────────────────────────── */
+    .cd-tab-nav {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        padding: 6px;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .cd-tab-nav::-webkit-scrollbar { display: none; }
+    .cd-tab-nav .nav-link {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: #64748b;
+        white-space: nowrap;
+        display: flex; align-items: center; gap: 7px;
+        transition: all 0.18s ease;
+        flex-shrink: 0;
+        background: transparent;
+    }
+    .cd-tab-nav .nav-link:hover { background: #f0fdf4; color: #047857; }
+    .cd-tab-nav .nav-link.active {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(16,185,129,0.3);
+    }
+    .cd-tab-nav .tab-badge {
+        border-radius: 50rem;
+        padding: 2px 8px;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+    .cd-tab-nav .nav-link.active .tab-badge {
+        background: rgba(255,255,255,0.25);
+        color: #fff;
+    }
+    .cd-tab-nav .nav-link:not(.active) .tab-badge {
+        background: #e2e8f0;
+        color: #64748b;
+    }
+
+    /* ── TABLE (CAMPAIGN LIST) ───────────────────────────── */
     .table-custom-clean {
-        background: #ffffff;
+        background: #fff;
         border-collapse: separate;
         border-spacing: 0;
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
+        border-radius: 14px;
         overflow: hidden;
     }
-
     .table-custom-clean thead th {
-        background-color: #f8fafc;
+        background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
         color: #475569;
         font-weight: 700;
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: 14px 16px;
-        border-bottom: 1px solid #e2e8f0;
+        letter-spacing: 0.06em;
+        padding: 13px 14px;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
     }
-
     .table-custom-clean tbody td {
-        padding: 14px 16px;
+        padding: 13px 14px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
-        background-color: #ffffff;
+        background: #fff;
+        font-size: 0.88rem;
     }
+    .table-custom-clean tbody tr:hover td { background: #f0fdf4 !important; }
+    .table-custom-clean tbody tr:last-child td { border-bottom: none; }
 
-    .table-custom-clean tbody tr:hover td {
-        background-color: #f0fdf4 !important;
-    }
-
-    .table-custom-clean tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    /* Badge Pill Hiện Đại */
+    /* ── STATUS PILLS ────────────────────────────────────── */
     .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 11px;
         border-radius: 50rem;
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         font-weight: 700;
         white-space: nowrap;
-        line-height: 1.2;
     }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .status-pill-running  { background: rgba(16,185,129,0.12); color: #047857; border: 1px solid rgba(16,185,129,0.3); }
+    .status-pill-upcoming { background: rgba(245,158,11,0.12);  color: #b45309; border: 1px solid rgba(245,158,11,0.3);  }
+    .status-pill-ended    { background: rgba(100,116,139,0.1);  color: #475569; border: 1px solid rgba(100,116,139,0.25); }
+    .status-pill-inactive { background: rgba(239,68,68,0.1);    color: #b91c1c; border: 1px solid rgba(239,68,68,0.25);  }
 
-    .status-pill-running {
-        background: rgba(16, 185, 129, 0.12);
-        color: #047857;
-        border: 1px solid rgba(16, 185, 129, 0.3);
+    /* ── KPI ASSIGN ──────────────────────────────────────── */
+    .kpi-toolbar {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        padding: 18px 22px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
-
-    .status-pill-upcoming {
-        background: rgba(245, 158, 11, 0.12);
-        color: #b45309;
-        border: 1px solid rgba(245, 158, 11, 0.3);
+    .kpi-summary-banner {
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        border: 1px solid #86efac;
+        border-radius: 12px;
+        padding: 12px 18px;
     }
-
-    .status-pill-ended {
-        background: rgba(100, 116, 139, 0.12);
+    .curr-kpi {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: #047857 !important;
+        text-align: right;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }
+    .curr-kpi:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 3px rgba(16,185,129,0.14) !important;
+        outline: none !important;
+    }
+    #tbChiTieu thead th {
+        background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
         color: #475569;
-        border: 1px solid rgba(100, 116, 139, 0.25);
+        padding: 12px 14px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    #tbChiTieu tbody td {
+        padding: 11px 14px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.88rem;
+    }
+    #tbChiTieu tbody tr:hover td { background: #f0fdf4; }
+    #tbChiTieu tfoot td {
+        background: #f8fafc;
+        border-top: 2px solid #e2e8f0;
+        padding: 13px 14px;
     }
 
-    .status-pill-inactive {
-        background: rgba(239, 68, 68, 0.12);
-        color: #b91c1c;
-        border: 1px solid rgba(239, 68, 68, 0.25);
+    /* ── EMPTY STATE ─────────────────────────────────────── */
+    .kpi-empty-state {
+        padding: 48px 24px;
+        text-align: center;
+    }
+    .kpi-empty-state .empty-icon {
+        font-size: 4rem;
+        color: #d1fae5;
+        display: block;
+        margin-bottom: 12px;
     }
 
-    .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        display: inline-block;
+    /* ── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width: 575.98px) {
+        .page-header-chiendich { padding: 18px; border-radius: 16px; }
+        .stat-value { font-size: 1.25rem !important; }
+        .kpi-stat-card .icon-box { width: 42px; height: 42px; font-size: 20px; }
+        .cd-tab-nav .nav-link { padding: 9px 13px; font-size: 0.82rem; }
+        .kpi-toolbar { padding: 14px 16px; }
+    }
+    @media (max-width: 767.98px) {
+        .btn-group-kpi { flex-wrap: wrap; }
+        .btn-group-kpi .btn { flex: 1 1 auto; min-width: 120px; }
     }
 </style>
 
-<div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-    <div>
-        <h1 class="page-title mb-1 text-success fw-bold"><i class='bx bx-calendar-star'></i> Quản Lý Chiến Dịch & Phân Bổ Chỉ Tiêu</h1>
-        <p class="text-muted small m-0">Khởi tạo các đợt thi đua cao điểm, giao chỉ tiêu KPI và giám sát tiến độ nguồn vốn toàn hệ thống.</p>
-    </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary shadow-sm" onclick="loadChienDichStats()"><i class='bx bx-refresh'></i> Làm Mới</button>
-        <button class="btn btn-success shadow-sm fw-bold" onclick="showModalChienDich()"><i class='bx bx-plus-circle'></i> Tạo Chiến Dịch Mới</button>
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE HEADER
+════════════════════════════════════════════════════════════ -->
+<div class="col-12 mb-4">
+    <div class="page-header-chiendich">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+            <div class="position-relative z-1">
+                <h1 class="fs-5 fw-bold text-success mb-1 d-flex align-items-center gap-2">
+                    <i class='bx bx-calendar-star fs-4'></i> Quản Lý Chiến Dịch & Phân Bổ Chỉ Tiêu
+                </h1>
+                <p class="text-muted small mb-0">Khởi tạo đợt thi đua, giao chỉ tiêu KPI và giám sát tiến độ huy động vốn toàn hệ thống.</p>
+            </div>
+            <div class="d-flex gap-2 flex-shrink-0 position-relative z-1">
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadChienDichStats(); loadDataChienDich();" title="Làm mới">
+                    <i class='bx bx-refresh'></i><span class="d-none d-sm-inline ms-1">Làm Mới</span>
+                </button>
+                <button class="btn btn-success fw-bold shadow-sm btn-sm" onclick="showModalChienDich()">
+                    <i class='bx bx-plus-circle'></i><span class="ms-1">Tạo Chiến Dịch</span>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- 4 THẺ KPI TỔNG QUAN VĨ MÔ -->
+<!-- ═══════════════════════════════════════════════════════════
+     4 STAT CARDS
+════════════════════════════════════════════════════════════ -->
 <div class="col-12 mb-4">
     <div class="row g-3">
-        <!-- Card 1: Tổng số chiến dịch -->
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-6 col-xl-3">
             <div class="kpi-stat-card border-start border-4 border-primary">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small text-uppercase fw-bold">Tổng Chiến Dịch</span>
-                        <h3 class="fw-bold my-1 text-primary" id="lblStatTotalCd">--</h3>
-                        <div class="small text-muted" id="lblStatCdSub">Đang tải...</div>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="stat-label">Tổng Chiến Dịch</div>
+                        <div class="stat-value text-primary" id="lblStatTotalCd">--</div>
+                        <div class="small text-muted mt-1" id="lblStatCdSub" style="font-size:0.75rem;">Đang tải...</div>
                     </div>
-                    <div class="icon-box bg-primary bg-opacity-10 text-primary">
+                    <div class="icon-box bg-primary bg-opacity-10 text-primary flex-shrink-0">
                         <i class='bx bx-flag'></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Card 2: Tổng nguồn vốn mục tiêu (KPI) -->
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-6 col-xl-3">
             <div class="kpi-stat-card border-start border-4 border-success">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small text-uppercase fw-bold">Tổng KPI Mục Tiêu</span>
-                        <h3 class="fw-bold my-1 text-success" id="lblStatTotalKpi">-- ₫</h3>
-                        <div class="small text-muted" id="lblStatKpiSub">Chỉ tiêu toàn hệ thống</div>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="stat-label">Tổng KPI Mục Tiêu</div>
+                        <div class="stat-value text-success" id="lblStatTotalKpi" style="font-size:1.25rem;">-- ₫</div>
+                        <div class="small text-muted mt-1" id="lblStatKpiSub" style="font-size:0.75rem;">Chỉ tiêu toàn hệ thống</div>
                     </div>
-                    <div class="icon-box bg-success bg-opacity-10 text-success">
+                    <div class="icon-box bg-success bg-opacity-10 text-success flex-shrink-0">
                         <i class='bx bx-money'></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Card 3: Tổng cán bộ nhận chỉ tiêu -->
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-6 col-xl-3">
             <div class="kpi-stat-card border-start border-4 border-info">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small text-uppercase fw-bold">Cán Bộ Phân Bổ</span>
-                        <h3 class="fw-bold my-1 text-info" id="lblStatTellers">--</h3>
-                        <div class="small text-muted" id="lblStatTellersSub">Lượt giao chỉ tiêu</div>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="stat-label">Cán Bộ Phân Bổ</div>
+                        <div class="stat-value text-info" id="lblStatTellers">--</div>
+                        <div class="small text-muted mt-1" id="lblStatTellersSub" style="font-size:0.75rem;">Lượt giao chỉ tiêu</div>
                     </div>
-                    <div class="icon-box bg-info bg-opacity-10 text-info">
+                    <div class="icon-box bg-info bg-opacity-10 text-info flex-shrink-0">
                         <i class='bx bx-user-check'></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Card 4: Tỷ lệ hoàn thành toàn hệ thống -->
-        <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-6 col-xl-3">
             <div class="kpi-stat-card border-start border-4 border-warning">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small text-uppercase fw-bold">Tiến Độ Chung</span>
-                        <h3 class="fw-bold my-1 text-warning" id="lblStatAvgRate">-- %</h3>
-                        <div class="small text-muted" id="lblStatAvgRateSub">Tỷ lệ hoàn thành trung bình</div>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="stat-label">Tiến Độ Chung</div>
+                        <div class="stat-value text-warning" id="lblStatAvgRate">-- %</div>
+                        <div class="small text-muted mt-1" id="lblStatAvgRateSub" style="font-size:0.75rem;">Tỷ lệ hoàn thành TB</div>
                     </div>
-                    <div class="icon-box bg-warning bg-opacity-10 text-warning">
+                    <div class="icon-box bg-warning bg-opacity-10 text-warning flex-shrink-0">
                         <i class='bx bx-trending-up'></i>
                     </div>
                 </div>
@@ -1074,114 +1185,128 @@
     </div>
 </div>
 
-<!-- TABS ĐIỀU HƯỚNG -->
+<!-- ═══════════════════════════════════════════════════════════
+     TABS
+════════════════════════════════════════════════════════════ -->
 <div class="col-12">
-    <ul class="nav nav-tabs custom-tabs mb-4 bg-white p-2 rounded-3 border" id="campaignTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold" id="tab-campaign-list" data-bs-toggle="tab"
-                data-bs-target="#content-campaign-list" type="button" role="tab">
-                <i class='bx bx-list-ul me-1'></i> Danh Sách Chiến Dịch
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold" id="tab-kpi-assign" data-bs-toggle="tab"
-                data-bs-target="#content-kpi-assign" type="button" role="tab">
-                <i class='bx bx-target-lock me-1'></i> Phân Bổ & Giao Chỉ Tiêu KPI
-            </button>
-        </li>
-    </ul>
+    <div class="cd-tab-nav mb-3" id="campaignTabs" role="tablist">
+        <button class="nav-link active" id="tab-campaign-list" data-bs-toggle="tab"
+            data-bs-target="#content-campaign-list" type="button" role="tab">
+            <i class='bx bx-list-ul'></i>
+            <span>Danh Sách Chiến Dịch</span>
+            <span class="tab-badge" id="tabBadgeList">--</span>
+        </button>
+        <button class="nav-link" id="tab-kpi-assign" data-bs-toggle="tab"
+            data-bs-target="#content-kpi-assign" type="button" role="tab">
+            <i class='bx bx-target-lock'></i>
+            <span>Phân Bổ Chỉ Tiêu</span>
+        </button>
+    </div>
 
     <div class="tab-content" id="campaignTabsContent">
-        <!-- TAB 1: DANH SÁCH CHIẾN DỊCH -->
+
+        <!-- ─── TAB 1: DANH SÁCH CHIẾN DỊCH ─────────────── -->
         <div class="tab-pane fade show active" id="content-campaign-list" role="tabpanel">
-            <div class="card card-custom border-0 shadow-sm">
-                <div class="card-body p-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-3 p-md-4">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle w-100 table-custom-clean"
-                            id="tbChienDich">
+                        <table class="table table-hover align-middle w-100 table-custom-clean" id="tbChienDich">
                             <thead>
                                 <tr class="text-center">
-                                    <th style="width: 50px;">STT</th>
-                                    <th style="min-width: 220px;" class="text-start">Tên Chiến Dịch</th>
-                                    <th style="width: 130px;">Ngày Bắt Đầu</th>
-                                    <th style="width: 130px;">Ngày Kết Thúc</th>
-                                    <th style="width: 160px;" class="text-end">Tổng Chỉ Tiêu</th>
-                                    <th style="width: 140px;">Tiến Độ Thời Gian</th>
-                                    <th style="width: 150px;">Trạng Thái</th>
-                                    <th style="width: 130px;">Thao Tác</th>
+                                    <th style="width:44px;">#</th>
+                                    <th style="min-width:200px;" class="text-start">Tên Chiến Dịch</th>
+                                    <th style="width:115px;" class="d-none d-md-table-cell">Bắt Đầu</th>
+                                    <th style="width:115px;" class="d-none d-md-table-cell">Kết Thúc</th>
+                                    <th style="width:155px;" class="text-end">Chỉ Tiêu KPI</th>
+                                    <th style="width:120px;" class="d-none d-lg-table-cell">Tiến Độ TG</th>
+                                    <th style="width:135px;">Trạng Thái</th>
+                                    <th style="width:105px;">Thao Tác</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                            </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: PHÂN BỔ CHỈ TIÊU -->
+        <!-- ─── TAB 2: PHÂN BỔ CHỈ TIÊU ─────────────────── -->
         <div class="tab-pane fade" id="content-kpi-assign" role="tabpanel">
-            <!-- Header Toolbar -->
-            <div class="card card-custom mb-4 border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="row align-items-end g-3">
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold text-success">
-                                <i class='bx bx-select-multiple'></i> Chọn Chiến Dịch Cần Giao Chỉ Tiêu <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-select border-success fw-bold" id="cboChienDich_KPI">
-                                <option value="">-- Đang tải dữ liệu chiến dịch... --</option>
-                            </select>
-                        </div>
-                        <div class="col-md-7 text-md-end text-start d-flex flex-wrap gap-2 justify-content-start justify-content-md-end">
-                            <button class="btn btn-outline-secondary" id="btnRefreshKPI">
-                                <i class='bx bx-refresh'></i> Tải Danh Sách NV
+
+            <!-- Toolbar -->
+            <div class="kpi-toolbar mb-3">
+                <div class="row align-items-end g-3">
+                    <div class="col-12 col-md-5 col-lg-4">
+                        <label class="form-label fw-bold text-success mb-1" style="font-size:.85rem;">
+                            <i class='bx bx-select-multiple me-1'></i>Chọn Chiến Dịch <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select fw-bold" id="cboChienDich_KPI"
+                            style="border: 2px solid #10b981; border-radius: 10px;">
+                            <option value="">-- Đang tải chiến dịch... --</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-7 col-lg-8">
+                        <div class="d-flex flex-wrap gap-2 justify-content-start justify-content-md-end btn-group-kpi">
+                            <button class="btn btn-outline-secondary" id="btnRefreshKPI" title="Tải lại">
+                                <i class='bx bx-refresh'></i><span class="ms-1 d-none d-sm-inline">Tải Lại</span>
                             </button>
                             <button class="btn btn-outline-success fw-bold" id="btnOpenCopyKpi" onclick="showModalCopyKpi()">
-                                <i class='bx bx-copy'></i> Sao Chép Chỉ Tiêu
+                                <i class='bx bx-copy'></i><span class="ms-1">Sao Chép KPI</span>
                             </button>
                             <button class="btn btn-success fw-bold shadow-sm" id="btnSaveKPI" disabled>
-                                <i class='bx bx-save'></i> LƯU CHỈ TIÊU
+                                <i class='bx bx-save'></i><span class="ms-1">Lưu Chỉ Tiêu</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Danh sách KPI Grid -->
-            <div class="card card-custom border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="table-responsive" id="divKPIForm" style="display:none;">
-                        <div class="alert alert-success bg-opacity-10 border-success d-flex align-items-center justify-content-between p-3 mb-4 rounded-3">
+            <!-- KPI Grid Card -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-3 p-md-4">
+                    <!-- Empty state -->
+                    <div class="kpi-empty-state" id="divKPIEmpty">
+                        <i class='bx bx-target-lock empty-icon'></i>
+                        <h6 class="text-muted fw-semibold">Chọn chiến dịch ở trên để bắt đầu giao chỉ tiêu</h6>
+                        <p class="text-muted small mb-0">Danh sách cán bộ và mức chỉ tiêu sẽ hiển thị tại đây.</p>
+                    </div>
+
+                    <!-- KPI Table -->
+                    <div id="divKPIForm" style="display:none;">
+                        <!-- Chiến dịch đang chọn -->
+                        <div class="kpi-summary-banner d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
                             <div class="d-flex align-items-center gap-2">
-                                <i class='bx bxs-info-circle fs-4 text-success'></i>
-                                <span class="small">
-                                    Nhập số tiền vào ô <b>"Chỉ Tiêu Huy Động (VNĐ)"</b> cho từng cán bộ. Nhập 0 nếu không giao chỉ tiêu. Hệ thống tự động định dạng hàng ngàn.
-                                </span>
+                                <i class='bx bxs-info-circle fs-5 text-success'></i>
+                                <span class="small text-success fw-semibold">Nhập chỉ tiêu huy động cho từng cán bộ. Nhập <b>0</b> nếu không giao.</span>
                             </div>
-                            <span class="badge bg-success px-3 py-2 fs-6 rounded-pill" id="lblSelectedCdName">--</span>
+                            <span class="badge bg-success px-3 py-2 rounded-pill text-nowrap" id="lblSelectedCdName"
+                                style="font-size:.85rem; min-width: 130px; text-align:center;">--</span>
                         </div>
 
-                        <table class="table table-hover table-bordered align-middle w-100 table-mobile-cards"
-                            id="tbChiTieu">
-                            <thead class="table-light text-center">
-                                <tr>
-                                    <th width="15%">Mã NV</th>
-                                    <th width="30%">Họ và Tên</th>
-                                    <th width="15%">Vai Trò</th>
-                                    <th width="40%">Chỉ Tiêu Huy Động (VNĐ)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Rendered by JS -->
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <td colspan="3" class="text-end fw-bold fs-6">Tổng Cộng Chỉ Tiêu Toàn Quỹ:</td>
-                                    <td class="text-end fw-bold text-success fs-5" id="lblTotalKPI">0 ₫</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle w-100" id="tbChiTieu"
+                                style="border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+                                <thead>
+                                    <tr class="text-center">
+                                        <th style="width:14%;">Mã NV</th>
+                                        <th style="min-width:140px;" class="text-start">Họ và Tên</th>
+                                        <th style="width:14%;" class="d-none d-sm-table-cell">Vai Trò</th>
+                                        <th style="width:42%;">Chỉ Tiêu Huy Động (VNĐ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2" class="text-end fw-bold text-muted d-none d-sm-table-cell" style="font-size:.88rem;">
+                                            Tổng Cộng Chỉ Tiêu:
+                                        </td>
+                                        <td colspan="3" class="d-sm-none text-end fw-bold text-muted" style="font-size:.88rem;">Tổng:</td>
+                                        <td class="text-end fw-bold text-success" id="lblTotalKPI"
+                                            style="font-size:1.2rem; min-width:150px;">0 ₫</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1189,25 +1314,36 @@
     </div>
 </div>
 
-<!-- MODAL THÊM / SỬA CHIẾN DỊCH -->
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL THÊM / SỬA CHIẾN DỊCH
+════════════════════════════════════════════════════════════ -->
 <div class="modal fade" id="modalChienDich" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <form id="frmSaveChienDich" novalidate>
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold" id="modalCDTitle"><i class='bx bx-plus-circle'></i> Tạo Chiến Dịch Mới</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header border-0 pb-0"
+                    style="background:linear-gradient(135deg,#10b981,#059669); border-radius: 16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold text-white" id="modalCDTitle">
+                        <i class='bx bx-plus-circle me-1'></i> Tạo Chiến Dịch Mới
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" id="txtMaCD" name="MaCD">
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tên Chiến Dịch (VD: Thi Đua Mùa Xuân 2026) <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="txtTenCD" name="TenCD" placeholder="Nhập tên chiến dịch..." required>
+                        <label class="form-label fw-bold small" for="txtTenCD">
+                            Tên Chiến Dịch <span class="text-danger">*</span>
+                            <span class="text-muted fw-normal">(VD: Thi Đua Mùa Xuân 2026)</span>
+                        </label>
+                        <input type="text" class="form-control" id="txtTenCD" name="TenCD"
+                            placeholder="Nhập tên chiến dịch..." required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Loại Chiến Dịch <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold small" for="cboLoaiCD">
+                            Loại Chiến Dịch <span class="text-danger">*</span>
+                        </label>
                         <select class="form-select" id="cboLoaiCD" name="LoaiCD" required>
                             <option value="HUY_DONG">Huy Động Nguồn Vốn (Tiền Gửi)</option>
                             <option value="CHO_VAY">Phát Triển Cho Vay (Tín Dụng)</option>
@@ -1216,69 +1352,90 @@
                         </select>
                     </div>
 
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">Từ Ngày <span class="text-danger">*</span></label>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small" for="dtpStart">Từ Ngày <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="dtpStart" placeholder="dd/mm/yyyy">
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">Đến Ngày (Để trống = Vô thời hạn)</label>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small" for="dtpEnd">
+                                Đến Ngày <span class="text-muted fw-normal">(Trống = Vô thời hạn)</span>
+                            </label>
                             <input type="text" class="form-control" id="dtpEnd" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Trạng Thái Chiến Dịch</label>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small" for="cboTrangThaiCD">Trạng Thái Chiến Dịch</label>
                         <select class="form-select" id="cboTrangThaiCD" name="TrangThai">
                             <option value="ACTIVE">Kích Hoạt (ACTIVE)</option>
                             <option value="CLOSED">Đóng / Kết Thúc (CLOSED)</option>
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
+                <div class="modal-footer border-top bg-light" style="border-radius: 0 0 16px 16px;">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-success fw-bold" id="btnSaveCD"><i class='bx bx-save'></i> Lưu Chiến Dịch</button>
+                    <button type="submit" class="btn btn-success fw-bold" id="btnSaveCD">
+                        <i class='bx bx-save me-1'></i>Lưu Chiến Dịch
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- MODAL SAO CHÉP CHỈ TIÊU (COPY KPI) -->
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL SAO CHÉP CHỈ TIÊU KPI
+════════════════════════════════════════════════════════════ -->
 <div class="modal fade" id="modalCopyKpi" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold"><i class='bx bx-copy'></i> Sao Chép Chỉ Tiêu KPI</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header border-0"
+                style="background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:16px 16px 0 0;">
+                <h5 class="modal-title fw-bold text-white">
+                    <i class='bx bx-copy me-1'></i> Sao Chép Chỉ Tiêu KPI
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body p-4">
-                <p class="text-muted small">
-                    Hệ thống sẽ lấy toàn bộ mức chỉ tiêu đã giao của từng cán bộ từ <b>Chiến dịch Nguồn</b> để áp dụng trực tiếp sang <b>Chiến dịch Đích</b>.
+                <p class="text-muted small mb-4">
+                    Mức chỉ tiêu của từng cán bộ từ <b class="text-dark">Chiến dịch Nguồn</b> sẽ được sao chép sang <b class="text-dark">Chiến dịch Đích</b>.
                 </p>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">1. Chọn Chiến Dịch NGUỒN (Mẫu có sẵn) <span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold small" for="cboCopySourceCd">
+                        <span class="badge bg-secondary rounded-pill me-1">1</span>
+                        Chiến Dịch NGUỒN (mẫu) <span class="text-danger">*</span>
+                    </label>
                     <select class="form-select" id="cboCopySourceCd">
-                        <option value="">-- Chọn chiến dịch mẫu... --</option>
+                        <option value="">-- Chọn chiến dịch nguồn... --</option>
                     </select>
+                </div>
+
+                <div class="text-center text-muted my-2">
+                    <i class='bx bx-chevrons-down fs-3'></i>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">2. Chọn Chiến Dịch ĐÍCH (Áp dụng chỉ tiêu) <span class="text-danger">*</span></label>
-                    <select class="form-select border-primary fw-bold" id="cboCopyTargetCd">
-                        <option value="">-- Chọn chiến dịch cần nhận... --</option>
+                    <label class="form-label fw-bold small" for="cboCopyTargetCd">
+                        <span class="badge bg-primary rounded-pill me-1">2</span>
+                        Chiến Dịch ĐÍCH (nhận chỉ tiêu) <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select fw-bold" id="cboCopyTargetCd"
+                        style="border: 2px solid #3b82f6; border-radius:10px;">
+                        <option value="">-- Chọn chiến dịch đích... --</option>
                     </select>
                 </div>
 
-                <div class="alert alert-warning small mb-0">
-                    <i class='bx bx-error-circle'></i> <b>Lưu ý:</b> Thao tác này sẽ ghi đè mức chỉ tiêu hiện tại của các cán bộ trong Chiến dịch Đích.
+                <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-0 small">
+                    <i class='bx bx-error-circle flex-shrink-0 mt-1'></i>
+                    <span><b>Lưu ý:</b> Thao tác này sẽ ghi đè mức chỉ tiêu hiện tại của các cán bộ trong Chiến dịch Đích.</span>
                 </div>
             </div>
-            <div class="modal-footer bg-light">
+            <div class="modal-footer border-top bg-light" style="border-radius: 0 0 16px 16px;">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
                 <button type="button" class="btn btn-primary fw-bold" id="btnExecuteCopyKpi" onclick="executeCopyKpi()">
-                    <i class='bx bx-check-double'></i> Thực Hiện Sao Chép
+                    <i class='bx bx-check-double me-1'></i>Thực Hiện Sao Chép
                 </button>
             </div>
         </div>
@@ -1293,33 +1450,32 @@
     var fpEnd = null;
 
     function frmChiTieu_init() {
-        // Init Flatpickr cho Chiến Dịch
         fpStart = flatpickr("#dtpStart", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", allowInput: true });
-        fpEnd = flatpickr("#dtpEnd", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", allowInput: true });
+        fpEnd   = flatpickr("#dtpEnd",   { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", allowInput: true });
 
-        // Load Thống kê vĩ mô, Danh sách & Dropdown
         loadChienDichStats();
         loadDataChienDich();
         loadActiveCampaignsCombo();
 
-        // Tự động làm mới danh sách chiến dịch khi chuyển sang Tab KPI
         $('#tab-kpi-assign').on('shown.bs.tab', function () {
             loadActiveCampaignsCombo();
         });
 
-        // Cbo Chiến Dịch change
         $('#cboChienDich_KPI').change(function () {
             var val = $(this).val();
             if (val) {
                 currentMaCD = val;
                 var cdSelected = listChienDich.find(x => x.MaCD === val);
-                var cleanName = cdSelected 
-                    ? ((window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cdSelected.TenCD, cdSelected.MaCD, cdSelected.NgayBatDau) : (cdSelected.TenCD || val))
+                var cleanName = cdSelected
+                    ? ((window.AppManager && AppManager.formatTenCD)
+                        ? AppManager.formatTenCD(cdSelected.TenCD, cdSelected.MaCD, cdSelected.NgayBatDau)
+                        : (cdSelected.TenCD || val))
                     : val;
                 $('#lblSelectedCdName').text(cleanName);
                 loadKPIList(val);
             } else {
                 $('#divKPIForm').fadeOut();
+                $('#divKPIEmpty').show();
                 $('#btnSaveKPI').prop('disabled', true);
             }
         });
@@ -1333,31 +1489,29 @@
             saveKPIList();
         });
 
-        // Bắt Form Save Chiến Dịch
         $('#frmSaveChienDich').off('submit').on('submit', function (e) {
             e.preventDefault();
 
             var payload = {
-                MaCD: $('#txtMaCD').val(),
-                TenCD: $('#txtTenCD').val().trim(),
-                LoaiCD: $('#cboLoaiCD').val(),
-                NgayBatDau: $('#dtpStart').val(),
+                MaCD:        $('#txtMaCD').val(),
+                TenCD:       $('#txtTenCD').val().trim(),
+                LoaiCD:      $('#cboLoaiCD').val(),
+                NgayBatDau:  $('#dtpStart').val(),
                 NgayKetThuc: $('#dtpEnd').val(),
-                TrangThai: $('#cboTrangThaiCD').val()
+                TrangThai:   $('#cboTrangThaiCD').val()
             };
 
             if (!payload.TenCD || !payload.LoaiCD || !payload.NgayBatDau) {
                 Swal.fire('Thiếu thông tin', 'Vui lòng điền đủ Tên Chiến dịch, Loại và Ngày Bắt đầu', 'warning');
                 return;
             }
-
             if (payload.NgayKetThuc && payload.NgayKetThuc < payload.NgayBatDau) {
                 Swal.fire('Lỗi', 'Ngày kết thúc không được nhỏ hơn Ngày bắt đầu.', 'error');
                 return;
             }
 
             var btn = $('#btnSaveCD');
-            btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Xử lý...');
+            btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Xử lý...');
 
             AppManager.callApi('saveChienDich', payload).done(function (res) {
                 Swal.fire('Thành công', res, 'success');
@@ -1368,38 +1522,36 @@
             }).fail(function (err) {
                 Swal.fire('Lỗi', err, 'error');
             }).always(function () {
-                btn.prop('disabled', false).html('<i class="bx bx-save"></i> Lưu Chiến Dịch');
+                btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Lưu Chiến Dịch');
             });
         });
     }
 
-    /**
-     * Tải 4 Thẻ Thống Kê Vĩ Mô Chiến Dịch
-     */
     function loadChienDichStats() {
         AppManager.callApi('getChienDichOverviewStats').done(function (stats) {
             if (!stats) return;
             $('#lblStatTotalCd').text(stats.totalCampaigns || 0);
-            $('#lblStatCdSub').html(`<span class="badge bg-success">${stats.runningCampaigns} Đang chạy</span> • <span class="badge bg-warning text-dark">${stats.upcomingCampaigns} Sắp tới</span>`);
-            
+            $('#tabBadgeList').text(stats.totalCampaigns || 0);
+            $('#lblStatCdSub').html(
+                `<span class="badge bg-success" style="font-size:.7rem;">${stats.runningCampaigns} Đang chạy</span> ` +
+                `<span class="badge bg-warning text-dark" style="font-size:.7rem;">${stats.upcomingCampaigns} Sắp tới</span>`
+            );
             $('#lblStatTotalKpi').text(new Intl.NumberFormat('vi-VN').format(stats.totalKpiAssigned || 0) + ' ₫');
             $('#lblStatTellers').text((stats.totalTellersAssigned || 0) + ' lượt');
             $('#lblStatAvgRate').text((stats.averageCompletionRate || 0) + '%');
         }).fail(function (err) {
-            console.warn('Lỗi tải thống kê chiến dịch:', err);
+            console.warn('Lỗi tải thống kê:', err);
         });
     }
 
-    /* -------------------------------------------------------------
-       TAB 1: DANH SÁCH CHIẾN DỊCH
-       ------------------------------------------------------------- */
+    /* ── TAB 1: DANH SÁCH CHIẾN DỊCH ───────────────────── */
     function loadDataChienDich() {
         if ($.fn.DataTable.isDataTable('#tbChienDich')) {
             $('#tbChienDich').DataTable().destroy();
         }
 
         var tbody = $('#tbChienDich tbody');
-        tbody.html('<tr><td colspan="8" class="text-center p-4"><div class="spinner-border text-success" role="status"></div><br><small class="text-muted mt-2">Đang tải danh sách chiến dịch...</small></td></tr>');
+        tbody.html('<tr><td colspan="8" class="text-center p-4"><div class="spinner-border text-success" role="status"></div><br><small class="text-muted mt-2 d-block">Đang tải danh sách chiến dịch...</small></td></tr>');
 
         AppManager.callApi('getChienDichGroupedList').done(function (data) {
             listChienDich = data || [];
@@ -1412,117 +1564,99 @@
                     search: "_INPUT_",
                     searchPlaceholder: "Tìm kiếm chiến dịch...",
                     lengthMenu: "Xem _MENU_ mục",
-                    info: "Hiển thị _START_ đến _END_ trong _TOTAL_ chiến dịch",
+                    info: "Hiển thị _START_–_END_ trong _TOTAL_ chiến dịch",
                     paginate: {
-                        first: "Đầu",
-                        last: "Cuối",
+                        first: "Đầu", last: "Cuối",
                         next: "<i class='bx bx-chevron-right'></i>",
                         previous: "<i class='bx bx-chevron-left'></i>"
                     },
                     emptyTable: "Chưa có chiến dịch nào được khởi tạo."
                 },
                 columns: [
-                    { 
-                        data: null, 
-                        className: "text-center fw-bold text-muted",
-                        orderable: false,
+                    {
+                        data: null, className: "text-center fw-bold text-muted", orderable: false,
                         render: function (d, type, row, meta) {
                             return `<span class="badge bg-light text-secondary border rounded-pill px-2 py-1">${meta.row + 1}</span>`;
                         }
                     },
-                    { 
-                        data: "TenCD", 
-                        className: "text-start",
+                    {
+                        data: "TenCD", className: "text-start",
                         render: function (d, type, row) {
-                            var mapType = { "HUY_DONG": "Huy Động Vốn", "CHO_VAY": "Cho Vay", "KHACH_HANG": "Khách Hàng Mới", "KHAC": "Khác" };
+                            var mapType = { "HUY_DONG": "Huy Động Vốn", "CHO_VAY": "Cho Vay", "KHACH_HANG": "KH Mới", "KHAC": "Khác" };
                             var typeLabel = mapType[row.LoaiCD] || row.LoaiCD || "Huy Động Vốn";
-                            return `
-                                <div class="fw-bold text-dark fs-6 mb-1">${d}</div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-light text-primary border" style="font-size: 0.72rem;"><i class='bx bx-tag-alt me-1'></i>${typeLabel}</span>
-                                    <span class="text-muted small" style="font-size: 0.75rem;">${row.tellersCount || 0} cán bộ nhận KPI</span>
-                                </div>
-                            `;
+                            return `<div class="fw-bold text-dark mb-1" style="font-size:.92rem;">${d}</div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="badge bg-light text-primary border" style="font-size:.7rem;"><i class='bx bx-tag-alt me-1'></i>${typeLabel}</span>
+                                        <span class="text-muted" style="font-size:.76rem;">${row.tellersCount || 0} cán bộ nhận KPI</span>
+                                    </div>`;
                         }
                     },
                     {
-                        data: "NgayBatDau",
-                        className: "text-center small",
+                        data: "NgayBatDau", className: "text-center small d-none d-md-table-cell",
                         render: function (d) {
-                            return `<div class="fw-semibold text-slate-700">${d ? AppManager.formatDate(d) : '--'}</div>`;
+                            return `<span class="fw-semibold text-secondary">${d ? AppManager.formatDate(d) : '--'}</span>`;
                         }
                     },
                     {
-                        data: "NgayKetThuc",
-                        className: "text-center small",
+                        data: "NgayKetThuc", className: "text-center small d-none d-md-table-cell",
                         render: function (d) {
-                            return `<div class="fw-semibold text-slate-700">${d ? AppManager.formatDate(d) : '<span class="text-muted fst-italic">Vô thời hạn</span>'}</div>`;
+                            return d
+                                ? `<span class="fw-semibold text-secondary">${AppManager.formatDate(d)}</span>`
+                                : `<span class="text-muted fst-italic" style="font-size:.78rem;">Vô thời hạn</span>`;
                         }
                     },
                     {
-                        data: "totalKpi",
-                        className: "text-end",
+                        data: "totalKpi", className: "text-end",
                         render: function (d) {
-                            var formatted = new Intl.NumberFormat('vi-VN').format(d || 0);
-                            return `<div class="fw-bold text-success fs-6">${formatted} ₫</div>`;
+                            var fmt = new Intl.NumberFormat('vi-VN').format(d || 0);
+                            return `<span class="fw-bold text-success" style="font-size:.92rem;">${fmt} ₫</span>`;
                         }
                     },
                     {
-                        data: "elapsedPercent",
-                        className: "text-center",
-                        render: function (d, type, row) {
+                        data: "elapsedPercent", className: "text-center d-none d-lg-table-cell",
+                        render: function (d) {
                             var pct = d || 0;
                             var color = pct >= 100 ? 'bg-secondary' : pct > 80 ? 'bg-danger' : pct > 50 ? 'bg-warning' : 'bg-success';
-                            return `
-                                <div class="w-100 px-2" style="min-width: 100px;">
-                                    <div class="d-flex justify-content-between small fw-bold mb-1" style="font-size: 0.75rem;">
-                                        <span class="text-muted">Tiến độ:</span>
-                                        <span class="${pct >= 100 ? 'text-secondary' : 'text-primary'}">${pct}%</span>
-                                    </div>
-                                    <div class="progress" style="height: 6px; background-color: #e2e8f0; border-radius: 10px;">
-                                        <div class="progress-bar ${color} rounded-pill" role="progressbar" style="width: ${pct}%"></div>
-                                    </div>
-                                </div>
-                            `;
+                            return `<div class="px-1" style="min-width:90px;">
+                                        <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;font-weight:700;">
+                                            <span class="text-muted">Tiến độ</span>
+                                            <span class="${pct >= 100 ? 'text-secondary' : 'text-primary'}">${pct}%</span>
+                                        </div>
+                                        <div class="progress" style="height:5px;background:#e2e8f0;border-radius:10px;">
+                                            <div class="progress-bar ${color} rounded-pill" style="width:${pct}%"></div>
+                                        </div>
+                                    </div>`;
                         }
                     },
                     {
-                        data: "statusGroup",
-                        className: "text-center",
-                        render: function (d, type, row) {
-                            if (d === "RUNNING") {
-                                return `<span class="status-pill status-pill-running"><span class="status-dot bg-success"></span>Đang diễn ra</span>`;
-                            } else if (d === "UPCOMING") {
-                                return `<span class="status-pill status-pill-upcoming"><span class="status-dot bg-warning"></span>Sắp diễn ra</span>`;
-                            } else if (d === "ENDED") {
-                                return `<span class="status-pill status-pill-ended"><span class="status-dot bg-secondary"></span>Đã kết thúc</span>`;
-                            } else {
-                                return `<span class="status-pill status-pill-inactive"><span class="status-dot bg-danger"></span>Tạm dừng</span>`;
-                            }
+                        data: "statusGroup", className: "text-center",
+                        render: function (d) {
+                            if (d === "RUNNING")   return `<span class="status-pill status-pill-running"><span class="status-dot bg-success"></span>Đang diễn ra</span>`;
+                            if (d === "UPCOMING")  return `<span class="status-pill status-pill-upcoming"><span class="status-dot bg-warning"></span>Sắp diễn ra</span>`;
+                            if (d === "ENDED")     return `<span class="status-pill status-pill-ended"><span class="status-dot bg-secondary"></span>Đã kết thúc</span>`;
+                            return `<span class="status-pill status-pill-inactive"><span class="status-dot bg-danger"></span>Tạm dừng</span>`;
                         }
                     },
                     {
-                        data: "MaCD",
-                        className: "text-center",
-                        orderable: false,
+                        data: "MaCD", className: "text-center", orderable: false,
                         render: function (d) {
                             return `<div class="d-inline-flex gap-1">
-                                <button class="btn btn-sm btn-outline-primary" onclick="editChienDich('${d}')" title="Sửa chiến dịch"><i class="bx bx-edit-alt"></i></button>
-                                <button class="btn btn-sm btn-success fw-bold shadow-sm" onclick="switchToKpiTab('${d}')" title="Giao chỉ tiêu KPI"><i class="bx bx-target-lock me-1"></i>KPI</button>
-                            </div>`;
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editChienDich('${d}')" title="Sửa chiến dịch"><i class="bx bx-edit-alt"></i></button>
+                                        <button class="btn btn-sm btn-success fw-bold" onclick="switchToKpiTab('${d}')" title="Giao chỉ tiêu KPI"><i class="bx bx-target-lock me-1"></i>KPI</button>
+                                    </div>`;
                         }
                     }
                 ]
             });
         }).fail(function (err) {
-            tbody.html(`<tr><td colspan="8" class="text-center text-danger">Lỗi tải dữ liệu: ${err}</td></tr>`);
+            tbody.html(`<tr><td colspan="8" class="text-center text-danger p-4">Lỗi tải dữ liệu: ${err}</td></tr>`);
         });
     }
 
     function showModalChienDich() {
         $('#frmSaveChienDich')[0].reset();
         $('#txtMaCD').val('');
-        $('#modalCDTitle').html('<i class="bx bx-plus-circle"></i> Tạo Chiến Dịch Mới');
+        $('#modalCDTitle').html('<i class="bx bx-plus-circle me-1"></i> Tạo Chiến Dịch Mới');
         fpStart.clear();
         fpEnd.clear();
         fpStart.setDate(new Date());
@@ -1537,18 +1671,15 @@
         var cleanTen = (window.AppManager && AppManager.formatTenCD)
             ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau)
             : (cd.TenCD || cd.MaCD);
-        $('#modalCDTitle').html('<i class="bx bx-edit-alt"></i> Cập Nhật Chiến Dịch: ' + cleanTen);
+        $('#modalCDTitle').html('<i class="bx bx-edit-alt me-1"></i> Cập Nhật: ' + cleanTen);
         $('#txtMaCD').val(cd.MaCD);
         $('#txtTenCD').val(cleanTen);
         $('#cboLoaiCD').val(cd.LoaiCD);
         $('#cboTrangThaiCD').val(cd.TrangThai);
 
         fpStart.setDate(cd.NgayBatDau);
-        if (cd.NgayKetThuc) {
-            fpEnd.setDate(cd.NgayKetThuc);
-        } else {
-            fpEnd.clear();
-        }
+        if (cd.NgayKetThuc) fpEnd.setDate(cd.NgayKetThuc);
+        else fpEnd.clear();
 
         $('#modalChienDich').modal('show');
     }
@@ -1556,7 +1687,6 @@
     function switchToKpiTab(maCD) {
         var tabTrigger = new bootstrap.Tab(document.querySelector('#tab-kpi-assign'));
         tabTrigger.show();
-
         setTimeout(function () {
             if ($("#cboChienDich_KPI option[value='" + maCD + "']").length > 0) {
                 $('#cboChienDich_KPI').val(maCD).trigger('change');
@@ -1566,23 +1696,21 @@
         }, 300);
     }
 
-    /* -------------------------------------------------------------
-       TAB 2: GIAO CHỈ TIÊU KPI & MODAL SAO CHÉP
-       ------------------------------------------------------------- */
+    /* ── TAB 2: GIAO CHỈ TIÊU KPI ──────────────────────── */
     function loadActiveCampaignsCombo() {
         AppManager.callApi('getChienDichGroupedList').done(function (res) {
             var cbo = $('#cboChienDich_KPI');
             cbo.empty();
             if (res && res.length > 0) {
                 cbo.append('<option value="">-- Chọn Chiến Dịch Cần Giao Chỉ Tiêu --</option>');
-                
-                var running = res.filter(x => x.statusGroup === 'RUNNING');
+
+                var running  = res.filter(x => x.statusGroup === 'RUNNING');
                 var upcoming = res.filter(x => x.statusGroup === 'UPCOMING');
-                var ended = res.filter(x => x.statusGroup === 'ENDED' || x.statusGroup === 'INACTIVE');
+                var ended    = res.filter(x => x.statusGroup === 'ENDED' || x.statusGroup === 'INACTIVE');
 
                 if (running.length > 0) {
                     var optRunning = $('<optgroup label="🟢 ĐANG DIỄN RA"></optgroup>');
-                    running.forEach(function(cd) {
+                    running.forEach(function (cd) {
                         var t = (window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) : (cd.TenCD || cd.MaCD);
                         optRunning.append(`<option value="${cd.MaCD}">${t}</option>`);
                     });
@@ -1590,25 +1718,21 @@
                 }
                 if (upcoming.length > 0) {
                     var optUpcoming = $('<optgroup label="🟡 SẮP DIỄN RA"></optgroup>');
-                    upcoming.forEach(function(cd) {
+                    upcoming.forEach(function (cd) {
                         var t = (window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) : (cd.TenCD || cd.MaCD);
                         optUpcoming.append(`<option value="${cd.MaCD}">${t}</option>`);
                     });
                     cbo.append(optUpcoming);
                 }
                 if (ended.length > 0) {
-                    var optEnded = $('<optgroup label="⚪ ĐÃ KẾT THÚC / TẠM DỪNG"></optgroup>');
-                    ended.forEach(function(cd) {
+                    var optEnded = $('<optgroup label="⚪ ĐÃ KẾT THÚC"></optgroup>');
+                    ended.forEach(function (cd) {
                         var t = (window.AppManager && AppManager.formatTenCD) ? AppManager.formatTenCD(cd.TenCD, cd.MaCD, cd.NgayBatDau) : (cd.TenCD || cd.MaCD);
                         optEnded.append(`<option value="${cd.MaCD}">${t} (Đã kết thúc)</option>`);
                     });
                     cbo.append(optEnded);
                 }
-
-                // Nếu có currentMaCD, giữ nguyên lựa chọn
-                if (currentMaCD) {
-                    cbo.val(currentMaCD);
-                }
+                if (currentMaCD) cbo.val(currentMaCD);
             } else {
                 cbo.append('<option value="">-- Không có chiến dịch nào --</option>');
             }
@@ -1617,6 +1741,7 @@
 
     function loadKPIList(maCD) {
         var tbody = $('#tbChiTieu tbody');
+        $('#divKPIEmpty').hide();
         $('#divKPIForm').fadeIn();
 
         tbody.find('.curr-kpi').each(function () {
@@ -1624,12 +1749,12 @@
             if (anInstance) anInstance.remove();
         });
 
-        tbody.html('<tr><td colspan="4" class="text-center p-4"><div class="spinner-border text-success" role="status"></div><br><span class="text-muted mt-2">Đang tải danh sách nhân viên...</span></td></tr>');
-        
-        var btnSave = $('#btnSaveKPI');
+        tbody.html('<tr><td colspan="4" class="text-center p-4"><div class="spinner-border text-success" role="status"></div><br><span class="text-muted mt-2 d-block" style="font-size:.85rem;">Đang tải danh sách nhân viên...</span></td></tr>');
+
+        var btnSave   = $('#btnSaveKPI');
         var btnRefresh = $('#btnRefreshKPI');
-        var cboCD = $('#cboChienDich_KPI');
-        
+        var cboCD     = $('#cboChienDich_KPI');
+
         btnSave.prop('disabled', true);
         btnRefresh.prop('disabled', true);
         cboCD.prop('disabled', true);
@@ -1639,22 +1764,24 @@
             tbody.empty();
 
             if (!data || data.length === 0) {
-                tbody.html('<tr><td colspan="4" class="text-center text-muted">Chưa có dữ liệu nhân viên Active.</td></tr>');
+                tbody.html('<tr><td colspan="4" class="text-center text-muted p-4">Chưa có dữ liệu nhân viên.</td></tr>');
                 return;
             }
 
             var html = '';
             data.forEach(function (nv) {
-                var roleBadge = nv.Role === 'ADMIN' ? '<span class="badge bg-danger">ADMIN</span>' : '<span class="badge bg-info">USER</span>';
+                var roleBadge = nv.Role === 'ADMIN'
+                    ? '<span class="badge bg-danger" style="font-size:.72rem;">ADMIN</span>'
+                    : '<span class="badge bg-info" style="font-size:.72rem;">NHÂN VIÊN</span>';
 
                 html += `
                 <tr>
-                    <td data-label="Mã NV" class="text-center fw-bold text-primary data-manv">${nv.MaNV}</td>
-                    <td data-label="Họ và Tên" class="fw-bold fs-6">${nv.HoTen}</td>
-                    <td data-label="Vai Trò" class="text-center">${roleBadge}</td>
-                    <td data-label="Chỉ Tiêu Huy Động (VNĐ)">
-                        <input type="text" class="form-control text-end fw-bold text-success curr-kpi" 
-                               value="${nv.ChiTieu || 0}" data-v-min="0" placeholder="0" style="font-size: 1.1rem">
+                    <td class="text-center fw-bold text-primary data-manv" style="font-size:.88rem;">${nv.MaNV}</td>
+                    <td class="fw-bold" style="font-size:.9rem;">${nv.HoTen}</td>
+                    <td class="text-center d-none d-sm-table-cell">${roleBadge}</td>
+                    <td>
+                        <input type="text" class="form-control curr-kpi text-end"
+                               value="${nv.ChiTieu || 0}" data-v-min="0" placeholder="0">
                     </td>
                 </tr>`;
             });
@@ -1663,21 +1790,15 @@
             btnSave.prop('disabled', false);
 
             AutoNumeric.multiple('.curr-kpi', {
-                digitGroupSeparator: ',',
-                decimalCharacter: '.',
-                decimalPlaces: 0,
-                unformatOnSubmit: true,
-                emptyInputBehavior: 'zero'
+                digitGroupSeparator: ',', decimalCharacter: '.', decimalPlaces: 0,
+                unformatOnSubmit: true, emptyInputBehavior: 'zero'
             });
 
-            $('.curr-kpi').on('keyup change blur', function () {
-                tinhTongCacDong();
-            });
-
+            $('.curr-kpi').on('keyup change blur', function () { tinhTongCacDong(); });
             tinhTongCacDong();
 
         }).fail(function (err) {
-            tbody.html(`<tr><td colspan="4" class="text-center text-danger">Lỗi dữ liệu: ${err}</td></tr>`);
+            tbody.html(`<tr><td colspan="4" class="text-center text-danger p-3">Lỗi dữ liệu: ${err}</td></tr>`);
         }).always(function () {
             btnRefresh.prop('disabled', false);
             cboCD.prop('disabled', false);
@@ -1688,9 +1809,7 @@
         var total = 0;
         $('.curr-kpi').each(function () {
             var anInstance = AutoNumeric.getAutoNumericElement(this);
-            if (anInstance) {
-                total += parseFloat(anInstance.getNumber() || 0);
-            }
+            if (anInstance) total += parseFloat(anInstance.getNumber() || 0);
         });
         $('#lblTotalKPI').text(new Intl.NumberFormat('vi-VN').format(total) + ' ₫');
     }
@@ -1703,35 +1822,24 @@
             var maNV = $(this).find('.data-manv').text().trim();
             var anInstance = AutoNumeric.getAutoNumericElement($(this).find('.curr-kpi')[0]);
             var chiTieu = anInstance ? parseFloat(anInstance.getNumber() || 0) : 0;
-
-            if (maNV) {
-                listNhanVien.push({
-                    MaNV: maNV,
-                    ChiTieu: chiTieu
-                });
-            }
+            if (maNV) listNhanVien.push({ MaNV: maNV, ChiTieu: chiTieu });
         });
 
         if (listNhanVien.length === 0) {
-            Swal.fire('Lỗi', 'Không có dữ liệu thay đổi để lưu.', 'error');
+            Swal.fire('Lỗi', 'Không có dữ liệu để lưu.', 'error');
             return;
         }
 
-        var btn = $('#btnSaveKPI');
+        var btn       = $('#btnSaveKPI');
         var btnRefresh = $('#btnRefreshKPI');
-        var cboCD = $('#cboChienDich_KPI');
-        var originalText = btn.html();
-        
-        btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang Lưu...');
+        var cboCD     = $('#cboChienDich_KPI');
+        var origHtml  = btn.html();
+
+        btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Đang Lưu...');
         btnRefresh.prop('disabled', true);
         cboCD.prop('disabled', true);
 
-        var payload = {
-            MaCD: currentMaCD,
-            ListNhanVien: listNhanVien
-        };
-
-        AppManager.callApi('saveChiTieu', payload)
+        AppManager.callApi('saveChiTieu', { MaCD: currentMaCD, ListNhanVien: listNhanVien })
             .done(function (res) {
                 Swal.fire('Hoàn Tất', res, 'success');
                 loadChienDichStats();
@@ -1740,15 +1848,13 @@
                 Swal.fire('Lỗi Hệ Thống', err, 'error');
             })
             .always(function () {
-                btn.prop('disabled', false).html(originalText);
+                btn.prop('disabled', false).html(origHtml);
                 btnRefresh.prop('disabled', false);
                 cboCD.prop('disabled', false);
             });
     }
 
-    /* -------------------------------------------------------------
-       SAO CHÉP CHỈ TIÊU KPI (COPY KPI MODAL)
-       ------------------------------------------------------------- */
+    /* ── SAO CHÉP CHỈ TIÊU (COPY KPI) ──────────────────── */
     function showModalCopyKpi() {
         var cboSource = $('#cboCopySourceCd');
         var cboTarget = $('#cboCopyTargetCd');
@@ -1764,10 +1870,7 @@
                 cboSource.append(`<option value="${cd.MaCD}">${cleanTen}${kpiStr}</option>`);
                 cboTarget.append(`<option value="${cd.MaCD}">${cleanTen}</option>`);
             });
-
-            if (currentMaCD) {
-                cboTarget.val(currentMaCD);
-            }
+            if (currentMaCD) cboTarget.val(currentMaCD);
         }
 
         $('#modalCopyKpi').modal('show');
@@ -1781,30 +1884,27 @@
             Swal.fire('Cảnh báo', 'Vui lòng chọn đầy đủ Chiến dịch Nguồn và Chiến dịch Đích.', 'warning');
             return;
         }
-
         if (sourceMaCD === targetMaCD) {
             Swal.fire('Cảnh báo', 'Chiến dịch Nguồn và Đích không được trùng nhau.', 'warning');
             return;
         }
 
         var btn = $('#btnExecuteCopyKpi');
-        btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang Sao Chép...');
+        btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Đang Sao Chép...');
 
-        AppManager.callApi('copyChiTieuFromCampaign', {
-            sourceMaCD: sourceMaCD,
-            targetMaCD: targetMaCD
-        }).done(function (res) {
-            Swal.fire('Thành Công', res, 'success');
-            $('#modalCopyKpi').modal('hide');
-            loadChienDichStats();
-            if (currentMaCD === targetMaCD) {
-                loadKPIList(targetMaCD);
-            }
-        }).fail(function (err) {
-            Swal.fire('Lỗi', err, 'error');
-        }).always(function () {
-            btn.prop('disabled', false).html('<i class="bx bx-check-double"></i> Thực Hiện Sao Chép');
-        });
+        AppManager.callApi('copyChiTieuFromCampaign', { sourceMaCD: sourceMaCD, targetMaCD: targetMaCD })
+            .done(function (res) {
+                Swal.fire('Thành Công', res, 'success');
+                $('#modalCopyKpi').modal('hide');
+                loadChienDichStats();
+                if (currentMaCD === targetMaCD) loadKPIList(targetMaCD);
+            })
+            .fail(function (err) {
+                Swal.fire('Lỗi', err, 'error');
+            })
+            .always(function () {
+                btn.prop('disabled', false).html('<i class="bx bx-check-double me-1"></i>Thực Hiện Sao Chép');
+            });
     }
 </script>
 </template>
