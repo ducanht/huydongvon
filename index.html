@@ -8190,48 +8190,60 @@
             .fail(function ()      { executeLogin('Unknown IP'); });
 
           function executeLogin(clientIP) {
-            google.script.run
-              .withSuccessHandler(function (resStr) {
-                try {
-                  var json = typeof resStr === 'string' ? JSON.parse(resStr) : resStr;
+            if (window.AppManager && typeof window.AppManager.callApi === 'function') {
+              AppManager.callApi('login', { email: email, hash: hashedPassword, ClientIP: clientIP })
+                .done(function (loginData) {
+                  localStorage.setItem('SESSIONTOKEN', loginData.token);
+                  localStorage.setItem('LOGIN_TIMESTAMP', String(Date.now()));
+                  if (window.APP_CONTEXT) window.APP_CONTEXT.ClientIP = clientIP;
 
-                  if (json.status === 'success') {
-                    var loginData = json.data;
-                    localStorage.setItem('SESSIONTOKEN', loginData.token);
-                    localStorage.setItem('LOGIN_TIMESTAMP', String(Date.now()));
-                    if (window.APP_CONTEXT) window.APP_CONTEXT.ClientIP = clientIP;
+                  btn.css('background', 'linear-gradient(135deg, #065f46, #34d399)');
+                  $('#loginBtnText').text('Thành công! Đang vào hệ thống...');
 
-                    // Brief success flash before redirect
-                    btn.css('background', 'linear-gradient(135deg, #065f46, #34d399)');
-                    $('#loginBtnText').text('Thành công! Đang vào hệ thống...');
+                  setTimeout(function () {
+                    window.AppManager.init();
+                  }, 500);
+                })
+                .fail(function (errMsg) {
+                  showLoginAlert(errMsg || 'Sai thông tin đăng nhập. Vui lòng thử lại.');
+                  resetBtn();
+                });
+            } else if (typeof google !== 'undefined' && google.script && google.script.run) {
+              google.script.run
+                .withSuccessHandler(function (resStr) {
+                  try {
+                    var json = typeof resStr === 'string' ? JSON.parse(resStr) : resStr;
+                    if (json && json.status === 'success') {
+                      var loginData = json.data;
+                      localStorage.setItem('SESSIONTOKEN', loginData.token);
+                      localStorage.setItem('LOGIN_TIMESTAMP', String(Date.now()));
+                      if (window.APP_CONTEXT) window.APP_CONTEXT.ClientIP = clientIP;
 
-                    setTimeout(function () {
-                      if (window.AppManager && typeof window.AppManager.init === 'function') {
-                        window.AppManager.init();
-                      } else {
-                        try {
-                          var url = "<?= ScriptApp.getService().getUrl() ?>";
-                          window.top.location.href = url;
-                        } catch (e) {
-                          Swal.fire('Thông báo', 'Đăng nhập thành công. Vui lòng F5 lại trang.', 'success');
+                      btn.css('background', 'linear-gradient(135deg, #065f46, #34d399)');
+                      $('#loginBtnText').text('Thành công! Đang vào hệ thống...');
+
+                      setTimeout(function () {
+                        if (window.AppManager && typeof window.AppManager.init === 'function') {
+                          window.AppManager.init();
+                        } else {
+                          window.location.reload();
                         }
-                      }
-                    }, 600);
-                  } else {
-                    showLoginAlert(json.message || 'Sai thông tin đăng nhập. Vui lòng thử lại.');
+                      }, 500);
+                    } else {
+                      showLoginAlert((json && json.message) || 'Sai thông tin đăng nhập. Vui lòng thử lại.');
+                      resetBtn();
+                    }
+                  } catch (e) {
+                    showLoginAlert('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
                     resetBtn();
                   }
-                } catch (e) {
-                  console.error('Parse Error:', e, resStr);
-                  showLoginAlert('Dữ liệu phản hồi không hợp lệ. Liên hệ Admin.');
+                })
+                .withFailureHandler(function (err) {
+                  showLoginAlert((err && err.message) || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
                   resetBtn();
-                }
-              })
-              .withFailureHandler(function (err) {
-                showLoginAlert(err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
-                resetBtn();
-              })
-              .doApiRequest('login', { email: email, hash: hashedPassword, ClientIP: clientIP });
+                })
+                .doApiRequest('login', { email: email, hash: hashedPassword, ClientIP: clientIP });
+            }
           }
 
           function resetBtn() {

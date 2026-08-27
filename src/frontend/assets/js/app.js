@@ -642,8 +642,17 @@
           }
         }
         try {
-          var json = typeof resStr === "string" ? JSON.parse(resStr) : resStr;
-          if (json.status === "success") {
+          var json = resStr;
+          if (typeof resStr === "string") {
+            var trimmed = resStr.trim();
+            if (trimmed.startsWith("<")) {
+              console.error("[API Parse Error] Máy chủ trả về mã HTML:", trimmed.substring(0, 200));
+              d.reject("Máy chủ Google Apps Script đang bận hoặc trả về trang xác thực. Vui lòng tải lại trang (F5).");
+              return;
+            }
+            json = JSON.parse(resStr);
+          }
+          if (json && json.status === "success") {
             if (cacheableActions.indexOf(action) !== -1) {
               self._clientCache[cacheKey] = {
                 data: JSON.parse(JSON.stringify(json.data)),
@@ -652,19 +661,23 @@
             }
             d.resolve(json.data);
           } else {
+            var errorMsg = (json && json.message) ? json.message : "Lỗi không xác định từ Server.";
             if (
-              json.message === "TOKEN_EXPIRED" ||
-              (json.message && json.message.indexOf("Token hết hạn") !== -1)
+              errorMsg === "TOKEN_EXPIRED" ||
+              errorMsg.indexOf("Token hết hạn") !== -1
             ) {
               AppManager.logout();
               d.reject("Phiên đăng nhập hết hạn.");
             } else {
-              d.reject(json.message || "Lỗi không xác định từ Server.");
+              d.reject(errorMsg);
             }
           }
         } catch (e) {
           console.error("API Parse Error", e, resStr);
-          d.reject("Lỗi Parse JSON Data: " + e.message);
+          var msg = (e && e.message && e.message.indexOf("Unexpected token") !== -1)
+            ? "Máy chủ trả về phản hồi không đúng định dạng JSON. Vui lòng tải lại trang."
+            : ("Lỗi định dạng dữ liệu: " + e.message);
+          d.reject(msg);
         }
       };
 
@@ -674,6 +687,9 @@
           self.hideLoading();
         }
         var errMsg = (err && err.message) ? err.message : (typeof err === "string" ? err : "Lỗi Network/Server không xác định.");
+        if (typeof errMsg === "string" && (errMsg.indexOf("Unexpected token '<'") !== -1 || errMsg.indexOf("is not valid JSON") !== -1)) {
+          errMsg = "Máy chủ phản hồi trang web thay vì dữ liệu JSON. Vui lòng tải lại trang (F5).";
+        }
         console.error("[API FAILURE]", action, errMsg);
 
         if (

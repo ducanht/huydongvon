@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const GAS_URL = process.env.APPS_SCRIPT_URL;
+  const GAS_URL = process.env.APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbz20Oi5KUwMgTq0BlLn5IIYP2t03oYcO9xDcXusp3QGzVIj2N0I5JXNlCj2aYRC7L5n/exec";
   if (!GAS_URL) {
     console.error('[Vercel Proxy] APPS_SCRIPT_URL chưa được cấu hình trong Environment Variables!');
     return res.status(500).json({
@@ -31,26 +31,28 @@ export default async function handler(req, res) {
       redirect: 'follow', // GAS thường redirect một lần
     });
 
+    const responseText = await gasResponse.text();
+
     if (!gasResponse.ok) {
-      const errText = await gasResponse.text();
-      console.error('[Vercel Proxy] GAS trả lỗi HTTP:', gasResponse.status, errText);
+      console.error('[Vercel Proxy] GAS trả lỗi HTTP:', gasResponse.status, responseText.substring(0, 300));
       return res.status(502).json({
         status: 'error',
         message: `GAS Backend lỗi HTTP ${gasResponse.status}`,
       });
     }
 
-    const responseText = await gasResponse.text();
-
-    // Cố gắng parse JSON, nếu không được thì trả text
+    // Cố gắng parse JSON, nếu không được thì trả lỗi có cấu trúc JSON
     try {
       const jsonData = JSON.parse(responseText);
       res.setHeader('Content-Type', 'application/json');
       return res.status(200).json(jsonData);
     } catch (parseErr) {
-      // GAS có thể trả HTML lỗi - forward nguyên si
-      res.setHeader('Content-Type', 'text/plain');
-      return res.status(200).send(responseText);
+      console.error('[Vercel Proxy] GAS trả HTML/Text không phải JSON:', responseText.substring(0, 300));
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(502).json({
+        status: 'error',
+        message: 'Máy chủ Google Apps Script đang bận hoặc phản hồi trang web thay vì dữ liệu JSON. Vui lòng tải lại trang sau giây lát.'
+      });
     }
   } catch (err) {
     console.error('[Vercel Proxy] Fetch lỗi:', err);
