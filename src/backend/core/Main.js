@@ -432,6 +432,7 @@ function doApiRequest(action, payload) {
         if (safe.oldHash) safe.oldHash = '***';
         if (safe.newHash) safe.newHash = '***';
         if (safe.token) safe.token = '***';
+        if (safe.masterHash) safe.masterHash = '***'; // [SEC] Không log SHA256 của Master Password
         return safe;
     };
                          
@@ -485,6 +486,7 @@ function doApiRequest(action, payload) {
              if (safe.oldHash) safe.oldHash = '***';
              if (safe.newHash) safe.newHash = '***';
              if (safe.token) safe.token = '***';
+             if (safe.masterHash) safe.masterHash = '***'; // [SEC] Không log SHA256 của Master Password
              return safe;
           };
       }

@@ -508,13 +508,14 @@ var KPIService = {
         // Lọc theo ngày của chiến dịch
         var normMaCD = ValidatorService.normalizeId(maCD);
         var gdDate = ValidatorService.parseDate(gd.NgayGD);
+        if (!gdDate) return; // [FIX] Bỏ qua GD không có ngày hợp lệ
         if (cdDateMap[normMaCD]) {
           var limits = cdDateMap[normMaCD];
           if (limits.start && gdDate < limits.start) return;
           if (limits.end && gdDate > limits.end) return;
         }
         
-        var key = maNV.trim().toUpperCase() + "_" + maCD.trim().toUpperCase();
+        var key = ValidatorService.normalizeId(maNV) + "_" + ValidatorService.normalizeId(maCD); // [FIX] Dùng normalizeId nhất quán
         
         if (!summaryMap[key]) {
           summaryMap[key] = {
@@ -543,7 +544,7 @@ var KPIService = {
         var maCD = ct.MaCD;
         if (!maNV || !maCD) return;
         
-        var key = maNV.trim().toUpperCase() + "_" + maCD.trim().toUpperCase();
+        var key = ValidatorService.normalizeId(maNV) + "_" + ValidatorService.normalizeId(maCD); // [FIX] Dùng normalizeId nhất quán
         var chiTieuVal = parseFloat(ct.ChiTieu || 0);
         
         if (!summaryMap[key]) {

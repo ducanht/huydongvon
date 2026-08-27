@@ -6541,44 +6541,91 @@
 
     function handleRecalculateKpi() {
         Swal.fire({
-            title: 'Đồng bộ lại KPI?',
-            html: 'Bạn có chắc chắn muốn tính toán và ghi đè lại toàn bộ bảng tổng hợp KPI (DB_SUMMARY) từ dữ liệu giao dịch thực tế? Thao tác này có thể mất vài giây.',
+            title: '<i class="bx bx-sync me-2 text-primary"></i>Đồng bộ lại KPI?',
+            html: `<div class="text-start">
+                <p class="mb-2">Hành động này sẽ:</p>
+                <ul class="small mb-3 ps-3">
+                    <li>Quét toàn bộ giao dịch <b>ACTIVE</b> trong các chiến dịch</li>
+                    <li>Tính lại <b>TongGui, TongRut, Net</b> cho từng cán bộ/chiến dịch</li>
+                    <li>Ghi đè hoàn toàn bảng tổng hợp <b>DB_SUMMARY</b></li>
+                </ul>
+                <div class="alert alert-info py-2 mb-0 small">
+                    <i class="bx bx-info-circle me-1"></i>Quá trình có thể mất <b>5–15 giây</b> tùy khối lượng dữ liệu.
+                </div>
+            </div>`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Đồng ý',
-            cancelButtonText: 'Hủy bỏ'
+            confirmButtonText: '<i class="bx bx-sync me-1"></i> Bắt đầu đồng bộ',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#0d6efd',
+            customClass: { popup: 'shadow-lg rounded-4' }
         }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Xác thực Quản trị',
-                    text: 'Vui lòng nhập Mật khẩu Quản trị Hệ thống để đồng bộ KPI:',
-                    icon: 'warning',
-                    input: 'password',
-                    inputPlaceholder: 'Mật khẩu...',
-                    showCancelButton: true,
-                    confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy',
-                    inputValidator: (val) => {
-                        if (!val) return 'Vui lòng nhập mật khẩu xác thực!'
-                    }
-                }).then((pwdRes) => {
-                    if (pwdRes.isConfirmed) {
-                        var hash = CryptoJS.SHA256(pwdRes.value).toString(CryptoJS.enc.Hex);
-                        var btn = $('#btnRecalculateKpi').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Đang tính toán & đồng bộ...');
+            if (!result.isConfirmed) return;
 
-                        AppManager.callApi('recalculateAllKpi', { masterHash: hash })
-                            .done(function (msg) {
-                                Swal.fire('Thành công!', msg, 'success');
-                            })
-                            .fail(function (err) {
-                                Swal.fire('Lỗi', err, 'error');
-                            })
-                            .always(function () {
-                                btn.prop('disabled', false).html("<i class='bx bx-sync me-1'></i> Bắt đầu tính toán lại KPI");
-                            });
-                    }
+            Swal.fire({
+                title: '<i class="bx bx-lock-alt me-2 text-warning"></i>Xác thực Quản trị',
+                html: '<p>Nhập Mật khẩu Quản trị Hệ thống để thực hiện đồng bộ KPI:</p>',
+                icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Mật khẩu...',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bx bx-check me-1"></i> Xác nhận',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#0d6efd',
+                inputValidator: (val) => {
+                    if (!val) return 'Vui lòng nhập mật khẩu xác thực!';
+                }
+            }).then((pwdRes) => {
+                if (!pwdRes.isConfirmed) return;
+
+                var hash = CryptoJS.SHA256(pwdRes.value).toString(CryptoJS.enc.Hex);
+                var $btn = $('#btnRecalculateKpi').prop('disabled', true)
+                           .html('<i class="bx bx-loader-alt bx-spin me-1"></i> Đang tính toán & đồng bộ...');
+
+                // Loading dialog trong khi chờ GAS xử lý
+                Swal.fire({
+                    title: 'Đang xử lý...',
+                    html: '<i class="bx bx-sync bx-spin fs-1 text-primary d-block mb-2"></i><p class="text-muted small">Đang quét giao dịch và tính toán lại toàn bộ KPI. Vui lòng đợi...</p>',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); }
                 });
-            }
+
+                AppManager.callApi('recalculateAllKpi', { masterHash: hash })
+                    .done(function (msg) {
+                        Swal.fire({
+                            title: '<i class="bx bx-check-circle text-success me-1"></i> Đồng bộ hoàn tất!',
+                            html: `<p class="mb-3">${msg}</p>
+                                   <div class="alert alert-success py-2 small mb-0">
+                                       <i class="bx bx-info-circle me-1"></i>
+                                       Số liệu trên Dashboard chưa tự động cập nhật. 
+                                       Bấm <b>"Tải lại Dashboard"</b> bên dưới để xem số liệu mới nhất.
+                                   </div>`,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="bx bx-home me-1"></i> Tải lại Dashboard',
+                            cancelButtonText: 'Đóng',
+                            confirmButtonColor: '#10b981'
+                        }).then((r) => {
+                            if (r.isConfirmed) {
+                                AppManager.loadModule('frmDashboard');
+                            }
+                        });
+                    })
+                    .fail(function (err) {
+                        Swal.fire({
+                            title: 'Lỗi đồng bộ KPI',
+                            html: `<div class="alert alert-danger py-2 text-start small mb-0">
+                                       <i class="bx bx-error-circle me-1"></i>${err}
+                                   </div>`,
+                            icon: 'error'
+                        });
+                    })
+                    .always(function () {
+                        $btn.prop('disabled', false)
+                            .html("<i class='bx bx-sync me-1'></i> Bắt đầu tính toán lại KPI");
+                    });
+            });
         });
     }
 </script>
