@@ -533,33 +533,48 @@ function frmTangTruong_showDetail(maNV) {
 function _initExportBtn() {
   $('#btnExportTangTruong').prop('disabled', false).off('click').on('click', function() {
     if (!_ttSummary.length) return;
-    var wb = XLSX.utils.book_new();
 
-    // Sheet 1: Tổng hợp
-    var ws1Data = [['Cán Bộ','Chỉ Tiêu','KH Mới','TT KH Mới','KH Cũ Tăng','TT KH Cũ','Tổng TT','% HT']];
-    _ttSummary.forEach(function(r) {
-      ws1Data.push([r.TenNV, r.ChiTieu, r.SoKHMoi, r.TangTruongKHMoi, r.SoKHCuTang, r.TangTruongKHCu, r.TongTangTruong, +(r.TyLeHoanThanh.toFixed(2))]);
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws1Data), 'Tổng Hợp');
+    var doExport = function() {
+      var wb = XLSX.utils.book_new();
 
-    // Sheet 2: KH Mới
-    var ws2Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Sổ','Gửi','Rút','Net','Tính Vào TT']];
-    _ttKHMoi.forEach(function(k) {
-      var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
-      ws2Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoSo || '', k.SoTienGui, k.SoTienRut, k.NetTrongKy, k.TinhVaoTangTruong]);
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws2Data), 'KH Mới');
+      // Sheet 1: Tổng hợp
+      var ws1Data = [['Cán Bộ','Chỉ Tiêu','KH Mới','TT KH Mới','KH Cũ Tăng','TT KH Cũ','Tổng TT','% HT']];
+      _ttSummary.forEach(function(r) {
+        ws1Data.push([r.TenNV, r.ChiTieu, r.SoKHMoi, r.TangTruongKHMoi, r.SoKHCuTang, r.TangTruongKHCu, r.TongTangTruong, +(r.TyLeHoanThanh.toFixed(2))]);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws1Data), 'Tổng Hợp');
 
-    // Sheet 3: KH Cũ Tăng
-    var ws3Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Sổ','Số Dư ĐK','Net Kỳ','Số Dư CK','Phần Tăng']];
-    _ttKHCuTang.forEach(function(k) {
-      var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
-      ws3Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoSo || '', k.SoDuDauKy, k.NetTrongKy, k.SoDuCuoiKy, k.TangThem]);
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws3Data), 'KH Cũ Tăng');
+      // Sheet 2: KH Mới
+      var ws2Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Sổ','Gửi','Rút','Net','Tính Vào TT']];
+      _ttKHMoi.forEach(function(k) {
+        var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
+        ws2Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoSo || '', k.SoTienGui, k.SoTienRut, k.NetTrongKy, k.TinhVaoTangTruong]);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws2Data), 'KH Mới');
 
-    var cdName = (_ttData && _ttData.cdInfo) ? _ttData.cdInfo.TenCD : 'ChienDich';
-    XLSX.writeFile(wb, 'TangTruong_' + cdName.replace(/\s+/g,'_') + '.xlsx');
+      // Sheet 3: KH Cũ Tăng
+      var ws3Data = [['Cán Bộ','Khách Hàng','Mã KH','Số Sổ','Số Dư ĐK','Net Kỳ','Số Dư CK','Phần Tăng']];
+      _ttKHCuTang.forEach(function(k) {
+        var nv = _ttSummary.find(function(r){ return r.MaNV===k.MaNV; });
+        ws3Data.push([nv ? nv.TenNV : k.MaNV, k.TenKH, k.MaKH, k.SoSo || '', k.SoDuDauKy, k.NetTrongKy, k.SoDuCuoiKy, k.TangThem]);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws3Data), 'KH Cũ Tăng');
+
+      var cdName = (_ttData && _ttData.cdInfo) ? _ttData.cdInfo.TenCD : 'ChienDich';
+      XLSX.writeFile(wb, 'TangTruong_' + cdName.replace(/\s+/g,'_') + '.xlsx');
+      if (window.AppManager && AppManager.showToast) {
+        AppManager.showToast('success', 'Đã xuất file Excel thành công!');
+      }
+    };
+
+    if (typeof XLSX === 'undefined') {
+      if (window.AppManager && AppManager.showToast) {
+        AppManager.showToast('info', 'Đang nạp bộ xuất Excel...');
+      }
+      AppManager.loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', doExport);
+    } else {
+      doExport();
+    }
   });
 }
 

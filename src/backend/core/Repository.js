@@ -65,7 +65,10 @@ var Repository = {
     if (useCache) {
         var clones = this.deepClone(resultForCache);
         this._executionCache[sheetName] = clones;
-        CacheServiceWrapper.put(cacheStr, clones, CONFIG.CACHE_TTL);
+        var ttl = (CONFIG.COLD_SHEETS && CONFIG.COLD_SHEETS.indexOf(sheetName) !== -1)
+          ? (CONFIG.CACHE_TTL_COLD || 1800)
+          : (CONFIG.CACHE_TTL_HOT || 120);
+        CacheServiceWrapper.put(cacheStr, clones, ttl);
         return filterFn ? clones.filter(filterFn) : clones;
     }
     
@@ -93,6 +96,25 @@ var Repository = {
   clearCache: function(sheetName) {
     delete this._executionCache[sheetName];
     CacheServiceWrapper.remove("CACHE_SHEET_" + sheetName);
+  },
+
+  /**
+   * Xóa cache chọn lọc cho danh sách các sheet cụ thể
+   * @param {Array<string>} sheetNames Danh sách tên bảng cần xóa cache
+   */
+  invalidateSpecificCache: function(sheetNames) {
+    if (!sheetNames || !Array.isArray(sheetNames)) return;
+    var self = this;
+    var keys = [];
+    sheetNames.forEach(function(s) {
+      if (s) {
+        delete self._executionCache[s];
+        keys.push("CACHE_SHEET_" + s);
+      }
+    });
+    if (keys.length > 0) {
+      CacheServiceWrapper.clearAllItems(keys);
+    }
   },
   
   clearAllCache: function() {

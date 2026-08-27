@@ -147,7 +147,14 @@
           }
 
           // Load Pending count for badge (ADMIN sees all, TELLER sees own)
-          AppManager.updatePendingBadge = function () {
+          var _lastBadgeFetch = 0;
+          AppManager.updatePendingBadge = function (force) {
+            // Adaptive Polling: Bỏ qua nếu tab đang ẩn và không phải lệnh gọi cưỡng bức
+            if (!force && document.hidden) return;
+            var now = Date.now();
+            if (!force && now - _lastBadgeFetch < 30000) return; // Chống spam trong vòng 30s
+            _lastBadgeFetch = now;
+
             AppManager.callApi("getPendingCount").done(function (count) {
               if (count > 0) {
                 $("#badgePendingCount").text(count).removeClass("d-none");
@@ -156,12 +163,19 @@
               }
             });
           };
-          AppManager.updatePendingBadge();
+          AppManager.updatePendingBadge(true);
 
-          // Auto-refresh badge every 2 minutes
+          // Tự động kiểm tra lại khi người dùng quay lại tab (sau tối thiểu 60s)
+          document.addEventListener("visibilitychange", function () {
+            if (!document.hidden && Date.now() - _lastBadgeFetch > 60000) {
+              AppManager.updatePendingBadge(true);
+            }
+          });
+
+          // Tần suất Polling nền thông minh: 5 phút/lần (tiết kiệm 60% quota GAS)
           setInterval(function () {
-            AppManager.updatePendingBadge();
-          }, 2 * 60 * 1000);
+            AppManager.updatePendingBadge(false);
+          }, 5 * 60 * 1000);
 
           // Apply Role-based UI
           if (user.Role === window.APP_CONTEXT.Roles.ADMIN) {
@@ -330,6 +344,30 @@
         icon: icon,
         title: title,
       });
+    },
+
+    /**
+     * Nạp thư viện bên ngoài theo nhu cầu (On-demand Lazy Loading)
+     * @param {string} url - Đường dẫn CDN của thư viện
+     * @param {function} callback - Hàm thực thi sau khi nạp xong
+     */
+    loadScript: function (url, callback) {
+      window._loadedScripts = window._loadedScripts || {};
+      if (window._loadedScripts[url]) {
+        if (typeof callback === "function") callback();
+        return;
+      }
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = url;
+      script.onload = function () {
+        window._loadedScripts[url] = true;
+        if (typeof callback === "function") callback();
+      };
+      script.onerror = function () {
+        console.error("Lỗi nạp thư viện từ CDN: " + url);
+      };
+      document.head.appendChild(script);
     },
 
     bindEvents: function () {
@@ -518,10 +556,21 @@
     _pendingActions: {},
     callApi: function (action, payload) {
       var cacheKey = action + (payload ? JSON.stringify(payload) : "");
-      var cacheableActions = ['getAllChienDich', 'getNhanSuActive', 'getUserProfile'];
+      var cacheableActions = [
+        'getAllChienDich', 'getChienDichActive', 
+        'getNhanSuActive', 'getAllNhanSu', 
+        'getKhachHangActive', 'getUserProfile', 'getCauHinhSystem'
+      ];
+      var now = Date.now();
       if (cacheableActions.indexOf(action) !== -1 && this._clientCache[cacheKey]) {
-        var dCached = $.Deferred();
-        return dCached.resolve(JSON.parse(JSON.stringify(this._clientCache[cacheKey]))).promise();
+        var cachedEntry = this._clientCache[cacheKey];
+        // Client cache TTL 5 phút (300.000 ms)
+        if (cachedEntry && cachedEntry.expiresAt > now) {
+          var dCached = $.Deferred();
+          return dCached.resolve(JSON.parse(JSON.stringify(cachedEntry.data))).promise();
+        } else {
+          delete this._clientCache[cacheKey];
+        }
       }
 
       var d = $.Deferred();
@@ -600,12 +649,19 @@
         if (isWriteAction) {
           delete self._pendingActions[actionKey];
           self.hideLoading();
+          // Tự động cập nhật lại số lượng pending badge ngay sau khi có tác vụ ghi
+          if (typeof self.updatePendingBadge === "function") {
+            setTimeout(function() { self.updatePendingBadge(true); }, 500);
+          }
         }
         try {
           var json = typeof resStr === "string" ? JSON.parse(resStr) : resStr;
           if (json.status === "success") {
             if (cacheableActions.indexOf(action) !== -1) {
-              self._clientCache[cacheKey] = JSON.parse(JSON.stringify(json.data));
+              self._clientCache[cacheKey] = {
+                data: JSON.parse(JSON.stringify(json.data)),
+                expiresAt: Date.now() + 5 * 60 * 1000 // 5 phút TTL
+              };
             }
             d.resolve(json.data);
           } else {

@@ -27,7 +27,10 @@ var CONFIG = {
     GUI: "GUI",
     RUT: "RUT"
   },
-  CACHE_TTL: 300, // 5 phút (300 giây)
+  CACHE_TTL: 300, // 5 phút (300 giây) - Mặc định fallback
+  CACHE_TTL_HOT: 120, // 2 phút cho dữ liệu phát sinh thường xuyên (Giao dịch, Summary)
+  CACHE_TTL_COLD: 1800, // 30 phút cho danh mục tĩnh (Nhân sự, Khách hàng, Chiến dịch, Cấu hình)
+  COLD_SHEETS: ["DB_NHANSU", "DB_KHACHHANG", "DB_CHIENDICH", "DB_CAUHINH", "DB_CHITIEU"],
   EDIT_WINDOW_HOURS: 24, // Thời gian cho phép sửa/hủy giao dịch
   SPREADSHEET_ID: "1FHyyIr_S1u30ROB7szzCwtybmnbiFDjVYBmcerLCSCg" // ID chính thức từ người dùng
 };

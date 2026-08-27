@@ -1802,3 +1802,70 @@
   [data-bs-theme="dark"] .glass-loading {
     background: rgba(15, 23, 42, 0.65) !important;
   }
+
+  /* ─────────────────────────────────────────────
+   27. SKELETON SHIMMER LOADING ANIMATIONS
+   ───────────────────────────────────────────── */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: rgba(226, 232, 240, 0.65);
+    border-radius: var(--radius-sm);
+    display: inline-block;
+  }
+
+  [data-bs-theme="dark"] .skeleton {
+    background-color: rgba(51, 65, 85, 0.65);
+  }
+
+  .skeleton::after {
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.4) 20%,
+      rgba(255, 255, 255, 0.6) 60%,
+      rgba(255, 255, 255, 0)
+    );
+    animation: shimmer 1.8s infinite ease-in-out;
+    content: '';
+  }
+
+  [data-bs-theme="dark"] .skeleton::after {
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.08) 20%,
+      rgba(255, 255, 255, 0.15) 60%,
+      rgba(255, 255, 255, 0)
+    );
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .skeleton-text {
+    height: 14px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    width: 100%;
+  }
+
+  .skeleton-title {
+    height: 24px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    width: 60%;
+  }
+
+  .skeleton-card {
+    height: 120px;
+    width: 100%;
+    border-radius: var(--radius-lg);
+  }
+
