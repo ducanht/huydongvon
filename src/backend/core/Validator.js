@@ -102,6 +102,22 @@ var ValidatorService = {
   },
 
   /**
+   * Định dạng chuẩn Số Sổ Tiết Kiệm của Quỹ:
+   * Đúng 9 ký tự: AXxxxxxxx (Bắt đầu bằng chữ 'A', ký tự thứ 2 là chữ hoa B, C, D..., theo sau là 7 chữ số)
+   * Ví dụ: AC7078613, AB0001234
+   */
+  SOSO_REGEX: /^A[A-Z][0-9]{7}$/,
+
+  /**
+   * Kiểm tra định dạng Số Sổ Tiết Kiệm
+   */
+  isValidSoSo: function(soSo) {
+    if (this.isEmpty(soSo)) return false;
+    var cleaned = String(soSo).trim().toUpperCase();
+    return this.SOSO_REGEX.test(cleaned);
+  },
+
+  /**
    * Chuẩn hóa ID (MaNV, MaKH, MaCD) để so khớp không phân biệt chữ hoa thường
    */
   normalizeId: function(id) {

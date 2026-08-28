@@ -203,7 +203,7 @@
             }
 
             var isGuiThem = gd.HinhThuc === 'Gửi thêm' || (gd.GhiChu && gd.GhiChu.indexOf('Gửi thêm') !== -1);
-            var SOSO_REGEX = /^[A-Z]{2}[0-9]{7}$/;
+            var SOSO_REGEX = /^A[A-Z][0-9]{7}$/;
             var soSoDefault = (isRut || isGuiThem || (gd.SoSo && SOSO_REGEX.test(gd.SoSo))) ? gd.SoSo : '';
 
             var htmlForm = `
@@ -223,13 +223,13 @@
                         </select>
                         ` : ''}
 
-                        <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm <span class="text-danger">(*)</span></label>
-                        <input id="swal-soso" class="form-control mb-1 border-primary text-uppercase"
+                        <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm (Chuẩn AXxxxxxxx - 9 ký tự) <span class="text-danger">(*)</span></label>
+                        <input id="swal-soso" class="form-control mb-1 text-uppercase fw-bold"
                                value="${soSoDefault}"
-                               placeholder="VD: TK0001234"
+                               placeholder="VD: AC7078613, AB0001234"
                                maxlength="9"
                                ${isRut ? 'disabled style="background:#f8f9fa;"' : ''}>
-                        <div id="soso-hint" class="small mb-3" style="min-height:18px;"></div>
+                        <div id="soso-hint" class="small mb-3" style="min-height:20px;"></div>
                         
                         <label class="form-label text-muted fw-bold small mb-1">Số Tiền Khớp Thực Tế (VNĐ)</label>
                         <input id="swal-sotien" class="form-control mb-3 border-danger text-danger fw-bold" value="${gd.SoTien}">
@@ -285,27 +285,59 @@
                 var hint = document.getElementById('soso-hint');
                 if (soSoInput && !isRut) {
                   function validateSoSo() {
-                    var val = soSoInput.value.toUpperCase();
+                    var val = (soSoInput.value || "").toUpperCase().trim();
                     soSoInput.value = val; // Ép chữ hoa
-                    if (SOSO_REGEX.test(val)) {
-                      hint.innerHTML = '<span class="text-success"><i class="bx bx-check-circle"></i> Định dạng hợp lệ</span>';
-                      hint.style.color = '';
-                      soSoInput.classList.remove('border-danger');
-                      soSoInput.classList.add('border-success');
-                      confirmBtn.disabled = false;
-                    } else {
-                      var len = val.length;
-                      var msg = len === 0
-                        ? '<span class="text-danger">⚠ Nhập số sổ (2 chữ hoa + 7 số, VD: TK0001234)</span>'
-                        : '<span class="text-danger">⚠ Chưa đúng: cần 2 chữ hoa + 7 chữ số (tổng 9 ký tự)</span>';
-                      hint.innerHTML = msg;
+                    
+                    if (!val || val.length === 0) {
+                      hint.innerHTML = '<span class="text-danger"><i class="bx bx-error-circle"></i> Vui lòng nhập số sổ (Đúng 9 ký tự: AXxxxxxxx, VD: AC7078613)</span>';
                       soSoInput.classList.add('border-danger');
-                      soSoInput.classList.remove('border-success');
+                      soSoInput.classList.remove('border-success', 'border-warning');
                       confirmBtn.disabled = true;
+                      return;
+                    }
+                    
+                    if (val[0] !== 'A') {
+                      hint.innerHTML = '<span class="text-danger"><i class="bx bx-x-circle"></i> Ký tự đầu tiên bắt buộc phải là chữ <strong>A</strong> (VD: <strong>A</strong>C7078613)</span>';
+                      soSoInput.classList.add('border-danger');
+                      soSoInput.classList.remove('border-success', 'border-warning');
+                      confirmBtn.disabled = true;
+                      return;
+                    }
+                    
+                    if (val.length >= 2 && !/^[A-Z]$/.test(val[1])) {
+                      hint.innerHTML = '<span class="text-danger"><i class="bx bx-x-circle"></i> Ký tự thứ 2 phải là chữ in hoa (B, C, D... VD: A<strong>C</strong>7078613)</span>';
+                      soSoInput.classList.add('border-danger');
+                      soSoInput.classList.remove('border-success', 'border-warning');
+                      confirmBtn.disabled = true;
+                      return;
+                    }
+
+                    if (val.length < 9) {
+                      hint.innerHTML = '<span class="text-warning"><i class="bx bx-time"></i> Đang nhập: <strong>' + val.length + '/9</strong> ký tự (cần thêm ' + (9 - val.length) + ' chữ số)</span>';
+                      soSoInput.classList.add('border-warning');
+                      soSoInput.classList.remove('border-danger', 'border-success');
+                      confirmBtn.disabled = true;
+                      return;
+                    }
+
+                    if (val.length === 9) {
+                      if (SOSO_REGEX.test(val)) {
+                        hint.innerHTML = '<span class="text-success fw-bold"><i class="bx bx-check-circle"></i> Định dạng số sổ hợp lệ: ' + val + '</span>';
+                        soSoInput.classList.remove('border-danger', 'border-warning');
+                        soSoInput.classList.add('border-success');
+                        confirmBtn.disabled = false;
+                      } else {
+                        hint.innerHTML = '<span class="text-danger"><i class="bx bx-x-circle"></i> 7 ký tự phía sau phải là chữ số (VD: AC<strong>7078613</strong>)</span>';
+                        soSoInput.classList.add('border-danger');
+                        soSoInput.classList.remove('border-success', 'border-warning');
+                        confirmBtn.disabled = true;
+                      }
                     }
                   }
                   soSoInput.addEventListener('input', validateSoSo);
                   validateSoSo(); // chạy lần đầu
+                }
+
                 // Lắng nghe thay đổi hình thức
                 var hinhThucSel = document.getElementById('swal-hinhthuc');
                 if (hinhThucSel) {
@@ -335,7 +367,7 @@
 
                 if (!isRut && !SOSO_REGEX.test(newSoSo)) {
                   Swal.showValidationMessage(
-                    "Số sổ không hợp lệ! Cần 2 chữ hoa + 7 chữ số (VD: TK0001234).",
+                    "Số sổ '" + newSoSo + "' không đúng định dạng quy chuẩn của Quỹ! Yêu cầu đúng 9 ký tự: AXxxxxxxx (Bắt đầu bằng chữ A + 1 chữ cái in hoa B,C,D... + 7 số, VD: AC7078613).",
                   );
                   return false;
                 }

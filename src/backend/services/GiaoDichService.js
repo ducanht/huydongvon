@@ -146,9 +146,8 @@ var GiaoDichService = {
          var cleanGhiChu = (gdData.GhiChu || "").split(" | SYS_DATA:")[0];
          
          var finalSoSo = payload.SoSoMoi ? payload.SoSoMoi.trim().toUpperCase() : (gdData.SoSo ? gdData.SoSo.trim().toUpperCase() : "");
-         var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
-         if (!finalSoSo || !sosoPattern.test(finalSoSo)) {
-           throw new Error("Số sổ '" + finalSoSo + "' không hợp lệ. Yêu cầu: 2 chữ hoa + 7 số (VD: TK0001234).");
+         if (!ValidatorService.isValidSoSo(finalSoSo)) {
+           throw new Error("Số sổ tiết kiệm '" + finalSoSo + "' không đúng định dạng chuẩn của Quỹ. Yêu cầu đúng 9 ký tự: bắt đầu bằng chữ A + 1 chữ cái in hoa (B, C, D...) + 7 chữ số (Ví dụ: AC7078613, AB0001234).");
          }
          
          var finalSoTien = gdData.SoTien;
