@@ -202,11 +202,18 @@
               });
             }
 
-            var soSoDefault = isRut ? gd.SoSo : ''; // Lệnh Gửi phải nhập số sổ mới
+            var isGuiThem = gd.HinhThuc === 'Gửi thêm' || (gd.GhiChu && gd.GhiChu.indexOf('Gửi thêm') !== -1);
             var SOSO_REGEX = /^[A-Z]{2}[0-9]{7}$/;
+            var soSoDefault = (isRut || isGuiThem || (gd.SoSo && SOSO_REGEX.test(gd.SoSo))) ? gd.SoSo : '';
 
             var htmlForm = `
                     <div class="text-start mt-3">
+                        <div class="mb-2 p-2 rounded bg-light border">
+                          <span class="badge ${isRut ? 'bg-danger' : (isGuiThem ? 'bg-primary' : 'bg-success')} me-1">
+                            ${isRut ? 'RÚT TIỀN' : (isGuiThem ? 'GỬI THÊM VÀO SỔ' : 'MỞ SỔ MỚI')}
+                          </span>
+                          <span class="small text-muted">Mã GD: <b>${gd.MaGD}</b></span>
+                        </div>
                         <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm <span class="text-danger">(*)</span></label>
                         <input id="swal-soso" class="form-control mb-1 border-primary text-uppercase"
                                value="${soSoDefault}"

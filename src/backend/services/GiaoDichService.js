@@ -8,9 +8,13 @@ var GiaoDichService = {
    * Xử lý Nghiệp vụ Gửi Tiền Mới
    * payload: { CCCD, HoTen, Sdt, DiaChi, SoSo, SoTien, KyHan, LoaiSanh, MaCD }
    */
+  /**
+   * Xử lý Nghiệp vụ Gửi Tiền Mới
+   * payload: { CCCD, HoTen, Sdt, DiaChi, SoSo, SoTien, KyHan, LoaiSanh, MaCD, HinhThuc, LaiSuat, LoaiLai }
+   */
   themGiaoDichGui: function(user, payload) {
     // 1. Log và Validate
-    ValidatorService.requireFields(payload, ["CCCD", "HoTen", "SoSo", "SoTien", "MaCD"]);
+    ValidatorService.requireFields(payload, ["CCCD", "HoTen", "SoTien", "MaCD"]);
     if (!ValidatorService.isPositiveAmount(payload.SoTien)) {
       throw new Error("Số tiền không hợp lệ.");
     }
@@ -19,10 +23,44 @@ var GiaoDichService = {
       throw new Error("Số CCCD/CMND không hợp lệ (phải là 9 hoặc 12 chữ số).");
     }
     // Validate số tiền tối thiểu
-    if (parseFloat(payload.SoTien) < 100000) {
-      throw new Error("Số tiền gửi tối thiểu là 100.000 VNĐ.");
+    var minDeposit = CONFIG.MIN_DEPOSIT_AMOUNT || 100000;
+    if (parseFloat(payload.SoTien) < minDeposit) {
+      throw new Error("Số tiền gửi tối thiểu là " + minDeposit.toLocaleString('vi-VN') + " VNĐ.");
     }
     
+    var hinhThuc = payload.HinhThuc || (payload.SoSo ? 'Gửi thêm' : 'Mở mới');
+
+    // 1.1. Validate theo Hình Thức Giao Dịch
+    if (hinhThuc === 'Gửi thêm') {
+      if (!payload.SoSo || String(payload.SoSo).trim() === '') {
+        throw new Error("Vui lòng chọn hoặc nhập Số Sổ Tiết Kiệm cần gửi thêm.");
+      }
+      var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM);
+      var targetSo = String(payload.SoSo).trim().toUpperCase();
+      var existSo = allSo.filter(function(s) { return String(s.SoSo).trim().toUpperCase() === targetSo; })[0];
+      if (!existSo) {
+        throw new Error("Số sổ '" + payload.SoSo + "' không tồn tại trên hệ thống để thực hiện gửi thêm.");
+      }
+      if (existSo.TrangThai !== 'ACTIVE') {
+        throw new Error("Sổ tiết kiệm '" + payload.SoSo + "' không ở trạng thái ACTIVE (Trạng thái: " + existSo.TrangThai + ").");
+      }
+      if (user.Role !== CONFIG.ROLES.ADMIN && ValidatorService.normalizeId(existSo.MaNV) !== ValidatorService.normalizeId(user.MaNV)) {
+        throw new Error("Sổ tiết kiệm này thuộc quyền quản lý của Cán bộ khác. Bạn không thể tạo lệnh gửi thêm vào sổ này.");
+      }
+    } else {
+      // Mở mới
+      if (payload.SoSo && String(payload.SoSo).trim() !== '') {
+        var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
+        var targetSo = String(payload.SoSo).trim().toUpperCase();
+        if (!sosoPattern.test(targetSo)) {
+          throw new Error("Số sổ mở mới '" + targetSo + "' không đúng định dạng (Yêu cầu 2 chữ cái in hoa + 7 chữ số, VD: TK0001234).");
+        }
+        if (SoTietKiemService.isSoTietKiemExists(targetSo)) {
+          throw new Error("Số sổ '" + targetSo + "' đã tồn tại trên hệ thống. Nếu muốn gửi thêm, vui lòng chọn hình thức 'Gửi thêm vào sổ cũ'.");
+        }
+      }
+    }
+
     // 2. Tìm hoặc Tạo Khách Hàng
     var maKH = KhachHangService.addIfNotExists({
       CCCD: payload.CCCD,
@@ -31,13 +69,10 @@ var GiaoDichService = {
       DiaChi: payload.DiaChi
     });
     
-    // 3. (BỎ) Không Tạo Sổ Tiết Kiệm ngay lập tức. Sẽ tạo khi Admin Duyệt
-    
-    // 4. Tạo Giao Dịch Type = GUI với trạng thái PENDING
+    // 3. Tạo Giao Dịch Type = GUI với trạng thái PENDING
     var maGD = Repository.generateId("GD_");
     var now = new Date();
     
-    // [H8] Type Safety: Đảm bảo SoTien luôn là số trước khi vào DB
     var soTienNum = Number(String(payload.SoTien).replace(/[^0-9.]/g, ''));
     if (isNaN(soTienNum) || soTienNum <= 0) throw new Error("Số tiền không hợp lệ.");
 
@@ -48,28 +83,33 @@ var GiaoDichService = {
     
     var finalNgayGD = ValidatorService.parseDate(payload.NgayGD || now);
     if (finalNgayGD) {
-      // Gán giờ phút giây thực tế lúc nhấn Lưu vào ngày do User chọn
       finalNgayGD.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
     }
-    var hinhThuc = payload.SoSo ? 'Gửi thêm' : 'Mở mới';
+    
+    var kyHan = payload.KyHan || "KKH";
+    var loaiSanh = payload.LoaiSanh || "BT";
+    var laiSuat = parseFloat(payload.LaiSuat || 0);
+    var loaiLai = payload.LoaiLai || "Standard";
     
     var gdData = {
       MaGD: maGD,
       MaNV: maNV_Final,
       MaKH: maKH,
       MaCD: payload.MaCD,
-      SoSo: payload.SoSo,
+      SoSo: payload.SoSo ? String(payload.SoSo).trim().toUpperCase() : "",
       LoaiGD: CONFIG.GIAO_DICH.GUI,
+      HinhThuc: hinhThuc,
       SoTien: soTienNum,
+      KyHan: kyHan,
+      LoaiSanh: loaiSanh,
+      LaiSuat: laiSuat,
+      LoaiLai: loaiLai,
       NgayGD: finalNgayGD || now,
       TrangThai: "PENDING",
-      GhiChu: "Giao dịch gửi mới. [Kỳ Hạn: " + payload.KyHan + " | Sảnh: " + payload.LoaiSanh + " | " + hinhThuc + "]"
+      GhiChu: "Giao dịch gửi (" + hinhThuc + "). [Kỳ Hạn: " + kyHan + " | Sảnh: " + loaiSanh + " | " + hinhThuc + "]"
     };
     
     Repository.insert(CONFIG.SHEETS.GIAODICH, gdData);
-    
-    // 5. (BỎ) Không cập nhật KPI bây giờ, chờ Admin duyệt.
-    
     return maGD;
   },
   
@@ -80,7 +120,6 @@ var GiaoDichService = {
     if (user.Role !== CONFIG.ROLES.ADMIN) throw new Error("Chỉ có ADMIN mới được duyệt lệnh.");
     ValidatorService.requireFields(payload, ["MaGD", "Action"]); // Action = APPROVE / REJECT
     
-    // Prevent Race Condition: Khóa 15 giây để chống Multi-click hoặc 2 Teller thao tác cùng lúc
     var lock = LockService.getScriptLock();
     try {
       lock.waitLock(15000); 
@@ -89,7 +128,7 @@ var GiaoDichService = {
     }
     
     try {
-      var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH, false); // Tắt cache khi duyệt để đảm bảo dữ liệu mới nhất
+      var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH, false);
       var gdData = allGD.filter(function(g) { return g.MaGD === payload.MaGD; })[0];
       
       if (!gdData) throw new Error("Không tìm thấy giao dịch.");
@@ -114,24 +153,24 @@ var GiaoDichService = {
       if (payload.Action === "APPROVE") {
          var cleanGhiChu = gdData.GhiChu.split(" | SYS_DATA:")[0];
          
-         // 1. Transaction Start - Mark as Active 
-         // [H8] Type Safety & Override từ Admin
-         var finalSoSo = payload.SoSoMoi ? payload.SoSoMoi.trim().toUpperCase() : gdData.SoSo;
-         // Validate định dạng số sổ cho lệnh Gửi: 2 chữ hoa + 7 số
-         if (gdData.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-           var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
-           if (!finalSoSo || !sosoPattern.test(finalSoSo)) {
-             throw new Error("Số sổ '" + finalSoSo + "' không hợp lệ. Yêu cầu: 2 chữ hoa + 7 số (VD: TK0001234).");
-           }
+         var finalSoSo = payload.SoSoMoi ? payload.SoSoMoi.trim().toUpperCase() : (gdData.SoSo ? gdData.SoSo.trim().toUpperCase() : "");
+         var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
+         if (!finalSoSo || !sosoPattern.test(finalSoSo)) {
+           throw new Error("Số sổ '" + finalSoSo + "' không hợp lệ. Yêu cầu: 2 chữ hoa + 7 số (VD: TK0001234).");
          }
+         
          var finalSoTien = gdData.SoTien;
          if (payload.SoTienMoi) {
              finalSoTien = Number(String(payload.SoTienMoi).replace(/[^0-9.]/g, ''));
              if (isNaN(finalSoTien)) throw new Error("Số tiền điều chỉnh không hợp lệ.");
          }
          var finalNgayGD = payload.NgayGDMoi ? ValidatorService.parseDate(payload.NgayGDMoi) : ValidatorService.parseDate(gdData.NgayGD || now);
-         var finalKyHan = payload.KyHanMoi ? payload.KyHanMoi : null;
-         var finalMaCD = payload.MaCDMoi ? payload.MaCDMoi : gdData.MaCD;
+         var finalKyHan = payload.KyHanMoi || gdData.KyHan || "KKH";
+         var finalMaCD = payload.MaCDMoi || gdData.MaCD;
+         var finalLoaiSanh = payload.LoaiSanhMoi || gdData.LoaiSanh || "BT";
+         var finalLaiSuat = payload.LaiSuat !== undefined ? parseFloat(payload.LaiSuat) : (parseFloat(gdData.LaiSuat) || 0);
+         var finalLoaiLai = payload.LoaiLai || gdData.LoaiLai || "Standard";
+         var hinhThuc = gdData.HinhThuc || (gdData.GhiChu && gdData.GhiChu.indexOf('Gửi thêm') !== -1 ? 'Gửi thêm' : 'Mở mới');
 
          var adminEditsStr = "";
          if (payload.SoSoMoi || payload.SoTienMoi || payload.NgayGDMoi || payload.KyHanMoi || payload.MaCDMoi) {
@@ -146,7 +185,12 @@ var GiaoDichService = {
              SoTien: finalSoTien,
              NgayGD: finalNgayGD,
              MaCD: finalMaCD,
-             GhiChu: cleanGhiChu + adminEditsStr + " | DUYỆT BỞI: " + user.MaNV + " | LOG SỬA KHI DUYỆT: " + (gdData.SoTien !== finalSoTien ? ("S/Tiền mới: " + finalSoTien.toLocaleString('vi-VN') + "đ ") : "Giữ nguyên tiền ") + (finalKyHan ? ("| Kỳ hạn mới: " + finalKyHan) : "") + (payload.LaiSuat ? (" | Lãi: " + payload.LaiSuat) : "") + (payload.MaCDMoi ? (" | Chiến dịch mới: " + finalMaCD) : ""),
+             HinhThuc: hinhThuc,
+             KyHan: finalKyHan,
+             LoaiSanh: finalLoaiSanh,
+             LaiSuat: finalLaiSuat,
+             LoaiLai: finalLoaiLai,
+             GhiChu: cleanGhiChu + adminEditsStr + " | DUYỆT BỞI: " + user.MaNV + " | LOG SỬA KHI DUYỆT: " + (gdData.SoTien !== finalSoTien ? ("S/Tiền mới: " + finalSoTien.toLocaleString('vi-VN') + "đ ") : "Giữ nguyên tiền ") + (finalKyHan ? ("| Kỳ hạn mới: " + finalKyHan) : "") + (finalLaiSuat ? (" | Lãi: " + finalLaiSuat + "%") : "") + (payload.MaCDMoi ? (" | Chiến dịch mới: " + finalMaCD) : ""),
              DuyetBoi: user.MaNV,
              NgayDuyet: now
            }
@@ -154,26 +198,23 @@ var GiaoDichService = {
          
          try {
            if (gdData.LoaiGD === CONFIG.GIAO_DICH.GUI) {
-               // 2a. Sinh sổ tiết kiệm mới - parse SYS_DATA từ GhiChu
-               var sysData = {};
-               try {
-                 // Trích xuất metadata từ chuỗi văn bản tự nhiên: "[Kỳ Hạn: 1TH | Sảnh: BT | Mở mới]"
-                 var sysDataMatch = gdData.GhiChu.match(/\[Kỳ Hạn:\s*(.*?)\s*\|\s*Sảnh:\s*(.*?)\s*\|/);
-                 if (sysDataMatch) {
-                     sysData = { KyHan: sysDataMatch[1].trim(), LoaiSanh: sysDataMatch[2].trim() };
-                 }
-               } catch(e) { sysData = {}; }
-               
-               var resolvedKyHan = finalKyHan || sysData.KyHan || "KKH"; // Mặc định KKH thay vì 1TH nếu thiếu
-               var resolvedLoaiSanh = sysData.LoaiSanh || "BT";
-               
-               var resultSTK = SoTietKiemService.taoMoi(
-                    gdData.MaKH, gdData.MaNV, finalSoSo, finalSoTien, 
-                    resolvedKyHan, resolvedLoaiSanh, finalMaCD, finalNgayGD,
-                    payload.LaiSuat, payload.LoaiLai
-                );
+               if (hinhThuc === 'Gửi thêm') {
+                   // 2a. GỬI THÊM VÀO SỔ HIỆN CÓ: Cộng dồn số dư
+                   SoTietKiemService.congDonSoDu(finalSoSo, finalSoTien, {
+                     LaiSuat: finalLaiSuat,
+                     LoaiLai: finalLoaiLai,
+                     KyHanMoi: finalKyHan
+                   });
+               } else {
+                   // 2b. MỞ SỔ MỚI
+                   SoTietKiemService.taoMoi(
+                        gdData.MaKH, gdData.MaNV, finalSoSo, finalSoTien, 
+                        finalKyHan, finalLoaiSanh, finalMaCD, finalNgayGD,
+                        finalLaiSuat, finalLoaiLai
+                    );
+               }
            } else if (gdData.LoaiGD === CONFIG.GIAO_DICH.RUT) {
-               // 2b. Xử lý Rút Tiền từ sổ hiện tại
+               // 2c. Xử lý Rút Tiền từ sổ hiện tại
                var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM);
                var soTietKiem = allSo.filter(function(so) { return so.SoSo === gdData.SoSo; })[0];
                if (!soTietKiem) throw new Error("Không tìm thấy Sổ Tiết Kiệm đính kèm lệnh Rút này.");
@@ -202,30 +243,28 @@ var GiaoDichService = {
                KPIService.updateSummary(gdData.MaNV, gdData.MaCD);
            }
            return {
-                message: "Đã DUYỆT thành công giao dịch " + payload.MaGD,
+                message: "Đã DUYỆT thành công giao dịch " + payload.MaGD + " (" + hinhThuc + ")",
                 PasswordPhanQuyen: payload._matKhauTraCuu,
                 SoSoMoi: finalSoSo
             };
            
          } catch (insertError) {
            // --- TRANSACTION ROLLBACK ---
-           // Nếu lỗi ở khâu tạo STK hoặc KPI, trả Giao dịch về Trạng thái Cũ.
            LoggerService.log("ROLLBACK", "duyetGiaoDichGui", "ROLLBACK_APPLIED", { error: insertError.message, maGD: payload.MaGD });
            Repository.updateBatch(CONFIG.SHEETS.GIAODICH, [{
              rowIndex: gdData._rowIndex,
              data: { 
-               TrangThai: "PENDING", // Rollback state
-               MaCD: gdData.MaCD, // Rollback campaign code
-               GhiChu: gdData.GhiChu, // Rollback Ghi chú cũ có kèm SYS_DATA
-               DuyetBoi: "", // Rollback
-               NgayDuyet: "" // Rollback
+               TrangThai: "PENDING",
+               MaCD: gdData.MaCD,
+               GhiChu: gdData.GhiChu,
+               DuyetBoi: "",
+               NgayDuyet: ""
              }
            }]);
-           throw new Error("Lỗi khi sinh Sổ tiết kiệm. Đã Rollback giao dịch về trạng thái chờ duyệt. Chi tiết lỗi: " + insertError.message);
+           throw new Error("Lỗi khi cập nhật Sổ tiết kiệm. Đã Rollback giao dịch về trạng thái chờ duyệt. Chi tiết lỗi: " + insertError.message);
          }
-      }
+       }
     } finally {
-      // Dù lỗi hay thành công cũng phải nhả Lock
       lock.releaseLock();
     }
   },
@@ -257,9 +296,10 @@ var GiaoDichService = {
       // [H8] Type Safety
       var soTienRut = Number(String(payload.SoTienRut).replace(/[^0-9.]/g, ''));
       var soTienHienTai = Number(soTietKiem.SoDuHienTai);
+      var minWithdrawal = CONFIG.MIN_WITHDRAWAL_AMOUNT || 50000;
       
-      if (isNaN(soTienRut) || soTienRut < 1 || soTienRut > soTienHienTai) {
-        throw new Error("Số tiền rút không hợp lệ (phải ≥ 1đ và ≤ số dư hiện tại: " + soTienHienTai.toLocaleString('vi-VN') + " VNĐ).");
+      if (isNaN(soTienRut) || soTienRut < minWithdrawal || soTienRut > soTienHienTai) {
+        throw new Error("Số tiền rút không hợp lệ (phải ≥ " + minWithdrawal.toLocaleString('vi-VN') + "đ và ≤ số dư hiện tại: " + soTienHienTai.toLocaleString('vi-VN') + " VNĐ).");
       }
       
       var maGD = Repository.generateId("GD_");
@@ -272,7 +312,12 @@ var GiaoDichService = {
         MaCD: soTietKiem.MaCD,
         SoSo: payload.SoSo,
         LoaiGD: CONFIG.GIAO_DICH.RUT,
+        HinhThuc: "Rút tiền",
         SoTien: soTienRut,
+        KyHan: soTietKiem.KyHan || "KKH",
+        LoaiSanh: soTietKiem.LoaiSanh || "BT",
+        LaiSuat: parseFloat(soTietKiem.LaiSuat || 0),
+        LoaiLai: soTietKiem.LoaiLai || "Standard",
         NgayGD: now,
         TrangThai: "PENDING",
         GhiChu: "Yêu cầu rút tiền từ sổ " + payload.SoSo
@@ -327,7 +372,6 @@ var GiaoDichService = {
 
   /**
    * Lấy danh sách giao dịch PENDING (tối ưu cho frmChoDuyet)
-   * Chỉ trả về PENDING, không lấy toàn bộ như getLichSu
    */
   getPendingGiaoDich: function(user) {
     var allGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
@@ -341,7 +385,6 @@ var GiaoDichService = {
 
     var result = allGD.filter(function(gd) {
       if (gd.TrangThai !== 'PENDING') return false;
-      // USER chỉ thấy lệnh của mình; ADMIN thấy tất cả
       if (user.Role !== CONFIG.ROLES.ADMIN && ValidatorService.normalizeId(gd.MaNV) !== ValidatorService.normalizeId(user.MaNV)) return false;
       return true;
     });
@@ -366,7 +409,6 @@ var GiaoDichService = {
 
   /**
    * Đếm số lượng giao dịch PENDING (tối ưu cho Badge count Admin)
-   * Chỉ cho phép ADMIN mới được đếm
    */
   getPendingCount: function(user) {
     if (!user) return 0;
@@ -377,7 +419,6 @@ var GiaoDichService = {
     
     for (var i = 0; i < allGD.length; i++) {
         if (allGD[i].TrangThai === "PENDING") {
-            // ADMIN thấy tất cả, USER (Teller) chỉ thấy của chính mình
             if (user.Role === CONFIG.ROLES.ADMIN) {
                 count++;
             } else if (ValidatorService.normalizeId(allGD[i].MaNV) === userMaNVNormalized) {
@@ -388,13 +429,25 @@ var GiaoDichService = {
     return count;
   },
 
+  /**
+   * Lấy lịch sử Datatable phân trang Server-side siêu tối ưu
+   */
   getLichSuDatatable: function(user, payload) {
     Logger.log("[Datatable] Fetching history for user: " + user.MaNV + " (Role: " + user.Role + ")");
-    var allGD = this.getLichSu(user);
+    var allRawGD = Repository.getAll(CONFIG.SHEETS.GIAODICH);
     
-    // Áp dụng bộ lọc Custom từ Frontend Payload
-    var filteredGD = allGD;
+    var userMaNVNormalized = ValidatorService.normalizeId(user.MaNV);
+    var userRoleNormalized = (user.Role || "").toString().trim().toUpperCase();
 
+    // 1. Lọc theo Phân quyền User / Admin
+    var filteredGD = allRawGD.filter(function(gd) {
+      if (userRoleNormalized === "ADMIN") return true;
+      return ValidatorService.normalizeId(gd.MaNV) === userMaNVNormalized;
+    });
+
+    var recordsTotal = filteredGD.length;
+
+    // 2. Lọc theo các tiêu chí tìm kiếm từ Payload
     if (payload.MaKH) {
         var fMaKH = ValidatorService.normalizeId(payload.MaKH);
         filteredGD = filteredGD.filter(function(r) { return ValidatorService.normalizeId(r.MaKH).indexOf(fMaKH) > -1; });
@@ -403,11 +456,11 @@ var GiaoDichService = {
         var fMaCD = ValidatorService.normalizeId(payload.MaCD);
         filteredGD = filteredGD.filter(function(r) { return ValidatorService.normalizeId(r.MaCD) === fMaCD; });
     }
-    if (payload.MaNV && (user.Role || "").toString().trim().toUpperCase() === "ADMIN") {
+    if (payload.MaNV && userRoleNormalized === "ADMIN") {
         var fMaNV = ValidatorService.normalizeId(payload.MaNV);
         filteredGD = filteredGD.filter(function(r) { return ValidatorService.normalizeId(r.MaNV) === fMaNV; });
     }
-    // ... date filter ...
+    
     var startDt = (payload.tuNgay && String(payload.tuNgay).trim() !== "" && String(payload.tuNgay) !== "null" && String(payload.tuNgay) !== "undefined") ? ValidatorService.parseDate(payload.tuNgay) : null;
     if (startDt) startDt.setHours(0, 0, 0, 0);
     var endDt = (payload.denNgay && String(payload.denNgay).trim() !== "" && String(payload.denNgay) !== "null" && String(payload.denNgay) !== "undefined") ? ValidatorService.parseDate(payload.denNgay) : null;
@@ -418,7 +471,6 @@ var GiaoDichService = {
             var rDate = ValidatorService.parseDate(r.NgayGD);
             if (!rDate) return false;
             var rTime = rDate.getTime();
-            
             if (startDt && rTime < startDt.getTime()) return false;
             if (endDt && rTime > endDt.getTime()) return false;
             return true;
@@ -438,23 +490,19 @@ var GiaoDichService = {
         }
     }
 
-    var recordsTotal = allGD.length;
-    var recordsFiltered = filteredGD.length;
-    
-    // Default Datatables Global Search
+    // 3. Datatables Global Search
     if (payload.search && payload.search.value) {
       var searchStr = String(payload.search.value).toLowerCase();
       filteredGD = filteredGD.filter(function(gd) {
         return (gd.MaGD && String(gd.MaGD).toLowerCase().indexOf(searchStr) > -1) ||
                (gd.SoSo && String(gd.SoSo).toLowerCase().indexOf(searchStr) > -1) ||
-               (gd.TenKH && String(gd.TenKH).toLowerCase().indexOf(searchStr) > -1) ||
-               (gd.TenNV && String(gd.TenNV).toLowerCase().indexOf(searchStr) > -1) ||
-               (gd.MaKH && String(gd.MaKH).toLowerCase().indexOf(searchStr) > -1);
+               (gd.MaKH && String(gd.MaKH).toLowerCase().indexOf(searchStr) > -1) ||
+               (gd.MaNV && String(gd.MaNV).toLowerCase().indexOf(searchStr) > -1) ||
+               (gd.GhiChu && String(gd.GhiChu).toLowerCase().indexOf(searchStr) > -1);
       });
     }
 
-    // Default Datatables Sorting
-    // Columns map in UI: 0:MaNV, 1:NgayGD, 2:SoSo, 3:MaKH, 4:LoaiGD, 5:SoTien ...
+    // 4. Sắp xếp (Sorting)
     var colMap = ["MaNV", "NgayGD", "SoSo", "MaKH", "LoaiGD", "SoTien"];
     if (payload.order && payload.order.length > 0) {
       var sortColIdx = payload.order[0].column;
@@ -484,13 +532,38 @@ var GiaoDichService = {
            return 0;
         });
       }
+    } else {
+      // Mặc định sắp xếp theo NgayGD giảm dần
+      filteredGD.sort(function(a, b) {
+        var dateA = ValidatorService.parseDate(a.NgayGD);
+        var dateB = ValidatorService.parseDate(b.NgayGD);
+        return (dateB ? dateB.getTime() : 0) - (dateA ? dateA.getTime() : 0);
+      });
     }
 
-    recordsFiltered = filteredGD.length;
+    var recordsFiltered = filteredGD.length;
 
+    // 5. Cắt đúng trang dữ liệu (Pagination Slice)
     var start = parseInt(payload.start) || 0;
     var length = parseInt(payload.length) || 10;
-    var dataSlice = (length === -1) ? filteredGD.slice(start) : filteredGD.slice(start, start + length);
+    var rawSlice = (length === -1) ? filteredGD.slice(start) : filteredGD.slice(start, start + length);
+
+    // 6. CHỈ Map Foreign Names (Tên KH, Tên NV) trên đúng số bản ghi của trang hiện tại -> Tối ưu hiệu năng 80%
+    var listKH = KhachHangService.getAll();
+    var listNV = NhanSuService.getAll();
+    var khMap = {};
+    listKH.forEach(function(kh) { if(kh.MaKH) khMap[ValidatorService.normalizeId(kh.MaKH)] = kh.HoTen; });
+    var nvMap = {};
+    listNV.forEach(function(nv) { if(nv.MaNV) nvMap[ValidatorService.normalizeId(nv.MaNV)] = nv.HoTen; });
+
+    var dataSlice = rawSlice.map(function(gd) {
+      var item = Repository.deepClone(gd);
+      var normMaKH = ValidatorService.normalizeId(item.MaKH);
+      var normMaNV = ValidatorService.normalizeId(item.MaNV);
+      item.TenKH = khMap[normMaKH] || item.MaKH || "";
+      item.TenNV = nvMap[normMaNV] || item.MaNV || "";
+      return item;
+    });
 
     Logger.log("[Datatable] Returning " + dataSlice.length + " items (Filtered: " + recordsFiltered + " / Total: " + recordsTotal + ")");
 
@@ -502,11 +575,9 @@ var GiaoDichService = {
     };
   },
   
-  // Moved and consolidated getPendingCount above
-  
   /**
    * Hủy Giao Dịch Khống (Rollback)
-   * Chỉ cho phép Huỷ GD do chính User đó tạo và trong vòng 24 giờ.
+   * Cho phép Hủy khi lệnh ở trạng thái PENDING do chính User tạo (hoặc Admin).
    */
   huyGiaoDich: function(user, maGD) {
     if (!maGD) throw new Error("Mã giao dịch không hợp lệ.");
@@ -515,30 +586,21 @@ var GiaoDichService = {
     var gdData = allGD.filter(function(g) { return g.MaGD === maGD; })[0];
     
     if (!gdData) throw new Error("Không tìm thấy giao dịch.");
-    if (gdData.TrangThai !== "PENDING") throw new Error("Chỉ được tự động hủy giao dịch khi Lệnh đang chờ duyệt (PENDING). Lệnh đã duyệt vui lòng báo cáo lỗi.");
+    if (gdData.TrangThai !== "PENDING") {
+      throw new Error("Chỉ được tự động hủy giao dịch khi Lệnh đang chờ duyệt (PENDING). Lệnh đã duyệt vui lòng liên hệ Quản trị viên để Revert.");
+    }
     if (ValidatorService.normalizeId(gdData.MaNV) !== ValidatorService.normalizeId(user.MaNV) && user.Role !== CONFIG.ROLES.ADMIN) {
       throw new Error("Bạn không có quyền hủy giao dịch của Cán bộ khác.");
     }
     
-    // Kiểm tra giới hạn 24 tiếng
-    var gdDate = ValidatorService.parseDate(gdData.NgayGD);
     var now = new Date();
-    var diffHours = Math.abs(now - gdDate) / 36e5; // 36e5 = số milliseconds trong 1 giờ
     
-    if (diffHours > 24 && user.Role !== CONFIG.ROLES.ADMIN) {
-      throw new Error("Đã vượt quá giới hạn 24 giờ để Hủy giao dịch. Vui lòng liên hệ Admin.");
-    }
-    
-    // ----------- BẮT ĐẦU ROLLBACK  ----------- //
-    
-    // Do từ giờ chỉ cho Hủy khi phiếu Tình trạng = PENDING (Tức là chưa sinh sổ tiết kiệm và chưa tính KPI)
-    // Nên Rollback Rất Đơn Giản: Chỉ cần gạch chéo cái Phiếu đó thành CANCELLED là xong. Không cần đục thủng sổ tiết kiệm nữa.
-    
+    // Đối với lệnh PENDING chưa sinh sổ và chưa tính KPI -> Cập nhật sang CANCELLED
     Repository.updateBatch(CONFIG.SHEETS.GIAODICH, [{
        rowIndex: gdData._rowIndex,
        data: { 
          TrangThai: "CANCELLED",
-         GhiChu: (gdData.GhiChu || "") + " | ĐÃ BỊ HỦY LÚC " + now.toLocaleString('vi-VN') + " TRƯỚC VÒNG DUYỆT."
+         GhiChu: (gdData.GhiChu || "") + " | ĐÃ BỊ HỦY BỞI " + user.MaNV + " LÚC " + now.toLocaleString('vi-VN') + " TRƯỚC VÒNG DUYỆT."
        }
     }]);
     

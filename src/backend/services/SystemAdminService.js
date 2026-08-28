@@ -450,6 +450,52 @@ var SystemAdminService = {
     } finally {
       lock.releaseLock();
     }
+  },
+
+  /**
+   * Tự động bảo trì, dọn dẹp nhật ký hệ thống định kỳ (Mặc định giữ lại 30 ngày)
+   */
+  maintainDatabaseLogs: function(daysToKeep) {
+    var days = typeof daysToKeep === "number" ? daysToKeep : 30; // Mặc định 30 ngày theo yêu cầu Quản trị
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(15000);
+      var ss = getDbSpreadsheet();
+      var sheetLog = ss.getSheetByName(CONFIG.SHEETS.LOG);
+      if (!sheetLog || sheetLog.getLastRow() <= 1) return "Không có log cần bảo trì.";
+
+      var cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      var data = sheetLog.getDataRange().getValues();
+      var headers = data[0];
+      var tsIdx = headers.indexOf("Timestamp");
+      if (tsIdx === -1) return "Thiếu cột Timestamp trong LOG.";
+
+      var rowsToDelete = [];
+      for (var i = data.length - 1; i >= 1; i--) {
+        var rowDate = ValidatorService.parseDate(data[i][tsIdx]);
+        if (rowDate && rowDate.getTime() < cutoffDate.getTime()) {
+          rowsToDelete.push(i + 1);
+        }
+      }
+
+      if (rowsToDelete.length > 0) {
+        rowsToDelete.forEach(function(rIdx) {
+          sheetLog.deleteRow(rIdx);
+        });
+        SpreadsheetApp.flush();
+        Repository.clearCache(CONFIG.SHEETS.LOG);
+        Logger.log(">> [MAINTENANCE] Đã dọn dẹp " + rowsToDelete.length + " bản ghi log cũ hơn " + days + " ngày.");
+        return "Đã xóa " + rowsToDelete.length + " bản ghi log cũ hơn " + days + " ngày.";
+      }
+      return "Log hệ thống sạch, không có bản ghi cũ hơn " + days + " ngày.";
+    } catch (e) {
+      Logger.log("Lỗi bảo trì log: " + e.message);
+      return "Lỗi: " + e.message;
+    } finally {
+      lock.releaseLock();
+    }
   }
 };
 

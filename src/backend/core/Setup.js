@@ -12,18 +12,18 @@
  */
 
 var DB_SCHEMAS = {
-  "DB_NHANSU": ["MaNV", "HoTen", "Email", "Sdt", "Role", "TrangThai", "MatKhau"],
+  "DB_NHANSU": ["MaNV", "HoTen", "Email", "Sdt", "Role", "TrangThai", "MatKhau", "Salt"],
   "DB_KHACHHANG": ["MaKH", "HoTen", "CCCD", "DiaChi", "Sdt", "SoTheTV", "NgayTao", "TrangThai"],
   "DB_KH_HISTORY": ["HistoryID", "MaKH", "Action", "Timestamp", "Details", "NguoiThucHien", "IP"],
   "DB_CHIENDICH": ["MaCD", "TenCD", "LoaiCD", "NgayBatDau", "NgayKetThuc", "TrangThai"],
   "DB_CHITIEU": ["MaCD", "MaNV", "ChiTieu", "NgayPhanBo", "NguoiPhanBo"],
-  "DB_SOTIETKIEM": ["SoSo", "MaKH", "MaNV", "MaCD", "NgayPhatHanh", "NgayDaoHan", "SoDuBanDau", "SoDuHienTai", "KyHan", "LoaiSanh", "TrangThai"],
-  "DB_GIAODICH": ["MaGD", "MaNV", "MaKH", "MaCD", "SoSo", "LoaiGD", "SoTien", "NgayGD", "TrangThai", "GhiChu", "DuyetBoi", "NgayDuyet"],
-  "DB_GIAODICH_ARCHIVE": ["MaGD", "MaNV", "MaKH", "MaCD", "SoSo", "LoaiGD", "SoTien", "NgayGD", "TrangThai", "GhiChu", "DuyetBoi", "NgayDuyet"],
+  "DB_SOTIETKIEM": ["SoSo", "MaKH", "MaNV", "MaCD", "NgayPhatHanh", "NgayDaoHan", "SoDuBanDau", "SoDuHienTai", "KyHan", "LoaiSanh", "LaiSuat", "LoaiLai", "TienLaiDuKien", "TrangThai"],
+  "DB_GIAODICH": ["MaGD", "MaNV", "MaKH", "MaCD", "SoSo", "LoaiGD", "HinhThuc", "SoTien", "KyHan", "LoaiSanh", "LaiSuat", "LoaiLai", "NgayGD", "TrangThai", "GhiChu", "DuyetBoi", "NgayDuyet"],
+  "DB_GIAODICH_ARCHIVE": ["MaGD", "MaNV", "MaKH", "MaCD", "SoSo", "LoaiGD", "HinhThuc", "SoTien", "KyHan", "LoaiSanh", "LaiSuat", "LoaiLai", "NgayGD", "TrangThai", "GhiChu", "DuyetBoi", "NgayDuyet"],
   "DB_SUMMARY": ["MaNV", "MaCD", "TongGui", "TongRut", "Net", "ChiTieu", "LastUpdate"],
   "DB_LOG": ["LogID", "Timestamp", "User", "Action", "Description", "Status", "Details", "IP"],
   "DB_CAUHINH": ["Key", "Value", "Description"],
-  "DB_SYS_STK": ["SO_SO_TG", "MA_KH", "TEN_KH", "SO_DU_GOC", "NGAY_MO", "NGAY_DAO_HAN"]
+  "DB_SYS_STK": ["SO_SO_TG", "MA_KH", "TEN_KH", "SO_DU_GOC", "NGAY_MO", "NGAY_DAO_HAN", "LAST_SYNC"]
 };
 
 /**

@@ -59,14 +59,15 @@ var NhanSuService = {
         
         var newID = Repository.generateId("NV_");
         
-        // Mặc định sinh password là 123456
-        var initPassword = "123456";
-        var initHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92";
+        // Mặc định sinh password là 123456 có Salt
+        var initClientHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"; // Hash client của 123456
+        var newSalt = Utilities.getUuid();
+        var initDbHash = AuthService.hashWithSalt(initClientHash, newSalt);
         
         Repository.insert(CONFIG.SHEETS.NHANSU, {
            MaNV: newID, HoTen: payload.HoTen, Email: payload.Email,
            Sdt: payload.Sdt ? ("'" + String(payload.Sdt).trim()) : "", Role: payload.Role,
-           TrangThai: payload.TrangThai || "ACTIVE", MatKhau: initHash
+           TrangThai: payload.TrangThai || "ACTIVE", MatKhau: initDbHash, Salt: newSalt
         });
         return "Thêm mới thành công " + newID + ". Mật khẩu khởi tạo là 123456 và tự động ép đổi (Làm mới sau khi đăng nhập).";
       }
@@ -91,15 +92,30 @@ var NhanSuService = {
       var existNS = allNS.filter(function(ns) { return ns.MaNV === user.MaNV; })[0];
       
       if (!existNS) throw new Error("Không tìm thấy thông tin tài khoản.");
+      
       var dbHash = existNS.MatKhau || "";
-      if (dbHash !== oldHash) throw new Error("Mật khẩu hiện tại không chính xác.");
+      var dbSalt = (existNS.Salt || "").toString().trim();
+      
+      var isOldValid = false;
+      if (dbSalt !== "") {
+        isOldValid = (AuthService.hashWithSalt(oldHash, dbSalt) === dbHash);
+      } else {
+        isOldValid = (dbHash === oldHash);
+      }
+      
+      if (!isOldValid) throw new Error("Mật khẩu hiện tại không chính xác.");
       if (oldHash === newHash) throw new Error("Mật khẩu mới không được trùng mật khẩu cũ.");
   
-      // Cập nhật Mật khẩu
+      // Sinh Salt mới và băm mật khẩu mới
+      var freshSalt = Utilities.getUuid();
+      var upgradedDbHash = AuthService.hashWithSalt(newHash, freshSalt);
+
+      // Cập nhật Mật khẩu + Salt
       Repository.updateBatch(CONFIG.SHEETS.NHANSU, [{
           rowIndex: existNS._rowIndex,
           data: {
-            MatKhau: newHash
+            MatKhau: upgradedDbHash,
+            Salt: freshSalt
           }
       }]);
   
@@ -127,10 +143,18 @@ var NhanSuService = {
       var targetNS = allNS.filter(function(ns) { return ns.MaNV === targetMaNV; })[0];
       if (!targetNS) throw new Error("Không tìm thấy nhân viên " + targetMaNV);
   
-      // Reset mật khẩu mặc định: 123456
-      var newHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92";
+      // Reset mật khẩu mặc định: 123456 có Salt
+      var defaultClientHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92";
+      var resetSalt = Utilities.getUuid();
+      var resetDbHash = AuthService.hashWithSalt(defaultClientHash, resetSalt);
       
-      Repository.updateBatch(CONFIG.SHEETS.NHANSU, [{ rowIndex: targetNS._rowIndex, data: { MatKhau: newHash } }]);
+      Repository.updateBatch(CONFIG.SHEETS.NHANSU, [{
+        rowIndex: targetNS._rowIndex,
+        data: {
+          MatKhau: resetDbHash,
+          Salt: resetSalt
+        }
+      }]);
   
       return "Mật khẩu của " + targetNS.HoTen + " (" + targetNS.Email + ") đã được đặt lại thành: 123456. Cán bộ bắt buộc phải đổi lại mật khẩu khi đăng nhập.";
     } catch(e) {

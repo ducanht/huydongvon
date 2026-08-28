@@ -739,6 +739,36 @@
           </div>
         </div>
 
+        <!-- Row 0: Hình thức gửi -->
+        <div class="mb-4 p-3 rounded-3" style="background: var(--surface-alt); border: 1px solid var(--border);">
+          <label class="gd-label mb-2"><i class="bx bx-transfer-alt"></i> Hình Thức Giao Dịch <span class="gd-label-required">*</span></label>
+          <div class="d-flex gap-4">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="HinhThuc" id="radMoMoi" value="Mở mới" checked>
+              <label class="form-check-label fw-bold text-success" for="radMoMoi">
+                <i class="bx bx-plus-circle"></i> Mở Sổ Tiết Kiệm Mới
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="HinhThuc" id="radGuiThem" value="Gửi thêm">
+              <label class="form-check-label fw-bold text-primary" for="radGuiThem">
+                <i class="bx bx-layer-plus"></i> Gửi Thêm Vào Sổ Cũ (Cộng Dồn)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khối chọn Sổ Cũ (chỉ hiện khi chọn Gửi thêm) -->
+        <div id="guiThemSoContainer" class="d-none mb-4 p-3 rounded-3" style="background: #eff6ff; border: 1.5px dashed #3b82f6;">
+          <label class="gd-label text-primary"><i class="bx bx-book-bookmark"></i> Chọn Sổ Tiết Kiệm Hiện Có Của Khách Hàng <span class="gd-label-required">*</span></label>
+          <select class="form-select gd-input" id="cboSoTietKiemCu">
+            <option value="">-- Chọn sổ tiết kiệm --</option>
+          </select>
+          <div id="soCuInfoBadge" class="mt-2 text-muted small d-none">
+            <i class="bx bx-info-circle text-primary"></i> <span id="soCuInfoText"></span>
+          </div>
+        </div>
+
         <!-- Row 1: CD + Ngày -->
         <div class="gd-grid gd-grid-2" style="margin-bottom: 16px">
           <div>
@@ -775,11 +805,11 @@
           <div>
             <label class="gd-label">
               <i class="bx bx-book"></i> Mã Số Sổ
-              <span class="gd-label-badge" style="background: #e0e7ff; color: #4338ca">Tự động</span>
+              <span id="soSoBadgeType" class="gd-label-badge" style="background: #e0e7ff; color: #4338ca">Tự động</span>
             </label>
             <input type="text" class="gd-input font-monospace" name="SoSo" id="txtSoSo" required readonly
               title="Mã tạm — ADMIN sẽ đổi khi duyệt" />
-            <div class="gd-hint">
+            <div id="soSoHintText" class="gd-hint">
               <i class="bx bx-info-circle"></i> Mã tạm: ABddmmyy-MaNV-HHmm
             </div>
           </div>
@@ -792,7 +822,7 @@
               <i class="bx bx-time-five"></i> Kỳ Hạn Dự Kiến
               <span class="gd-label-badge">ADMIN chỉnh</span>
             </label>
-            <select class="gd-input" name="KyHan">
+            <select class="gd-input" name="KyHan" id="cboKyHan">
               <option value="KKH">Không kỳ hạn</option>
               <option value="1TH">1 Tháng</option>
               <option value="2TH">2 Tháng</option>
@@ -815,7 +845,7 @@
           </div>
           <div>
             <label class="gd-label"><i class="bx bx-building-house"></i> Loại Sảnh</label>
-            <select class="gd-input" name="LoaiSanh">
+            <select class="gd-input" name="LoaiSanh" id="cboLoaiSanh">
               <option value="BT">Bình thường</option>
               <option value="VIP">KH VIP</option>
             </select>
@@ -827,6 +857,7 @@
       <div class="gd-actions">
         <button type="button" class="gd-btn gd-btn-ghost" onclick="
             $('#frmGuiTien')[0].reset();
+            $('#radMoMoi').prop('checked', true).trigger('change');
             $('#frmGuiTien').removeClass('was-validated');
             $('#customerNamecard').addClass('d-none');
             $('#customerSelectPrompt').removeClass('d-none');
@@ -939,6 +970,7 @@
 
       cboKH.on("select2:select", function (e) {
         var opt = $(e.params.data.element);
+        var maKH = opt.val() || "";
         var cccd = opt.data("cccd") || "";
         var hoten = opt.data("hoten") || "Khách hàng";
         var sdt = opt.data("sdt") || "Chưa cập nhật";
@@ -965,14 +997,91 @@
         $("#customerNamecard").removeClass("d-none").hide().fadeIn(200);
         $("#customerSelectPrompt").addClass("d-none");
         _gdUpdateSteps(true);
+
+        // Nếu đang ở chế độ Gửi thêm -> Tải sổ của KH
+        if ($("#radGuiThem").is(":checked")) {
+          _gdLoadCustomerPassbooks(maKH);
+        }
       });
 
       cboKH.on("select2:unselect", function () {
         $("#hiddenCCCD, #hiddenHoTen, #hiddenSdt, #hiddenDiaChi").val("");
         $("#customerNamecard").addClass("d-none");
         $("#customerSelectPrompt").removeClass("d-none");
+        $("#cboSoTietKiemCu").empty().append('<option value="">-- Chọn sổ tiết kiệm --</option>');
+        $("#soCuInfoBadge").addClass("d-none");
         _gdUpdateSteps(false);
       });
+    });
+
+    // ── Xử lý chuyển đổi Hình thức (Mở mới / Gửi thêm) ──────────
+    function _gdLoadCustomerPassbooks(maKH) {
+      if (!maKH) return;
+      var cboSo = $("#cboSoTietKiemCu").empty().append('<option value="">Đang tải danh sách sổ...</option>');
+      AppManager.callApi("getSoTietKiemActive").done(function (res) {
+        cboSo.empty().append('<option value="">-- Chọn sổ tiết kiệm cần gửi thêm --</option>');
+        var listKhSo = (res || []).filter(function(s) { 
+          return String(s.MaKH).trim() === String(maKH).trim() && s.TrangThai === 'ACTIVE'; 
+        });
+        if (listKhSo.length > 0) {
+          listKhSo.forEach(function(s) {
+            var duText = AppManager.formatCurrency(s.SoDuHienTai || 0);
+            cboSo.append($('<option>')
+              .val(s.SoSo)
+              .text(s.SoSo + " (Số dư: " + duText + "đ | Kỳ hạn: " + (s.KyHan || "KKH") + ")")
+              .data('sodu', s.SoDuHienTai)
+              .data('kyhan', s.KyHan)
+              .data('sanh', s.LoaiSanh || 'BT')
+              .data('macd', s.MaCD)
+            );
+          });
+          $("#soCuInfoText").text("Tìm thấy " + listKhSo.length + " sổ tiết kiệm đang hoạt động của khách hàng này.");
+          $("#soCuInfoBadge").removeClass("d-none");
+        } else {
+          cboSo.append('<option value="">(Khách hàng chưa có sổ tiết kiệm nào đang hoạt động)</option>');
+          $("#soCuInfoText").text("Khách hàng này chưa có sổ tiết kiệm nào đang mở. Vui lòng chọn 'Mở sổ tiết kiệm mới'.");
+          $("#soCuInfoBadge").removeClass("d-none");
+        }
+      });
+    }
+
+    $('input[name="HinhThuc"]').on('change', function() {
+      var isGuiThem = $("#radGuiThem").is(":checked");
+      if (isGuiThem) {
+        $("#guiThemSoContainer").removeClass("d-none");
+        $("#soSoBadgeType").text("Sổ hiện có").css({ background: '#dbeafe', color: '#1d4ed8' });
+        $("#soSoHintText").html('<i class="bx bx-info-circle"></i> Số sổ được chọn từ danh sách sổ cũ của khách hàng.');
+        $("#cboKyHan, #cboLoaiSanh").prop('disabled', true);
+        var currentMaKH = $("#cboSearchKhachHang").val();
+        if (currentMaKH) {
+          _gdLoadCustomerPassbooks(currentMaKH);
+        }
+      } else {
+        $("#guiThemSoContainer").addClass("d-none");
+        $("#soSoBadgeType").text("Tự động").css({ background: '#e0e7ff', color: '#4338ca' });
+        $("#soSoHintText").html('<i class="bx bx-info-circle"></i> Mã tạm: ABddmmyy-MaNV-HHmm');
+        $("#cboKyHan, #cboLoaiSanh").prop('disabled', false);
+        _gdGenerateTempSoSo();
+      }
+    });
+
+    $("#cboSoTietKiemCu").on('change', function() {
+      var opt = $(this).find(':selected');
+      var soSo = $(this).val();
+      if (soSo) {
+        $("#txtSoSo").val(soSo);
+        var kyHan = opt.data('kyhan');
+        var sanh = opt.data('sanh');
+        var maCD = opt.data('macd');
+        if (kyHan) $("#cboKyHan").val(kyHan);
+        if (sanh) $("#cboLoaiSanh").val(sanh);
+        if (maCD && $("#cboChienDich").find('option[value="' + maCD + '"]').length > 0) {
+          $("#cboChienDich").val(maCD);
+        }
+        var duText = AppManager.formatCurrency(opt.data('sodu') || 0);
+        $("#soCuInfoText").html("<b>" + soSo + "</b> - Số dư hiện tại: <strong class='text-success'>" + duText + " VNĐ</strong> | Kỳ hạn: <b>" + (kyHan || "KKH") + "</b>");
+        $("#soCuInfoBadge").removeClass("d-none");
+      }
     });
 
     // Load Chiến Dịch

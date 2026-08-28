@@ -86,12 +86,74 @@ var SoTietKiemService = {
     if (isNaN(months)) return 0;
 
     if (loaiLai === "Compound") {
-      // Lãi kép: A = P(1 + r/n)^(nt). Ở đây giả định n=1 (nhập lãi vào gốc hàng tháng nếu user muốn, nhưng thường TK là n=1)
-      // Công thức đơn giản cho kỳ hạn: A = P * (1 + r/12)^months
+      // Lãi kép: A = P(1 + r/n)^(nt)
       return Math.round(amount * (Math.pow(1 + rate / 12, months) - 1));
     } else {
       // Lãi đơn: I = P * r * (t/12)
       return Math.round(amount * rate * (months / 12));
+    }
+  },
+
+  /**
+   * Tính lãi tích lũy theo số ngày thực gửi (TT 14/2017/TT-NHNN)
+   */
+  calculateAccruedInterest: function(soTien, laiSuat, ngayPhatHanh, ngayTinhLaitarget) {
+    if (!soTien || !laiSuat || !ngayPhatHanh) return 0;
+    var pDate = ValidatorService.parseDate(ngayPhatHanh);
+    var tDate = ngayTinhLaitarget ? ValidatorService.parseDate(ngayTinhLaitarget) : new Date();
+    if (!pDate || !tDate) return 0;
+    
+    var diffDays = Math.max(0, Math.floor((tDate.getTime() - pDate.getTime()) / (24 * 3600 * 1000)));
+    var amount = parseFloat(soTien);
+    var rate = parseFloat(laiSuat) / 100;
+    
+    // Công thức: Tiền lãi = (Số tiền * Lãi suất * Số ngày thực tế) / 365
+    return Math.round((amount * rate * diffDays) / 365);
+  },
+
+  /**
+   * Cộng dồn số dư sổ tiết kiệm khi nhận lệnh GỬI THÊM
+   */
+  congDonSoDu: function(soSo, soTienThem, payload) {
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(15000);
+      
+      var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM, false);
+      var target = String(soSo).trim().toUpperCase();
+      var existSo = allSo.filter(function(so) { return String(so.SoSo).trim().toUpperCase() === target; })[0];
+      
+      if (!existSo) {
+        throw new Error("Không tìm thấy Sổ Tiết Kiệm '" + soSo + "' để thực hiện gửi thêm.");
+      }
+      
+      if (existSo.TrangThai !== "ACTIVE") {
+        throw new Error("Sổ Tiết Kiệm '" + soSo + "' đang ở trạng thái " + existSo.TrangThai + ", không thể gửi thêm.");
+      }
+      
+      var soDuCu = parseFloat(existSo.SoDuHienTai) || 0;
+      var soTienThemNum = parseFloat(soTienThem) || 0;
+      var soDuMoi = soDuCu + soTienThemNum;
+      
+      var rate = (payload && payload.LaiSuat) ? parseFloat(payload.LaiSuat) : (parseFloat(existSo.LaiSuat) || 0);
+      var type = (payload && payload.LoaiLai) ? payload.LoaiLai : (existSo.LoaiLai || "Standard");
+      var kyHan = (payload && payload.KyHanMoi) ? payload.KyHanMoi : (existSo.KyHan || "KKH");
+      var tienLaiMoi = SoTietKiemService.calculateInterest(soDuMoi, kyHan, rate, type);
+      
+      Repository.updateBatch(CONFIG.SHEETS.SOTIETKIEM, [{
+        rowIndex: existSo._rowIndex,
+        data: {
+          SoDuHienTai: soDuMoi,
+          LaiSuat: rate,
+          LoaiLai: type,
+          TienLaiDuKien: tienLaiMoi,
+          TrangThai: "ACTIVE"
+        }
+      }]);
+      
+      return { soSo: soSo, soDuMoi: soDuMoi };
+    } finally {
+      lock.releaseLock();
     }
   },
   

@@ -212,10 +212,15 @@
     );
     $("#lblDetailSoSo").text(gd.SoSo);
 
-    var loaiGDHtml =
-      gd.LoaiGD === "GUI"
-        ? '<span class="text-success fw-bold">GỬI THÊM</span>'
-        : '<span class="text-danger fw-bold">RÚT TIỀN</span>';
+    var isGuiThem = gd.HinhThuc === 'Gửi thêm' || (gd.GhiChu && gd.GhiChu.indexOf('Gửi thêm') !== -1);
+    var loaiGDHtml = "";
+    if (gd.LoaiGD === "GUI") {
+      loaiGDHtml = isGuiThem 
+        ? '<span class="badge bg-primary px-2 py-1"><i class="bx bx-layer-plus"></i> GỬI THÊM VÀO SỔ</span>' 
+        : '<span class="badge bg-success px-2 py-1"><i class="bx bx-plus-circle"></i> MỞ SỔ MỚI</span>';
+    } else {
+      loaiGDHtml = '<span class="badge bg-danger px-2 py-1"><i class="bx bx-minus-circle"></i> RÚT TIỀN</span>';
+    }
     $("#lblDetailLoaiGD").html(loaiGDHtml);
 
     var soTienHtml =
