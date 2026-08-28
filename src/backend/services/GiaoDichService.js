@@ -211,9 +211,10 @@ var GiaoDichService = {
                }
            } else if (gdData.LoaiGD === CONFIG.GIAO_DICH.RUT) {
                // 2c. Xử lý Rút Tiền từ sổ hiện tại
-               var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM);
-               var soTietKiem = allSo.filter(function(so) { return so.SoSo === gdData.SoSo; })[0];
-               if (!soTietKiem) throw new Error("Không tìm thấy Sổ Tiết Kiệm đính kèm lệnh Rút này.");
+               var allSo = Repository.getAll(CONFIG.SHEETS.SOTIETKIEM, false);
+               var targetSo = String(finalSoSo || gdData.SoSo).trim().toUpperCase();
+               var soTietKiem = allSo.filter(function(so) { return String(so.SoSo).trim().toUpperCase() === targetSo; })[0];
+               if (!soTietKiem) throw new Error("Không tìm thấy Sổ Tiết Kiệm '" + targetSo + "' đính kèm lệnh Rút này.");
                
                var soTienRut = parseFloat(finalSoTien);
                var soTienHienTai = parseFloat(soTietKiem.SoDuHienTai);
