@@ -4175,11 +4175,20 @@
             var htmlForm = `
                     <div class="text-start mt-3">
                         <div class="mb-2 p-2 rounded bg-light border">
-                          <span class="badge ${isRut ? 'bg-danger' : (isGuiThem ? 'bg-primary' : 'bg-success')} me-1">
+                          <span class="badge ${isRut ? 'bg-danger' : (isGuiThem ? 'bg-primary' : 'bg-success')} me-1" id="swal-badge-type">
                             ${isRut ? 'RÚT TIỀN' : (isGuiThem ? 'GỬI THÊM VÀO SỔ' : 'MỞ SỔ MỚI')}
                           </span>
                           <span class="small text-muted">Mã GD: <b>${gd.MaGD}</b></span>
                         </div>
+
+                        ${!isRut ? `
+                        <label class="form-label text-muted fw-bold small mb-1">Hình Thức Giao Dịch Gửi <span class="text-danger">(*)</span></label>
+                        <select id="swal-hinhthuc" class="form-select mb-3 border-primary">
+                          <option value="Mở mới" ${!isGuiThem ? 'selected' : ''}>➕ Mở Sổ Tiết Kiệm Mới</option>
+                          <option value="Gửi thêm" ${isGuiThem ? 'selected' : ''}>📑 Gửi Thêm Vào Sổ Hiện Có</option>
+                        </select>
+                        ` : ''}
+
                         <label class="form-label text-muted fw-bold small mb-1">Số Sổ Tiết Kiệm <span class="text-danger">(*)</span></label>
                         <input id="swal-soso" class="form-control mb-1 border-primary text-uppercase"
                                value="${soSoDefault}"
@@ -4263,6 +4272,17 @@
                   }
                   soSoInput.addEventListener('input', validateSoSo);
                   validateSoSo(); // chạy lần đầu
+                // Lắng nghe thay đổi hình thức
+                var hinhThucSel = document.getElementById('swal-hinhthuc');
+                if (hinhThucSel) {
+                  hinhThucSel.addEventListener('change', function() {
+                    var isAdd = this.value === 'Gửi thêm';
+                    var badge = document.getElementById('swal-badge-type');
+                    if (badge) {
+                      badge.className = 'badge ' + (isAdd ? 'bg-primary' : 'bg-success') + ' me-1';
+                      badge.innerHTML = isAdd ? 'GỬI THÊM VÀO SỔ' : 'MỞ SỔ MỚI';
+                    }
+                  });
                 }
               },
               preConfirm: () => {
@@ -4276,6 +4296,8 @@
                 var newMaCDEl = document.getElementById("swal-macd");
                 var newMaCD = newMaCDEl ? newMaCDEl.value : null;
                 var newNgayGD = document.getElementById("swal-ngaygd").value;
+                var newHinhThucEl = document.getElementById("swal-hinhthuc");
+                var newHinhThuc = newHinhThucEl ? newHinhThucEl.value : (isRut ? "Rút tiền" : (isGuiThem ? "Gửi thêm" : "Mở mới"));
 
                 if (!isRut && !SOSO_REGEX.test(newSoSo)) {
                   Swal.showValidationMessage(
@@ -4294,7 +4316,8 @@
                   SoTienMoi: newSoTien,
                   KyHanMoi: newKyHan,
                   NgayGDMoi: newNgayGD,
-                  MaCDMoi: newMaCD
+                  MaCDMoi: newMaCD,
+                  HinhThucMoi: newHinhThuc
                 };
               },
             }).then((r) => {

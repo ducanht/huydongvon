@@ -6,10 +6,6 @@ var GiaoDichService = {
   
   /**
    * Xử lý Nghiệp vụ Gửi Tiền Mới
-   * payload: { CCCD, HoTen, Sdt, DiaChi, SoSo, SoTien, KyHan, LoaiSanh, MaCD }
-   */
-  /**
-   * Xử lý Nghiệp vụ Gửi Tiền Mới
    * payload: { CCCD, HoTen, Sdt, DiaChi, SoSo, SoTien, KyHan, LoaiSanh, MaCD, HinhThuc, LaiSuat, LoaiLai }
    */
   themGiaoDichGui: function(user, payload) {
@@ -28,7 +24,8 @@ var GiaoDichService = {
       throw new Error("Số tiền gửi tối thiểu là " + minDeposit.toLocaleString('vi-VN') + " VNĐ.");
     }
     
-    var hinhThuc = payload.HinhThuc || (payload.SoSo ? 'Gửi thêm' : 'Mở mới');
+    // Mặc định luôn là 'Mở mới' trừ khi người dùng chọn rõ 'Gửi thêm'
+    var hinhThuc = (payload.HinhThuc && String(payload.HinhThuc).trim() === 'Gửi thêm') ? 'Gửi thêm' : 'Mở mới';
 
     // 1.1. Validate theo Hình Thức Giao Dịch
     if (hinhThuc === 'Gửi thêm') {
@@ -48,14 +45,11 @@ var GiaoDichService = {
         throw new Error("Sổ tiết kiệm này thuộc quyền quản lý của Cán bộ khác. Bạn không thể tạo lệnh gửi thêm vào sổ này.");
       }
     } else {
-      // Mở mới
+      // Mở mới: Nếu đã nhập số sổ chính thức (đúng chuẩn 9 ký tự), kiểm tra trùng lặp
       if (payload.SoSo && String(payload.SoSo).trim() !== '') {
         var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
         var targetSo = String(payload.SoSo).trim().toUpperCase();
-        if (!sosoPattern.test(targetSo)) {
-          throw new Error("Số sổ mở mới '" + targetSo + "' không đúng định dạng (Yêu cầu 2 chữ cái in hoa + 7 chữ số, VD: TK0001234).");
-        }
-        if (SoTietKiemService.isSoTietKiemExists(targetSo)) {
+        if (sosoPattern.test(targetSo) && SoTietKiemService.isSoTietKiemExists(targetSo)) {
           throw new Error("Số sổ '" + targetSo + "' đã tồn tại trên hệ thống. Nếu muốn gửi thêm, vui lòng chọn hình thức 'Gửi thêm vào sổ cũ'.");
         }
       }
@@ -142,16 +136,14 @@ var GiaoDichService = {
            rowIndex: gdData._rowIndex,
            data: { 
              TrangThai: "REJECTED",
-             GhiChu: gdData.GhiChu + " | ĐÃ BỊ TỪ CHỐI BỞI ADMIN LÚC " + now.toLocaleString('vi-VN') + " (" + user.MaNV + ") | " + customReason,
-             DuyetBoi: user.MaNV,
-             NgayDuyet: now
+             GhiChu: gdData.GhiChu + " | BỊ TỪ CHỐI BỞI: " + user.MaNV + " (" + customReason + ")"
            }
          }]);
          return "Đã TỪ CHỐI giao dịch " + payload.MaGD;
       } 
       
       if (payload.Action === "APPROVE") {
-         var cleanGhiChu = gdData.GhiChu.split(" | SYS_DATA:")[0];
+         var cleanGhiChu = (gdData.GhiChu || "").split(" | SYS_DATA:")[0];
          
          var finalSoSo = payload.SoSoMoi ? payload.SoSoMoi.trim().toUpperCase() : (gdData.SoSo ? gdData.SoSo.trim().toUpperCase() : "");
          var sosoPattern = /^[A-Z]{2}[0-9]{7}$/;
@@ -170,7 +162,11 @@ var GiaoDichService = {
          var finalLoaiSanh = payload.LoaiSanhMoi || gdData.LoaiSanh || "BT";
          var finalLaiSuat = payload.LaiSuat !== undefined ? parseFloat(payload.LaiSuat) : (parseFloat(gdData.LaiSuat) || 0);
          var finalLoaiLai = payload.LoaiLai || gdData.LoaiLai || "Standard";
-         var hinhThuc = gdData.HinhThuc || (gdData.GhiChu && gdData.GhiChu.indexOf('Gửi thêm') !== -1 ? 'Gửi thêm' : 'Mở mới');
+         
+         // Xác định hình thức: ưu tiên payload Admin gửi -> nếu số sổ chưa có trên hệ thống thì tự động là 'Mở mới'
+         var isExistSo = SoTietKiemService.isSoTietKiemExists(finalSoSo);
+         var requestedHinhThuc = payload.HinhThucMoi || gdData.HinhThuc;
+         var hinhThuc = (requestedHinhThuc === 'Gửi thêm' && isExistSo) ? 'Gửi thêm' : 'Mở mới';
 
          var adminEditsStr = "";
          if (payload.SoSoMoi || payload.SoTienMoi || payload.NgayGDMoi || payload.KyHanMoi || payload.MaCDMoi) {
